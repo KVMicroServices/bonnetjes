@@ -1,5 +1,9 @@
 # Changes
 
+## [006] Auto-baseline existing databases on first migration
+
+**What**: Entrypoint now catches P3005 (non-empty schema) and automatically marks the initial migration as applied before retrying, so existing databases transition to migrations without manual intervention.
+
 ## [005] Run database seed on staging startup
 
 **What**: Entrypoint now runs `prisma db seed` when `NODE_ENV` is not `production`, so staging containers get seeded automatically on boot.
