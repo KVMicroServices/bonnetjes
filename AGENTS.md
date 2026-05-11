@@ -11,6 +11,10 @@
 
 ## Spec Scope
 
+**Task structure**: Use a flat list of top-level checkboxes only. Never use `##` headers, nested bullets, or numbered subtasks (1.1, 1.2). Each `- [ ]` is one self-contained deliverable described in a single sentence with all relevant detail inline. This lets Kiro's dependency analyzer parallelize independent tasks into waves.
+
+**Avoid ordering language**: Drop words like "first", "then", "after", "using the X from above", "verify". Add such language only when the dependency is real and matters.
+
 **Checkpoints** Never include checkpoints tasks. all tasks need to be based on actual features and test execution will happen when the user decides.
 
 **Size**: Task lists must stay under 10 tasks, preferably 5 or less. keep them tiny. If a feature needs more, first rethink whether you are over engineering the problem's solution, if not, split it into multiple specs. Before creating any spec, discuss scope with the user and warn if it's trying to do too much at once, and let them tell you if it's simpler than you suspect.
