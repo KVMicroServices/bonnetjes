@@ -1,5 +1,14 @@
 # Changes
 
+## [005] Run database seed on staging startup
+
+**What**: Entrypoint now runs `prisma db seed` when `NODE_ENV` is not `production`, so staging containers get seeded automatically on boot.
+
+## [004] Run Prisma migrations on container startup
+
+**What**: Added a shared entrypoint script that runs `prisma migrate deploy` before starting the app in both production and staging Docker targets.
+**Files**: `scripts/docker-entrypoint.sh`, `Dockerfile`
+
 ## [003] Add missing CMD instructions to Dockerfile
 
 **What**: Added `CMD` to both production and staging stages — containers were exiting immediately with code 0 because there was nothing to run.

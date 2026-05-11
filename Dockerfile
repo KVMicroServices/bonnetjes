@@ -44,12 +44,15 @@ COPY --from=dependencies /app/node_modules/prisma ./node_modules/prisma
 COPY --from=dependencies /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=dependencies /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
+COPY --chmod=755 scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "server.js"]
 
 # --- Staging stage (full install, migrations, seeding available) ---
@@ -67,8 +70,11 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/.npmrc ./.npmrc
 COPY --from=builder /app/next.config.js ./next.config.js
 
+COPY --chmod=755 scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["npm", "run", "start"]

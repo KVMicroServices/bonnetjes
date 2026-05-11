@@ -1,6 +1,5 @@
 [build]
 dockerfilePath = "Dockerfile"
-watchPatterns = ["/docs/changelogs/**"]
 
 [deploy]
 healthcheckPath = "/api/health"
