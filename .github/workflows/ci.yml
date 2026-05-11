@@ -1,0 +1,10 @@
+# Fill with project specifics.
+#
+# Note, only do ci on pull requests, eg:
+#
+# on:
+#   pull_request:
+#     branches: [main, development]
+#
+# never on pushes
+

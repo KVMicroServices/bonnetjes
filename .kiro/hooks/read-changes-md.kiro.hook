@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "enabled": true,
+  "name": "Read CHANGES.md",
+  "description": "On first message in a chat, reads the top entries of CHANGES.md to note recent decisions.",
+  "when": {
+    "type": "promptSubmit"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "If this is the first message in the conversation, read the top 4-5 entries of CHANGES.md and note any recent decisions that may affect your work. If this is not the first message, skip this silently without mention. Additionally include all the steering docs if they have not been included in the conversation yet. if this is not the first mention, skip this part silently without mention."
+  }
+}
