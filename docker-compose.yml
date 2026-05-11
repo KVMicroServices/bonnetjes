@@ -20,6 +20,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: ${DOCKER_TARGET:-staging}
     restart: unless-stopped
     ports:
       - "3000:3000"
