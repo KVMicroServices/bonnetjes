@@ -3,6 +3,7 @@ import {
   ListObjectsV2Command,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logger } from "@/lib/logger";
 import type { S3ObjectInfo, SyncConfiguration } from "./types";
 
@@ -97,5 +98,15 @@ export class KvS3Client {
       );
       throw error;
     }
+  }
+
+  async getPresignedDownloadUrl(s3Key: string, expiresInSeconds: number): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: s3Key,
+    });
+
+    const url = await getSignedUrl(this.s3Client, command, { expiresIn: expiresInSeconds });
+    return url;
   }
 }

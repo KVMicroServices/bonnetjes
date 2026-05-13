@@ -184,6 +184,8 @@ export interface FraudDetectionModule {
 
 const DEFAULT_OCR_CONFIDENCE = 100;
 const UNKNOWN_DATE_KEY = "unknown";
+const KV_SYNC_PATH_PREFIX = "kv-sync:";
+const KV_PRESIGNED_URL_EXPIRY_SECONDS = 3600;
 
 // ─── Service Functions ───────────────────────────────────────────────────────
 
@@ -419,6 +421,20 @@ export async function getDownloadUrl(
     });
   }
 
+  // Handle KV-synced receipts (stored in external S3 bucket, not R2)
+  if (receipt.cloudStoragePath.startsWith(KV_SYNC_PATH_PREFIX)) {
+    const s3Key = receipt.cloudStoragePath.substring(KV_SYNC_PATH_PREFIX.length);
+    const downloadUrl = await getKvSyncDownloadUrl(s3Key);
+    if (!downloadUrl) {
+      return { success: false, error: "KV S3 bucket not configured", statusCode: 503 };
+    }
+    return {
+      success: true,
+      downloadUrl,
+      filename: receipt.originalFilename,
+    };
+  }
+
   const downloadUrl = await dependencies.storage.getFileUrl(
     receipt.cloudStoragePath,
     receipt.isPublic
@@ -432,6 +448,20 @@ export async function getDownloadUrl(
 }
 
 // ─── Internal Helpers ────────────────────────────────────────────────────────
+
+async function getKvSyncDownloadUrl(s3Key: string): Promise<string | null> {
+  const { loadSyncConfiguration } = await import("@/lib/receipt-sync/config");
+  const { KvS3Client } = await import("@/lib/receipt-sync/kv-s3-client");
+
+  const configuration = loadSyncConfiguration();
+  if (!configuration || configuration.kvReceiptS3BucketName.length === 0) {
+    return null;
+  }
+
+  const kvS3Client = new KvS3Client(configuration);
+  const url = await kvS3Client.getPresignedDownloadUrl(s3Key, KV_PRESIGNED_URL_EXPIRY_SECONDS);
+  return url;
+}
 
 async function runFraudDetectionPipeline(
   dependencies: ReceiptServiceDependencies,
