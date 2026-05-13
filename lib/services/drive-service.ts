@@ -23,6 +23,7 @@ export interface StorageUploadClient {
     isPublic: boolean
   ): Promise<{ uploadUrl: string; cloud_storage_path: string }>;
   getFileAsBuffer(cloudStoragePath: string): Promise<Buffer>;
+  getFileUrl(cloudStoragePath: string, isPublic: boolean): Promise<string>;
 }
 
 export interface OcrServiceClient {

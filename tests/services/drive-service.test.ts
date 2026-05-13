@@ -43,6 +43,7 @@ function createMockStorage(): StorageUploadClient {
       cloud_storage_path: "uploads/imported-file.jpg",
     }),
     getFileAsBuffer: vi.fn().mockResolvedValue(Buffer.from("fake-content")),
+    getFileUrl: vi.fn().mockResolvedValue("https://storage.example.com/uploads/imported-file.jpg"),
   };
 }
 

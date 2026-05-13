@@ -3,17 +3,9 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { getWatermark, upsertWatermark } from "@/lib/receipt-sync/state-repository";
-import { executeTick } from "@/lib/receipt-sync";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const BACKFILL_DAYS = 30;
-const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
-const BACKFILL_WINDOW_MILLISECONDS = BACKFILL_DAYS * MILLISECONDS_PER_DAY;
-
-// ─── Backfill Handler ─────────────────────────────────────────────────────────
+import { executeBackfill } from "@/lib/services/receipt-sync-service";
 
 export async function POST(request: Request) {
   try {
@@ -30,6 +22,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const tenantId = body.tenantId;
     const force = body.force === true;
+    const days = typeof body.days === "number" && Number.isFinite(body.days) ? body.days : undefined;
 
     if (tenantId === undefined || tenantId === null || typeof tenantId !== "number" || !Number.isFinite(tenantId)) {
       return NextResponse.json(
@@ -38,42 +31,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingWatermark = await getWatermark(tenantId);
+    const result = await executeBackfill({ database: prisma }, tenantId, force, days);
 
-    if (existingWatermark && !force) {
-      const now = new Date();
-      const watermarkAgeMilliseconds = now.getTime() - existingWatermark.watermark.getTime();
-      const isWithinBackfillWindow = watermarkAgeMilliseconds < BACKFILL_WINDOW_MILLISECONDS;
-
-      if (isWithinBackfillWindow) {
-        return NextResponse.json(
-          {
-            error: "Watermark is already within 30 days. Use force: true to override.",
-            currentWatermark: existingWatermark.watermark.toISOString(),
-          },
-          { status: 409 }
-        );
+    if (!result.success) {
+      const responseBody: Record<string, unknown> = { error: result.error };
+      if (result.currentWatermark) {
+        responseBody.currentWatermark = result.currentWatermark;
       }
+      return NextResponse.json(responseBody, { status: result.statusCode });
     }
 
-    const backfillWatermark = new Date(Date.now() - BACKFILL_WINDOW_MILLISECONDS);
-    await upsertWatermark(tenantId, backfillWatermark);
-
-    logger.info(
-      { tenantId, backfillWatermark: backfillWatermark.toISOString(), force },
-      "Backfill initiated, executing immediate tick"
-    );
-
-    const tickResults = await executeTick();
-
-    return NextResponse.json(
-      {
-        message: "Backfill completed",
-        watermarkSetTo: backfillWatermark.toISOString(),
-        tickResults: tickResults,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json(result.data, { status: 200 });
   } catch (error: unknown) {
     logger.error({ error }, "Backfill endpoint failed");
     return NextResponse.json(

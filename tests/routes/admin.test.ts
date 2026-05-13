@@ -72,7 +72,7 @@ const SUPER_ADMIN_USER = {
 // ─── Helper Functions ──────────────────────────────────────────────────────────
 
 function createRequest(url: string, options?: RequestInit): NextRequest {
-  return new NextRequest(new URL(url, "http://localhost:3000"), options);
+  return new NextRequest(new URL(url, "http://localhost:3000"), options as Record<string, unknown>);
 }
 
 function createPatchRequest(url: string, body: unknown): NextRequest {

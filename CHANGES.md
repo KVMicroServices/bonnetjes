@@ -1,5 +1,36 @@
 # Changes
 
+## [032] Fix KV API response parsing and process reviews per-location
+
+**What**: Fixed locations URL (removed `dateSince`, only `updatedSince`), fixed reviews response parsing (`response.reviews[]` with `dateSince` as creation date), restructured sync engine to process reviews immediately per-location with resumability.
+**Decisions**:
+- Locations endpoint only needs `updatedSince` (returns locations with new reviews, not newly created)
+- Reviews response is `{ reviews: [{ reviewId, dateSince, reviewAuthor, rating, ... }] }` — mapped to internal `ReviewDto`
+- Process reviews immediately after each location fetch (receipts appear in admin as they're found)
+- Track location progress via marker records in `ReceiptSyncState` so interrupted ticks resume from last location
+- Default backfill changed from 30 days to 5 days
+**Files**: `lib/receipt-sync/kv-api-client.ts`, `lib/receipt-sync/sync-engine.ts`, `lib/receipt-sync/types.ts`, `lib/services/receipt-sync-service.ts`, `app/api/admin/receipt-sync/backfill/route.ts`, `scripts/backfill-sync.sh`
+
+## [031] Fix KV API client URLs and add backfill script
+
+**What**: Fixed incorrect API endpoint paths in `kv-api-client.ts` to match the real KV publication API; added `scripts/backfill-sync.sh` for triggering backfill from CLI.
+**Decisions**:
+- Locations uses offset-based pagination (`start` param), reviews uses `pageNumber` — matching the actual API
+- Reviews endpoint returns `{ reviews: [...] }` wrapper, not a bare array — added response unwrapping
+- `KV_API_BASE_URL` should be set to `https://www.klantenvertellen.nl/v1/publication` (includes the `/v1/publication` path prefix)
+- Backfill script authenticates via NextAuth cookie flow (CSRF → credentials callback → session cookie)
+**Files**: `lib/receipt-sync/kv-api-client.ts`, `.env.example`, `scripts/backfill-sync.sh`
+
+## [030] Extract receipt-sync-service and fix pre-existing type errors
+
+**What**: Moved business logic from receipt-sync route handlers into `lib/services/receipt-sync-service.ts`; fixed 5 pre-existing type errors across the codebase.
+**Decisions**:
+- Excluded `vitest.config.ts` from tsconfig (TS 5.2 can't parse `@vitejs/plugin-react@6` type defs)
+- Added `getFileUrl` to `StorageUploadClient` interface (was missing, causing type mismatch with `StorageClient`)
+- Cast `RequestInit` to `Record<string, unknown>` in test helpers (Next.js `RequestInit` type doesn't accept `signal: null`)
+- Service uses dependency injection consistent with other services
+**Files**: `tsconfig.json`, `lib/services/receipt-sync-service.ts`, `lib/services/drive-service.ts`, `app/api/admin/receipt-sync/health/route.ts`, `app/api/admin/receipt-sync/backfill/route.ts`, `tests/routes/admin.test.ts`, `tests/routes/drive.test.ts`, `tests/routes/receipts.test.ts`, `tests/routes/reviews.test.ts`, `tests/services/drive-service.test.ts`
+
 ## [029] Add unit tests for ocr-service
 
 **What**: Created `tests/services/ocr-service.test.ts` with 19 unit tests covering all exported OCR service functions

@@ -11,6 +11,7 @@ import {
   getFailedStatesForRetry,
 } from "./state-repository";
 import { createReceiptFromSync } from "./receipt-creator";
+import { prisma } from "@/lib/db";
 import type {
   SyncConfiguration,
   TenantToken,
@@ -81,64 +82,12 @@ async function executeTickForTenant(
 
   // Subtract safety seconds from watermark for query
   const safetyMilliseconds = configuration.watermarkSafetySeconds * MILLISECONDS_PER_SECOND;
-  const queryDateSince = new Date(watermarkDate.getTime() - safetyMilliseconds);
+  const queryUpdatedSince = new Date(watermarkDate.getTime() - safetyMilliseconds);
 
   const kvApiClient = new KvApiClient(configuration);
 
-  // Discover locations
-  const allReviews: ReviewDto[] = [];
-  let locationsDiscovered = 0;
-
-  const locationBatches: string[][] = [];
-  let currentBatch: string[] = [];
-
-  for await (const locationPage of kvApiClient.fetchLocationsLatest(
-    tenantToken.token,
-    queryDateSince,
-    configuration.pageSize
-  )) {
-    for (const location of locationPage) {
-      locationsDiscovered = locationsDiscovered + 1;
-      currentBatch.push(location.locationId);
-
-      if (currentBatch.length >= configuration.workerConcurrency) {
-        locationBatches.push(currentBatch);
-        currentBatch = [];
-      }
-    }
-  }
-
-  if (currentBatch.length > 0) {
-    locationBatches.push(currentBatch);
-  }
-
-  // Process location batches with concurrency limit
-  for (const batch of locationBatches) {
-    const batchPromises = batch.map((locationId) =>
-      discoverReviewsForLocation(
-        kvApiClient,
-        tenantToken.token,
-        locationId,
-        queryDateSince,
-        configuration.pageSize
-      )
-    );
-
-    const batchResults = await Promise.all(batchPromises);
-    for (const reviews of batchResults) {
-      allReviews.push(...reviews);
-    }
-  }
-
-  // Also retry previously failed reviews
-  const failedStates = await getFailedStatesForRetry(tenantId, configuration.maxRetryAttempts);
-  const failedReviewIds = new Set(failedStates.map((state) => state.reviewId));
-
-  // Process reviews and resolve receipts
-  let receiptsProcessed = 0;
-  let noReceiptCount = 0;
-  let failedCount = 0;
-  let maxObservedDate: Date | null = null;
+  // Check which locations were already processed in a previous (interrupted) run
+  const processedLocationIds = await getProcessedLocationIdsForTick(tick.id);
 
   const s3Enabled = configuration.kvReceiptS3BucketName.length > 0;
   let kvS3Client: KvS3Client | null = null;
@@ -146,36 +95,122 @@ async function executeTickForTenant(
     kvS3Client = new KvS3Client(configuration);
   }
 
-  for (const review of allReviews) {
-    const reviewCreatedAt = new Date(review.createdAt);
-    if (!maxObservedDate || reviewCreatedAt > maxObservedDate) {
-      maxObservedDate = reviewCreatedAt;
-    }
+  let locationsDiscovered = 0;
+  let totalReviewsDiscovered = 0;
+  let receiptsProcessed = 0;
+  let noReceiptCount = 0;
+  let failedCount = 0;
+  let skippedCount = 0;
+  let maxObservedDate: Date | null = null;
+  let locationIndex = 0;
 
-    const result = await processReview(
-      review,
-      tenantId,
-      kvS3Client,
-      configuration.receiptAutoVerifyEnabled
+  // ─── Stream location pages: discover batch → process batch → next batch ─────
+
+  for await (const locationPage of kvApiClient.fetchLocationsLatest(
+    tenantToken.token,
+    queryUpdatedSince,
+    configuration.pageSize
+  )) {
+    locationsDiscovered = locationsDiscovered + locationPage.length;
+
+    logger.info(
+      { tenantId, batchSize: locationPage.length, locationsDiscoveredSoFar: locationsDiscovered },
+      "Location batch received, processing immediately"
     );
 
-    if (result === "PROCESSED") {
-      receiptsProcessed = receiptsProcessed + 1;
-    } else if (result === "NO_RECEIPT") {
-      noReceiptCount = noReceiptCount + 1;
-    } else if (result === "FAILED") {
-      failedCount = failedCount + 1;
+    for (const location of locationPage) {
+      locationIndex = locationIndex + 1;
+
+      // Skip locations already processed in a previous interrupted run
+      if (processedLocationIds.has(location.locationId)) {
+        logger.info(
+          { tenantId, locationId: location.locationId, locationName: location.locationName, locationIndex },
+          "Skipping already-processed location (resuming)"
+        );
+        continue;
+      }
+
+      logger.info(
+        { tenantId, locationId: location.locationId, locationName: location.locationName, locationIndex },
+        "Processing location"
+      );
+
+      // Fetch reviews for this location
+      const locationReviews: ReviewDto[] = [];
+
+      for await (const reviewPage of kvApiClient.fetchReviewsForLocation(
+        tenantToken.token,
+        location.locationId,
+        queryUpdatedSince,
+        configuration.pageSize
+      )) {
+        locationReviews.push(...reviewPage);
+      }
+
+      totalReviewsDiscovered = totalReviewsDiscovered + locationReviews.length;
+
+      // Process each review immediately
+      for (const review of locationReviews) {
+        const reviewCreatedAt = new Date(review.createdAt);
+        if (!maxObservedDate || reviewCreatedAt > maxObservedDate) {
+          maxObservedDate = reviewCreatedAt;
+        }
+
+        const result = await processReview(
+          review,
+          tenantId,
+          kvS3Client,
+          configuration.receiptAutoVerifyEnabled
+        );
+
+        if (result === "PROCESSED") {
+          receiptsProcessed = receiptsProcessed + 1;
+        } else if (result === "NO_RECEIPT") {
+          noReceiptCount = noReceiptCount + 1;
+        } else if (result === "FAILED") {
+          failedCount = failedCount + 1;
+        } else {
+          skippedCount = skippedCount + 1;
+        }
+      }
+
+      // Mark this location as processed for resumability
+      await markLocationProcessedForTick(tick.id, location.locationId);
+
+      logger.info(
+        {
+          tenantId,
+          locationId: location.locationId,
+          locationName: location.locationName,
+          reviewsInLocation: locationReviews.length,
+          locationIndex,
+          receiptsProcessed,
+          noReceiptCount,
+          failedCount,
+          skippedCount,
+        },
+        "Location processing complete"
+      );
     }
-    // "SKIPPED" means already handled, don't count
   }
 
-  // Retry failed reviews from previous ticks
-  for (const failedState of failedStates) {
-    if (failedReviewIds.has(failedState.reviewId)) {
+  // ─── Retry previously failed reviews ───────────────────────────────────────
+
+  const failedStates = await getFailedStatesForRetry(tenantId, configuration.maxRetryAttempts);
+
+  if (failedStates.length > 0) {
+    logger.info(
+      { tenantId, failedRetries: failedStates.length },
+      "Retrying previously failed reviews"
+    );
+
+    for (const failedState of failedStates) {
       const syntheticReview: ReviewDto = {
         reviewId: failedState.reviewId,
         locationId: failedState.locationId,
         createdAt: failedState.processedAt.toISOString(),
+        reviewAuthor: null,
+        rating: null,
         shopName: null,
         reviewDate: null,
         amount: null,
@@ -199,7 +234,8 @@ async function executeTickForTenant(
     }
   }
 
-  // Update watermark to max observed date
+  // ─── Finalize ──────────────────────────────────────────────────────────────
+
   let newWatermark: Date;
   if (maxObservedDate) {
     newWatermark = maxObservedDate;
@@ -208,11 +244,10 @@ async function executeTickForTenant(
     newWatermark = watermarkDate;
   }
 
-  // Complete tick record
   await completeTick({
     tickId: tick.id,
     locationsDiscovered,
-    reviewsDiscovered: allReviews.length,
+    reviewsDiscovered: totalReviewsDiscovered,
     receiptsProcessed,
     noReceiptCount,
     failedCount,
@@ -224,10 +259,11 @@ async function executeTickForTenant(
     {
       tenantId,
       locationsDiscovered,
-      reviewsDiscovered: allReviews.length,
+      reviewsDiscovered: totalReviewsDiscovered,
       receiptsProcessed,
       noReceiptCount,
       failedCount,
+      skippedCount,
       durationMilliseconds,
     },
     "Tick completed for tenant"
@@ -236,7 +272,7 @@ async function executeTickForTenant(
   return {
     tenantId,
     locationsDiscovered,
-    reviewsDiscovered: allReviews.length,
+    reviewsDiscovered: totalReviewsDiscovered,
     receiptsProcessed,
     noReceiptCount,
     failedCount,
@@ -245,27 +281,38 @@ async function executeTickForTenant(
   };
 }
 
-// ─── Review Discovery ─────────────────────────────────────────────────────────
+// ─── Location Progress Tracking ───────────────────────────────────────────────
 
-async function discoverReviewsForLocation(
-  kvApiClient: KvApiClient,
-  token: string,
-  locationId: string,
-  dateSince: Date,
-  pageSize: number
-): Promise<ReviewDto[]> {
-  const reviews: ReviewDto[] = [];
+async function getProcessedLocationIdsForTick(tickId: string): Promise<Set<string>> {
+  const markerPrefix = `tick-progress:${tickId}:`;
 
-  for await (const reviewPage of kvApiClient.fetchReviewsForLocation(
-    token,
-    locationId,
-    dateSince,
-    pageSize
-  )) {
-    reviews.push(...reviewPage);
-  }
+  const records = await prisma.receiptSyncState.findMany({
+    where: {
+      reviewId: { startsWith: markerPrefix },
+    },
+    select: { locationId: true },
+  });
 
-  return reviews;
+  return new Set(records.map((record) => record.locationId));
+}
+
+async function markLocationProcessedForTick(tickId: string, locationId: string): Promise<void> {
+  const markerId = `tick-progress:${tickId}:${locationId}`;
+
+  await prisma.receiptSyncState.upsert({
+    where: { reviewId: markerId },
+    create: {
+      reviewId: markerId,
+      tenantId: 0,
+      locationId: locationId,
+      status: "PROCESSED",
+      processedAt: new Date(),
+      receiptContent: JSON.stringify({ tickId, locationId, type: "location-progress-marker" }),
+    },
+    update: {
+      processedAt: new Date(),
+    },
+  });
 }
 
 // ─── Review Processing ────────────────────────────────────────────────────────
@@ -279,7 +326,6 @@ async function processReview(
   receiptAutoVerifyEnabled: boolean,
   previousAttemptCount?: number
 ): Promise<ProcessResult> {
-  // Check if already handled
   const existingState = await getStateByReviewId(review.reviewId);
   if (existingState) {
     if (existingState.status === "PROCESSED" || existingState.status === "NO_RECEIPT") {
@@ -287,7 +333,6 @@ async function processReview(
     }
   }
 
-  // If S3 is not configured, mark as NO_RECEIPT
   if (!kvS3Client) {
     await upsertState({
       reviewId: review.reviewId,
@@ -325,6 +370,8 @@ async function processReview(
       shopName: review.shopName,
       reviewDate: review.reviewDate,
       amount: review.amount,
+      reviewAuthor: review.reviewAuthor,
+      rating: review.rating,
     });
 
     await upsertState({
@@ -337,6 +384,11 @@ async function processReview(
       receiptContent: receiptMetadata,
       receiptId,
     });
+
+    logger.info(
+      { reviewId: review.reviewId, locationId: review.locationId, s3Key: firstObject.key },
+      "Receipt processed successfully"
+    );
 
     return "PROCESSED";
   } catch (error: unknown) {

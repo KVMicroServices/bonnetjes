@@ -37,6 +37,8 @@
     ".build/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "vitest.config.ts",
+    "tests/ai-integration/vitest.config.ts"
   ]
 }

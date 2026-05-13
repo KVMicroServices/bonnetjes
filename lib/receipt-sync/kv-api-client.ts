@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import type { LocationDto, ReviewDto, SyncConfiguration } from "./types";
+import type { LocationDto, ReviewDto, RawKvReviewsResponse, SyncConfiguration } from "./types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -13,23 +13,53 @@ const HTTP_STATUS_CLIENT_ERROR_THRESHOLD = 400;
 // ─── Rate Limiter ─────────────────────────────────────────────────────────────
 
 export class TokenBucketRateLimiter {
-  private lastRequestTimestamp: number = 0;
+  private nextAvailableTimestamp: number = 0;
   private readonly minimumIntervalMilliseconds: number;
+  private pendingQueue: Array<() => void> = [];
+  private isProcessing: boolean = false;
 
   constructor(rateLimitSeconds: number) {
     this.minimumIntervalMilliseconds = rateLimitSeconds * 1000;
   }
 
   async waitForToken(): Promise<void> {
-    const now = Date.now();
-    const elapsedSinceLastRequest = now - this.lastRequestTimestamp;
-    const remainingWaitTime = this.minimumIntervalMilliseconds - elapsedSinceLastRequest;
+    return new Promise<void>((resolve) => {
+      this.pendingQueue.push(resolve);
+      this.processQueue();
+    });
+  }
 
-    if (remainingWaitTime > 0) {
-      await sleep(remainingWaitTime);
+  private processQueue(): void {
+    if (this.isProcessing) {
+      return;
+    }
+    if (this.pendingQueue.length === 0) {
+      return;
     }
 
-    this.lastRequestTimestamp = Date.now();
+    this.isProcessing = true;
+    const nextResolve = this.pendingQueue.shift();
+    if (!nextResolve) {
+      this.isProcessing = false;
+      return;
+    }
+
+    const now = Date.now();
+    const waitTime = this.nextAvailableTimestamp - now;
+
+    if (waitTime <= 0) {
+      this.nextAvailableTimestamp = now + this.minimumIntervalMilliseconds;
+      this.isProcessing = false;
+      nextResolve();
+      this.processQueue();
+    } else {
+      setTimeout(() => {
+        this.nextAvailableTimestamp = Date.now() + this.minimumIntervalMilliseconds;
+        this.isProcessing = false;
+        nextResolve();
+        this.processQueue();
+      }, waitTime);
+    }
   }
 }
 
@@ -51,11 +81,11 @@ export class KvApiClient {
     dateSince: Date,
     pageSize: number
   ): AsyncGenerator<ReadonlyArray<LocationDto>> {
-    let page = 1;
+    let startOffset = 0;
     let hasMorePages = true;
 
     while (hasMorePages) {
-      const url = buildLocationsUrl(this.baseUrl, dateSince, pageSize, page);
+      const url = buildLocationsUrl(this.baseUrl, dateSince, pageSize, startOffset);
       const response = await this.executeRequestWithRetry(url, token);
 
       if (response === null) {
@@ -68,7 +98,7 @@ export class KvApiClient {
       if (locations.length < pageSize) {
         hasMorePages = false;
       } else {
-        page = page + 1;
+        startOffset = startOffset + pageSize;
       }
     }
   }
@@ -79,24 +109,46 @@ export class KvApiClient {
     dateSince: Date,
     pageSize: number
   ): AsyncGenerator<ReadonlyArray<ReviewDto>> {
-    let page = 1;
+    let pageNumber = 0;
     let hasMorePages = true;
 
     while (hasMorePages) {
-      const url = buildReviewsUrl(this.baseUrl, locationId, dateSince, pageSize, page);
+      const url = buildReviewsUrl(this.baseUrl, locationId, dateSince, pageSize, pageNumber);
       const response = await this.executeRequestWithRetry(url, token);
 
       if (response === null) {
         return;
       }
 
-      const reviews: ReviewDto[] = response as ReviewDto[];
+      // The reviews endpoint returns { locationId, reviews: [...] }
+      const responseBody = response as RawKvReviewsResponse;
+      const rawReviews = responseBody.reviews;
+
+      if (!rawReviews || !Array.isArray(rawReviews)) {
+        logger.warn(
+          { locationId, responseKeys: Object.keys(response as object) },
+          "Reviews response missing reviews array"
+        );
+        return;
+      }
+
+      const reviews: ReviewDto[] = rawReviews.map((raw) => ({
+        reviewId: raw.reviewId,
+        locationId: locationId,
+        createdAt: raw.dateSince,
+        reviewAuthor: raw.reviewAuthor || null,
+        rating: raw.rating || null,
+        shopName: null,
+        reviewDate: raw.dateSince,
+        amount: null,
+      }));
+
       yield reviews;
 
       if (reviews.length < pageSize) {
         hasMorePages = false;
       } else {
-        page = page + 1;
+        pageNumber = pageNumber + 1;
       }
     }
   }
@@ -107,6 +159,8 @@ export class KvApiClient {
     while (attemptCount < MAX_API_RETRY_ATTEMPTS) {
       await this.rateLimiter.waitForToken();
 
+      logger.debug({ url, attempt: attemptCount + 1 }, "KV API request starting");
+
       try {
         const response = await fetch(url, {
           method: "GET",
@@ -116,8 +170,18 @@ export class KvApiClient {
           },
         });
 
+        logger.debug(
+          { url, status: response.status, attempt: attemptCount + 1 },
+          "KV API response received"
+        );
+
         if (response.ok) {
           const body = await response.json();
+          const itemCount = Array.isArray(body) ? body.length : (body?.reviews?.length || "n/a");
+          logger.debug(
+            { url, status: response.status, itemCount },
+            "KV API request succeeded"
+          );
           return body;
         }
 
@@ -181,12 +245,13 @@ export class KvApiClient {
 
 function buildLocationsUrl(
   baseUrl: string,
-  dateSince: Date,
+  updatedSince: Date,
   pageSize: number,
-  page: number
+  startOffset: number
 ): string {
-  const dateSinceIso = dateSince.toISOString();
-  return `${baseUrl}/v1/review/feed/locations/latest?dateSince=${encodeURIComponent(dateSinceIso)}&limit=${pageSize}&page=${page}`;
+  const updatedSinceIso = updatedSince.toISOString();
+  const encodedUpdatedSince = encodeURIComponent(updatedSinceIso);
+  return `${baseUrl}/review/locations/latest?updatedSince=${encodedUpdatedSince}&start=${startOffset}&limit=${pageSize}`;
 }
 
 function buildReviewsUrl(
@@ -194,10 +259,11 @@ function buildReviewsUrl(
   locationId: string,
   dateSince: Date,
   pageSize: number,
-  page: number
+  pageNumber: number
 ): string {
   const dateSinceIso = dateSince.toISOString();
-  return `${baseUrl}/v1/review/feed/locations/${encodeURIComponent(locationId)}/reviews/external?dateSince=${encodeURIComponent(dateSinceIso)}&limit=${pageSize}&page=${page}`;
+  const encodedDateSince = encodeURIComponent(dateSinceIso);
+  return `${baseUrl}/review/external?locationId=${encodeURIComponent(locationId)}&dateSince=${encodedDateSince}&orderBy=CREATE_DATE&sortOrder=ASC&pageNumber=${pageNumber}&limit=${pageSize}`;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

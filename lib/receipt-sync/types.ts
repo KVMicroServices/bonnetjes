@@ -40,16 +40,35 @@ export type ReviewSyncStatus = "PROCESSED" | "NO_RECEIPT" | "FAILED";
 
 export interface LocationDto {
   readonly locationId: string;
-  readonly name: string;
+  readonly locationName: string;
+  readonly uniqueId: number;
 }
 
 export interface ReviewDto {
   readonly reviewId: string;
   readonly locationId: string;
   readonly createdAt: string;
+  readonly reviewAuthor: string | null;
+  readonly rating: number | null;
   readonly shopName: string | null;
   readonly reviewDate: string | null;
   readonly amount: number | null;
+}
+
+// ─── Raw API response types (for parsing) ─────────────────────────────────────
+
+export interface RawKvReview {
+  readonly reviewId: string;
+  readonly reviewAuthor?: string;
+  readonly rating?: number;
+  readonly dateSince: string;
+  readonly updatedSince?: string;
+}
+
+export interface RawKvReviewsResponse {
+  readonly locationId: string;
+  readonly locationName?: string;
+  readonly reviews?: ReadonlyArray<RawKvReview>;
 }
 
 // ─── S3 Object Info ───────────────────────────────────────────────────────────
