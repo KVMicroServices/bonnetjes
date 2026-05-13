@@ -1,6 +1,6 @@
 # Changes
 
-## [025] Add unit tests for ocr-service
+## [029] Add unit tests for ocr-service
 
 **What**: Created `tests/services/ocr-service.test.ts` with 19 unit tests covering all exported OCR service functions
 **Decisions**:
@@ -8,7 +8,7 @@
 - Tests verification status logic against actual priority order (verified check before duplicate check)
 - Saves/restores process.env for config tests
 
-## [024] Add unit tests for receipt-service
+## [028] Add unit tests for receipt-service
 
 **What**: Created `tests/services/receipt-service.test.ts` with 26 unit tests covering all exported service functions
 **Decisions**:
@@ -16,7 +16,7 @@
 - Tests both success and error paths for each function
 - Covers access control, fraud pipeline, admin action logging, and date grouping
 
-## [023] Rewire all route handlers to delegate to service functions
+## [027] Rewire all route handlers to delegate to service functions
 
 **What**: Converted 21 route handlers into thin wrappers (parse → auth → service → respond)
 **Decisions**:
@@ -26,7 +26,7 @@
 - Admin receipts route unchanged (already thin, no matching service function needed)
 **Files**: All 21 route.ts files under app/api/
 
-## [022] Extract upload-service module
+## [026] Extract upload-service module
 
 **What**: Created `lib/services/upload-service.ts` with generateUploadUrl (file type validation + presigned URL generation)
 **Decisions**:
@@ -34,7 +34,7 @@
 - Allowed content types defined as a named constant array
 - Returns discriminated union result type consistent with auth-service pattern
 
-## [021] Extract admin-service module
+## [025] Extract admin-service module
 
 **What**: Created `lib/services/admin-service.ts` with getDashboardStats, listUsers, updateUserRole
 **Decisions**:
@@ -42,7 +42,7 @@
 - updateUserRole returns statusCode in error case so route handler can map to correct HTTP status
 - getDashboardStats preserves the exact same query structure and response shape as the current route
 
-## [020] Extract automation-service module
+## [024] Extract automation-service module
 
 **What**: Created `lib/services/automation-service.ts` with listWorkflows, getWorkflow, createWorkflow, updateWorkflow, deleteWorkflow, executeWorkflow
 **Decisions**:
@@ -50,7 +50,7 @@
 - Delegates actual execution to existing lib/automation/executor.ts (no duplication)
 - executeWorkflow returns structured response matching the current route's JSON shape for easy rewiring
 
-## [019] Extract drive-service module
+## [023] Extract drive-service module
 
 **What**: Created `lib/services/drive-service.ts` with getAccessToken, listDriveFiles, and importDriveFile
 **Decisions**:
@@ -59,7 +59,7 @@
 - Delegates OCR to ocr-service's processReceiptOcr (fire-and-forget, non-blocking)
 - Storage upload interface accepts generatePresignedUploadUrl + getFileAsBuffer for testability
 
-## [018] Extract review-platform-service module
+## [022] Extract review-platform-service module
 
 **What**: Created `lib/services/review-platform-service.ts` with fetchLocations, fetchReviewsForLocation, moderateReview, fetchPendingReviews, fetchNotificationCount
 **Decisions**:
@@ -67,7 +67,7 @@
 - Sequential fetching with rate-limit delay preserved from original moderation route
 - Pending status detection uses set-based lookup instead of chained OR conditions
 
-## [017] Extract ocr-service module
+## [021] Extract ocr-service module
 
 **What**: Created `lib/services/ocr-service.ts` with buildOcrMessages, buildOcrMessagesWithFileUpload, callOcrApi, parseOcrResult, determineVerificationStatus, processReceiptOcr
 **Why**: Deduplicates OCR logic from receipts/[id]/ocr (streaming) and drive/import (non-streaming) routes
@@ -77,7 +77,7 @@
 - buildOcrMessages uses base64 data URI fallback (non-streaming route and PDF upload failure)
 - FraudDetectionClient interface decouples from the singleton fraud-detection module
 
-## [016] Extract receipt-service module
+## [020] Extract receipt-service module
 
 **What**: Created `lib/services/receipt-service.ts` with listReceipts, getReceipt, createReceipt, updateReceiptStatus, archiveReceipts, listArchivedReceipts, getDownloadUrl
 **Decisions**:
@@ -85,7 +85,7 @@
 - StorageClient interface abstracts S3 operations (getFileUrl, getFileAsBuffer)
 - Fraud pipeline failure is non-fatal — proceeds with zero-risk defaults
 
-## [015] Extract auth-service module
+## [019] Extract auth-service module
 
 **What**: Created `lib/services/auth-service.ts` with validateCredentials, registerUser, and refreshGoogleToken
 **Why**: First service extraction — consolidates duplicated token refresh logic and isolates auth business logic from route handlers
@@ -93,6 +93,41 @@
 - Discriminated union result types instead of throwing errors
 - Input validation (Zod) happens inside registerUser since it's a boundary function
 - refreshGoogleToken accepts accountId and handles both fresh-token and refresh cases
+## [018] Add property-based tests for receipt-sync service
+
+**What**: Created `tests/receipt-sync/properties.test.ts` with 8 property-based tests (16 assertions) using fast-check covering watermark safety subtraction, pagination termination, watermark max-date advancement, idempotent skip logic, dead letter eligibility, health status determination, auto-verify flag, and jitter bounds.
+**Decisions**:
+- Used integer-based date generators (mapped to Date) instead of `fc.date()` to avoid NaN date edge cases
+- Tested pure logic functions inline rather than importing from modules that have side effects
+- Imported `computeJitter` directly from `@/lib/receipt-sync` since it's exported
+**Files**: `tests/receipt-sync/properties.test.ts`, `package.json`
+
+## [017] Add receipt-sync health and backfill API routes
+
+**What**: Created GET `/api/admin/receipt-sync/health` (returns 200/503 based on last tick recency vs 2×POLL_INTERVAL_SECONDS) and POST `/api/admin/receipt-sync/backfill` (admin-auth, sets watermark to now-30d, executes immediate tick, requires force if watermark already recent).
+**Decisions**:
+- Health endpoint has no auth (for monitoring systems); backfill requires admin session
+- Backfill returns 409 conflict when watermark is within 30 days without force flag
+**Files**: `app/api/admin/receipt-sync/health/route.ts`, `app/api/admin/receipt-sync/backfill/route.ts`
+
+## [016] Implement receipt-sync module
+
+**What**: Created the full `lib/receipt-sync/` module with config loading, KV API client (paginated AsyncGenerator with rate limiting and retry), dedicated S3 client for eu-central-1, Prisma state repository, receipt creator, sync engine with concurrency-limited tick execution, and singleton sync loop with jitter.
+**Decisions**:
+- Created shared `lib/logger.ts` (pino-based) per AGENTS.md rules — installed pino dependency
+- Added `npm run check` script (tsc --noEmit) since it was missing
+- System user created on-demand with cached ID for receipt creation
+- Jitter computed as random 0–10% of poll interval per requirement 4.6
+- S3 operations gracefully disabled when bucket name is not configured
+**Files**: `lib/logger.ts`, `lib/receipt-sync/types.ts`, `lib/receipt-sync/config.ts`, `lib/receipt-sync/kv-api-client.ts`, `lib/receipt-sync/kv-s3-client.ts`, `lib/receipt-sync/state-repository.ts`, `lib/receipt-sync/receipt-creator.ts`, `lib/receipt-sync/sync-engine.ts`, `lib/receipt-sync/index.ts`, `package.json`
+
+## [015] Add receipt sync Prisma models and environment variables
+
+**What**: Added ReceiptSyncState, ReceiptSyncWatermark, and ReceiptSyncTick models to the Prisma schema with indexes, created the migration SQL, and added all receipt sync service environment variables to .env.example.
+**Decisions**:
+- Migration created manually (database not available in CI) — needs `prisma migrate deploy` on next startup
+- Separate S3 credentials (KV_RECEIPT_AWS_*) to avoid conflicting with existing R2 config
+**Files**: `prisma/schema.prisma`, `prisma/migrations/20260601000000_add_receipt_sync_models/migration.sql`, `.env.example`
 
 ## [014] Add AI integration test for OCR extraction
 

@@ -108,3 +108,47 @@ model AutomationWorkflow {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model ReceiptSyncState {
+  id             String   @id @default(cuid())
+  reviewId       String   @unique
+  tenantId       Int
+  locationId     String
+  status         String   // "PROCESSED" | "NO_RECEIPT" | "FAILED"
+  s3Key          String?
+  s3Etag         String?
+  attemptCount   Int      @default(0)
+  processedAt    DateTime @default(now())
+  errorMessage   String?
+  receiptContent String?  @db.Text // JSON blob with extracted metadata
+  receiptId      String?  // FK to Receipt model when a Receipt record is created
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([reviewId, status])
+}
+
+model ReceiptSyncWatermark {
+  id        String   @id @default(cuid())
+  tenantId  Int      @unique
+  watermark DateTime
+  updatedAt DateTime @updatedAt
+}
+
+model ReceiptSyncTick {
+  id                  String    @id @default(cuid())
+  tenantId            Int
+  startedAt           DateTime
+  completedAt         DateTime?
+  locationsDiscovered Int       @default(0)
+  reviewsDiscovered   Int       @default(0)
+  receiptsProcessed   Int       @default(0)
+  noReceiptCount      Int       @default(0)
+  failedCount         Int       @default(0)
+  errorMessage        String?
+  createdAt           DateTime  @default(now())
+
+  @@index([tenantId, completedAt])
+}
