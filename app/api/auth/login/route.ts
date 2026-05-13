@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import bcrypt from "bcryptjs";
+import { validateCredentials } from "@/lib/services/auth-service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,31 +16,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email }
-    });
+    const result = await validateCredentials(
+      { database: prisma },
+      email,
+      password
+    );
 
-    if (!user || !user.password) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
-    }
-
-    const isValid = await bcrypt.compare(password, user.password);
-
-    if (!isValid) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
+        { error: result.error },
         { status: 401 }
       );
     }
 
     return NextResponse.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role
+      id: result.user.id,
+      email: result.user.email,
+      name: result.user.name,
+      role: result.user.role
     });
   } catch (error) {
     console.error("Login error:", error);

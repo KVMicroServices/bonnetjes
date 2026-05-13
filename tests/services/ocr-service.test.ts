@@ -1,0 +1,456 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mockDeep, DeepMockProxy } from "vitest-mock-extended";
+import { PrismaClient } from "@prisma/client";
+import {
+  buildOcrMessages,
+  parseOcrResult,
+  determineVerificationStatus,
+  callOcrApi,
+  processReceiptOcr,
+  createOcrApiConfig,
+} from "@/lib/services/ocr-service";
+import type {
+  OcrServiceDependencies,
+  StorageClient,
+  FraudDetectionClient,
+  OcrApiConfig,
+  ParsedOcrResult,
+} from "@/lib/services/ocr-service";
+
+// ─── Mock Factories ────────────────────────────────────────────────────────────
+
+function createMockDependencies(): {
+  database: DeepMockProxy<PrismaClient>;
+  storage: StorageClient;
+  fraudDetection: FraudDetectionClient;
+} {
+  return {
+    database: mockDeep<PrismaClient>(),
+    storage: {
+      getFileAsBuffer: vi.fn().mockResolvedValue(Buffer.from("fake-image-content")),
+    },
+    fraudDetection: {
+      detectSuspiciousPatterns: vi.fn().mockResolvedValue({ patterns: [], riskScore: 0 }),
+      calculateFraudRiskScore: vi.fn().mockReturnValue(10),
+    },
+  };
+}
+
+function createMockOcrApiConfig(overrides?: Partial<OcrApiConfig>): OcrApiConfig {
+  return {
+    baseUrl: "https://api.test.com/v1",
+    apiKey: "test-api-key",
+    model: "gpt-4o-mini",
+    streaming: false,
+    ...overrides,
+  };
+}
+
+// ─── Test Fixtures ─────────────────────────────────────────────────────────────
+
+const USER_ID = "user-123";
+const RECEIPT_ID = "receipt-001";
+
+const SAMPLE_RECEIPT = {
+  id: RECEIPT_ID,
+  userId: USER_ID,
+  cloudStoragePath: "uploads/receipt.jpg",
+  isPublic: false,
+  originalFilename: "receipt.jpg",
+  fileType: "image",
+  fileSize: 150000,
+  verificationStatus: "pending",
+  imageHash: "abc123hash",
+  isDuplicate: false,
+  duplicateOfId: null,
+  manipulationScore: 0,
+  manipulationFlags: "[]",
+  suspiciousPatterns: "[]",
+  fraudRiskScore: 5,
+  extractedShopName: null,
+  extractedDate: null,
+  extractedAmount: null,
+  ocrConfidence: null,
+  ocrReasoning: null,
+  receiptReadable: null,
+  isArchived: false,
+  archivedAt: null,
+  createdAt: new Date("2024-01-15T10:00:00Z"),
+  updatedAt: new Date("2024-01-15T10:00:00Z"),
+  processedAt: null,
+};
+
+const VALID_OCR_JSON = JSON.stringify({
+  extractedShopName: "Albert Heijn",
+  extractedDate: "2024-06-15",
+  extractedAmount: 42.5,
+  receiptReadable: true,
+  confidence: 85,
+  reasoning: "Clear receipt with visible shop name and date",
+});
+
+// ─── Tests: buildOcrMessages ───────────────────────────────────────────────────
+
+describe("buildOcrMessages", () => {
+  it("produces image_url content for image files", () => {
+    const buffer = Buffer.from("fake-image-data");
+    const messages = buildOcrMessages(buffer, "image", "receipt.jpg");
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0].role).toBe("user");
+    expect(messages[0].content).toHaveLength(2);
+
+    const textContent = messages[0].content[0];
+    expect(textContent.type).toBe("text");
+
+    const imageContent = messages[0].content[1];
+    expect(imageContent.type).toBe("image_url");
+    if (imageContent.type === "image_url") {
+      expect(imageContent.image_url.url).toContain("data:image/jpeg;base64,");
+    }
+  });
+
+  it("produces PDF-specific prompt for PDF files", () => {
+    const buffer = Buffer.from("fake-pdf-data");
+    const messages = buildOcrMessages(buffer, "pdf", "receipt.pdf");
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0].role).toBe("user");
+    expect(messages[0].content).toHaveLength(2);
+
+    const textContent = messages[0].content[0];
+    if (textContent.type === "text") {
+      expect(textContent.text).toContain("PDF document");
+    }
+
+    const imageContent = messages[0].content[1];
+    expect(imageContent.type).toBe("image_url");
+    if (imageContent.type === "image_url") {
+      expect(imageContent.image_url.url).toContain("data:application/pdf;base64,");
+    }
+  });
+
+  it("detects PDF by filename extension when fileType is not pdf", () => {
+    const buffer = Buffer.from("fake-pdf-data");
+    const messages = buildOcrMessages(buffer, "document", "invoice.PDF");
+
+    const textContent = messages[0].content[0];
+    if (textContent.type === "text") {
+      expect(textContent.text).toContain("PDF document");
+    }
+  });
+});
+
+// ─── Tests: parseOcrResult ─────────────────────────────────────────────────────
+
+describe("parseOcrResult", () => {
+  it("parses valid JSON correctly", () => {
+    const result = parseOcrResult(VALID_OCR_JSON);
+
+    expect(result.extractedShopName).toBe("Albert Heijn");
+    expect(result.extractedAmount).toBe(42.5);
+    expect(result.receiptReadable).toBe(true);
+    expect(result.confidence).toBe(85);
+    expect(result.reasoning).toBe("Clear receipt with visible shop name and date");
+  });
+
+  it("coerces date string to Date object", () => {
+    const result = parseOcrResult(VALID_OCR_JSON);
+
+    expect(result.extractedDate).toBeInstanceOf(Date);
+    expect(result.extractedDate!.toISOString()).toContain("2024-06-15");
+  });
+
+  it("handles null date gracefully", () => {
+    const json = JSON.stringify({
+      extractedShopName: "Shop",
+      extractedDate: null,
+      extractedAmount: 10,
+      receiptReadable: true,
+      confidence: 50,
+      reasoning: "No date found",
+    });
+
+    const result = parseOcrResult(json);
+    expect(result.extractedDate).toBeNull();
+  });
+
+  it("coerces string amount to number", () => {
+    const json = JSON.stringify({
+      extractedShopName: "Shop",
+      extractedDate: "2024-01-01",
+      extractedAmount: "25.99",
+      receiptReadable: true,
+      confidence: 70,
+      reasoning: "Amount was string",
+    });
+
+    const result = parseOcrResult(json);
+    expect(result.extractedAmount).toBe(25.99);
+  });
+
+  it("handles null amount", () => {
+    const json = JSON.stringify({
+      extractedShopName: "Shop",
+      extractedDate: "2024-01-01",
+      extractedAmount: null,
+      receiptReadable: true,
+      confidence: 60,
+      reasoning: "No amount found",
+    });
+
+    const result = parseOcrResult(json);
+    expect(result.extractedAmount).toBeNull();
+  });
+});
+
+// ─── Tests: determineVerificationStatus ────────────────────────────────────────
+
+describe("determineVerificationStatus", () => {
+  const recentDate = new Date();
+  recentDate.setDate(recentDate.getDate() - 7);
+
+  const highConfidenceReadableResult: ParsedOcrResult = {
+    extractedShopName: "Albert Heijn",
+    extractedDate: recentDate,
+    extractedAmount: 42.5,
+    receiptReadable: true,
+    confidence: 85,
+    reasoning: "Clear receipt",
+  };
+
+  it("returns verified for high confidence, readable, with shop and date", () => {
+    const decision = determineVerificationStatus(
+      highConfidenceReadableResult,
+      false,
+      recentDate
+    );
+
+    expect(decision.status).toBe("verified");
+    expect(decision.isDateTooOld).toBe(false);
+  });
+
+  it("returns rejected when date is too old (older than 6 months)", () => {
+    const oldDate = new Date();
+    oldDate.setMonth(oldDate.getMonth() - 7);
+
+    const decision = determineVerificationStatus(
+      highConfidenceReadableResult,
+      false,
+      oldDate
+    );
+
+    expect(decision.status).toBe("rejected");
+    expect(decision.isDateTooOld).toBe(true);
+    expect(decision.dateValidationMessage).toContain("older than 6 months");
+  });
+
+  it("returns rejected for low confidence", () => {
+    const lowConfidenceResult: ParsedOcrResult = {
+      ...highConfidenceReadableResult,
+      confidence: 20,
+    };
+
+    const decision = determineVerificationStatus(lowConfidenceResult, false, recentDate);
+
+    expect(decision.status).toBe("rejected");
+  });
+
+  it("returns rejected for duplicate receipt with medium confidence", () => {
+    const mediumResult: ParsedOcrResult = {
+      ...highConfidenceReadableResult,
+      confidence: 50,
+      extractedShopName: null,
+    };
+
+    const decision = determineVerificationStatus(mediumResult, true, recentDate);
+
+    expect(decision.status).toBe("rejected");
+  });
+
+  it("returns pending for medium confidence", () => {
+    const mediumConfidenceResult: ParsedOcrResult = {
+      ...highConfidenceReadableResult,
+      confidence: 50,
+      extractedShopName: null,
+    };
+
+    const decision = determineVerificationStatus(
+      mediumConfidenceResult,
+      false,
+      recentDate
+    );
+
+    expect(decision.status).toBe("pending");
+  });
+});
+
+// ─── Tests: callOcrApi ─────────────────────────────────────────────────────────
+
+describe("callOcrApi", () => {
+  let originalFetch: typeof globalThis.fetch;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("returns success with response on successful API call", async () => {
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ choices: [{ message: { content: VALID_OCR_JSON } }] }),
+    } as unknown as Response;
+
+    globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+    const config = createMockOcrApiConfig();
+    const messages = buildOcrMessages(Buffer.from("test"), "image", "test.jpg");
+
+    const result = await callOcrApi(messages, config);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.response).toBe(mockResponse);
+    }
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://api.test.com/v1/chat/completions",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+          Authorization: "Bearer test-api-key",
+        }),
+      })
+    );
+  });
+
+  it("returns error when API responds with non-ok status", async () => {
+    const mockResponse = {
+      ok: false,
+      status: 429,
+    } as unknown as Response;
+
+    globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+    const config = createMockOcrApiConfig();
+    const messages = buildOcrMessages(Buffer.from("test"), "image", "test.jpg");
+
+    const result = await callOcrApi(messages, config);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toContain("429");
+    }
+  });
+});
+
+// ─── Tests: processReceiptOcr ──────────────────────────────────────────────────
+
+describe("processReceiptOcr", () => {
+  let dependencies: ReturnType<typeof createMockDependencies>;
+  let originalFetch: typeof globalThis.fetch;
+  let originalEnv: NodeJS.ProcessEnv;
+
+  beforeEach(() => {
+    dependencies = createMockDependencies();
+    originalFetch = globalThis.fetch;
+    originalEnv = { ...process.env };
+    process.env.AI_API_KEY = "test-key";
+    process.env.AI_API_BASE_URL = "https://api.test.com/v1";
+    process.env.AI_MODEL_NAME = "gpt-4o-mini";
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    process.env = originalEnv;
+  });
+
+  it("returns success with verification status on full pipeline", async () => {
+    dependencies.database.receipt.findUnique.mockResolvedValue(SAMPLE_RECEIPT as any);
+    dependencies.database.receipt.update.mockResolvedValue({} as any);
+
+    const mockApiResponse = {
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        choices: [{ message: { content: VALID_OCR_JSON } }],
+      }),
+    } as unknown as Response;
+
+    globalThis.fetch = vi.fn().mockResolvedValue(mockApiResponse);
+
+    const result = await processReceiptOcr(dependencies as OcrServiceDependencies, RECEIPT_ID);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.verificationStatus).toBeDefined();
+    }
+
+    expect(dependencies.database.receipt.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: RECEIPT_ID },
+        data: expect.objectContaining({
+          extractedShopName: "Albert Heijn",
+          ocrConfidence: 85,
+          receiptReadable: true,
+        }),
+      })
+    );
+  });
+
+  it("returns error when receipt is not found", async () => {
+    dependencies.database.receipt.findUnique.mockResolvedValue(null);
+
+    const result = await processReceiptOcr(dependencies as OcrServiceDependencies, "nonexistent");
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe("Receipt not found");
+    }
+  });
+});
+
+// ─── Tests: createOcrApiConfig ─────────────────────────────────────────────────
+
+describe("createOcrApiConfig", () => {
+  let originalEnv: NodeJS.ProcessEnv;
+
+  beforeEach(() => {
+    originalEnv = { ...process.env };
+    process.env.AI_API_BASE_URL = "https://env-api.example.com/v1";
+    process.env.AI_API_KEY = "env-api-key";
+    process.env.AI_MODEL_NAME = "env-model";
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it("uses defaults from environment variables", () => {
+    const config = createOcrApiConfig();
+
+    expect(config.baseUrl).toBe("https://env-api.example.com/v1");
+    expect(config.apiKey).toBe("env-api-key");
+    expect(config.model).toBe("env-model");
+    expect(config.streaming).toBe(false);
+  });
+
+  it("applies overrides over environment defaults", () => {
+    const config = createOcrApiConfig({
+      baseUrl: "https://custom.api.com/v1",
+      apiKey: "custom-key",
+      model: "custom-model",
+      streaming: true,
+    });
+
+    expect(config.baseUrl).toBe("https://custom.api.com/v1");
+    expect(config.apiKey).toBe("custom-key");
+    expect(config.model).toBe("custom-model");
+    expect(config.streaming).toBe(true);
+  });
+});

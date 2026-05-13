@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
+import { listDriveFiles } from "@/lib/services/drive-service";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ async function getAccessToken(userId: string): Promise<string | null> {
 
       if (response.ok) {
         const tokens = await response.json();
-        
+
         // Update the account with new tokens
         await prisma.account.update({
           where: { id: account.id },
@@ -71,78 +72,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get folder ID from query params, default to "root" for My Drive
     const { searchParams } = new URL(request.url);
     const folderId = searchParams.get("folderId") || "root";
     const sharedWithMe = searchParams.get("sharedWithMe") === "true";
 
-    // Shared drive query support params
-    const driveParams = "&supportsAllDrives=true&includeItemsFromAllDrives=true";
+    const result = await listDriveFiles(accessToken, folderId, sharedWithMe);
 
-    let folderQuery: string;
-    let fileQuery: string;
-
-    if (sharedWithMe && folderId === "root") {
-      // Show top-level items shared with me
-      folderQuery = `sharedWithMe = true and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-      fileQuery = `sharedWithMe = true and (mimeType contains 'image/' or mimeType = 'application/pdf') and trashed = false`;
-    } else {
-      folderQuery = `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-      fileQuery = `'${folderId}' in parents and (mimeType contains 'image/' or mimeType = 'application/pdf') and trashed = false`;
-    }
-
-    // Fetch folders
-    const folderUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(folderQuery)}&fields=files(id,name,mimeType)&orderBy=name&pageSize=100${driveParams}`;
-    const folderResponse = await fetch(folderUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-
-    // Fetch files
-    const fileUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(fileQuery)}&fields=files(id,name,mimeType,thumbnailLink,createdTime,size)&orderBy=createdTime desc&pageSize=50${driveParams}`;
-    const fileResponse = await fetch(fileUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-
-    if (!folderResponse.ok || !fileResponse.ok) {
-      const error = !folderResponse.ok ? await folderResponse.text() : await fileResponse.text();
-      console.error("Google Drive API error:", error);
-      
-      if (folderResponse.status === 401 || fileResponse.status === 401) {
-        return NextResponse.json(
-          { error: "Google token expired. Please sign out and sign in again with Google." },
-          { status: 401 }
-        );
-      }
-      
+    if (!result.success) {
       return NextResponse.json(
-        { error: "Failed to fetch files from Google Drive" },
-        { status: folderResponse.status || fileResponse.status }
+        { error: result.error },
+        { status: result.statusCode }
       );
     }
 
-    const folderData = await folderResponse.json();
-    const fileData = await fileResponse.json();
-
-    // Get current folder name if not root
-    let currentFolderName = "Mijn Drive";
-    if (folderId !== "root") {
-      const metaUrl = `https://www.googleapis.com/drive/v3/files/${folderId}?fields=name`;
-      const metaResponse = await fetch(metaUrl, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      if (metaResponse.ok) {
-        const metaData = await metaResponse.json();
-        currentFolderName = metaData.name;
-      }
-    }
-
     return NextResponse.json({
-      folders: folderData.files || [],
-      files: fileData.files || [],
-      currentFolder: {
-        id: folderId,
-        name: currentFolderName
-      }
+      folders: result.folders,
+      files: result.files,
+      currentFolder: result.currentFolder,
     });
   } catch (error) {
     console.error("Error fetching Drive files:", error);

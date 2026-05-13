@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { fetchReviewsForLocation } from "@/lib/services/review-platform-service";
 
 export const dynamic = "force-dynamic";
-
-const KIYOH_BASE = "https://www.kiyoh.com/v1/publication";
-const KV_BASE = "https://www.klantenvertellen.nl/v1/publication";
-
-// Tenant IDs per platform (from API docs)
-const TENANT_ID: Record<string, string> = {
-  kiyoh: "98",
-  kv: "99"
-};
 
 export async function GET(
   request: NextRequest,
@@ -23,45 +15,30 @@ export async function GET(
   }
 
   const { searchParams } = new URL(request.url);
-  const source = searchParams.get("source") || "kiyoh";
+  const source = (searchParams.get("source") || "kiyoh") as "kiyoh" | "kv";
   const orderBy = searchParams.get("orderBy") || "CREATE_DATE";
   const sortOrder = searchParams.get("sortOrder") || "DESC";
   const limit = searchParams.get("limit") || "25";
 
   const token = source === "kv" ? process.env.KV_API_TOKEN : process.env.KIYOH_API_TOKEN;
-  const baseUrl = source === "kv" ? KV_BASE : KIYOH_BASE;
-  const tenantId = TENANT_ID[source];
 
   if (!token) {
     return NextResponse.json({ error: "API token not configured" }, { status: 500 });
   }
 
   try {
-    // Correct endpoint from API docs: /v1/publication/review/external (NOT /all)
-    const url = new URL(`${baseUrl}/review/external`);
-    url.searchParams.set("locationId", params.locationId);
-    url.searchParams.set("tenantId", tenantId);
-    url.searchParams.set("orderBy", orderBy);
-    url.searchParams.set("sortOrder", sortOrder);
-    url.searchParams.set("limit", limit);
+    const result = await fetchReviewsForLocation(
+      source,
+      params.locationId,
+      token,
+      { orderBy, sortOrder, limit }
+    );
 
-    const res = await fetch(url.toString(), {
-      headers: { "X-Publication-Api-Token": token }
-    });
-
-    if (!res.ok) {
-      const body = await res.text();
-      console.error(`Reviews API error ${res.status}:`, body);
-      return NextResponse.json({ reviews: [], total: 0, error: `API ${res.status}` });
+    if (!result.success) {
+      return NextResponse.json({ reviews: [], total: 0, error: result.error });
     }
 
-    const data = await res.json();
-    // API returns location object with .reviews array containing individual reviews
-    // Each review has: reviewId, reviewAuthor, rating, reviewContent (array of content lines)
-    const reviews = Array.isArray(data)
-      ? data
-      : (data.reviews ?? data.content ?? data.feedbacks ?? []);
-    return NextResponse.json({ reviews, total: data.numberReviews ?? reviews.length });
+    return NextResponse.json({ reviews: result.reviews, total: result.total });
   } catch (error) {
     console.error("Reviews fetch error:", error);
     return NextResponse.json({ error: "Failed to fetch reviews", reviews: [], total: 0 });

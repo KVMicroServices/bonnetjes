@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
+import { getFileAsBuffer, getFileUrl } from "@/lib/s3";
+import { getReceipt, updateReceiptStatus } from "@/lib/services/receipt-service";
 
 export async function GET(
   request: NextRequest,
@@ -19,31 +21,21 @@ export async function GET(
     const userId = (session.user as any).id;
     const isAdmin = (session.user as any).role === "admin";
 
-    const receipt = await prisma.receipt.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true }
-        },
-        adminActions: {
-          include: {
-            admin: { select: { id: true, name: true, email: true } }
-          },
-          orderBy: { createdAt: "desc" }
-        }
-      }
-    });
+    const result = await getReceipt(
+      { database: prisma, storage: { getFileUrl, getFileAsBuffer } },
+      id,
+      userId,
+      isAdmin
+    );
 
-    if (!receipt) {
-      return NextResponse.json({ error: "Receipt not found" }, { status: 404 });
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.statusCode }
+      );
     }
 
-    // Check access
-    if (!isAdmin && receipt.userId !== userId) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
-    }
-
-    return NextResponse.json(receipt);
+    return NextResponse.json(result.receipt);
   } catch (error) {
     console.error("Get receipt error:", error);
     return NextResponse.json(
@@ -76,25 +68,22 @@ export async function PATCH(
     const body = await request.json();
     const { verificationStatus, notes } = body;
 
-    const receipt = await prisma.receipt.update({
-      where: { id },
-      data: {
-        verificationStatus,
-        processedAt: new Date()
-      }
-    });
+    const result = await updateReceiptStatus(
+      { database: prisma, storage: { getFileUrl, getFileAsBuffer } },
+      id,
+      (session.user as any).id,
+      verificationStatus,
+      notes
+    );
 
-    // Log admin action
-    await prisma.adminAction.create({
-      data: {
-        adminId: (session.user as any).id,
-        receiptId: id,
-        action: verificationStatus,
-        notes
-      }
-    });
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.statusCode }
+      );
+    }
 
-    return NextResponse.json(receipt);
+    return NextResponse.json(result.receipt);
   } catch (error) {
     console.error("Update receipt error:", error);
     return NextResponse.json(

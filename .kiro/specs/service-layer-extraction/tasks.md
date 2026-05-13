@@ -28,25 +28,25 @@
 
 ## Task 4: Extract service modules and rewire route handlers
 
-- [ ] Create `lib/services/auth-service.ts` — extract login validation, signup logic, Google token refresh
-- [ ] Create `lib/services/receipt-service.ts` — extract receipt CRUD, archiving, listing, download URL, fraud pipeline
-- [ ] Create `lib/services/ocr-service.ts` — extract OCR prompt building, LLM API call (streaming + non-streaming), result parsing, verification status determination
-- [ ] Create `lib/services/review-platform-service.ts` — extract Kiyoh/KV location fetching, review fetching, moderation actions, pending aggregation, notifications
-- [ ] Create `lib/services/drive-service.ts` — extract Drive file listing, file download + import (delegates to receipt-service and ocr-service)
-- [ ] Create `lib/services/automation-service.ts` — extract workflow CRUD, execution with credential injection
-- [ ] Create `lib/services/admin-service.ts` — extract stats aggregation, user management with super-admin protection
-- [ ] Create `lib/services/upload-service.ts` — extract file type validation + presigned URL generation
-- [ ] Rewire all route handlers to delegate to service functions (thin handlers: parse → auth → service → respond)
-- [ ] Run `npm test` and confirm all integration tests still pass without modification
+- [x] Create `lib/services/auth-service.ts` — extract login validation, signup logic, Google token refresh
+- [x] Create `lib/services/receipt-service.ts` — extract receipt CRUD, archiving, listing, download URL, fraud pipeline
+- [x] Create `lib/services/ocr-service.ts` — extract OCR prompt building, LLM API call (streaming + non-streaming), result parsing, verification status determination
+- [x] Create `lib/services/review-platform-service.ts` — extract Kiyoh/KV location fetching, review fetching, moderation actions, pending aggregation, notifications
+- [x] Create `lib/services/drive-service.ts` — extract Drive file listing, file download + import (delegates to receipt-service and ocr-service)
+- [x] Create `lib/services/automation-service.ts` — extract workflow CRUD, execution with credential injection
+- [x] Create `lib/services/admin-service.ts` — extract stats aggregation, user management with super-admin protection
+- [x] Create `lib/services/upload-service.ts` — extract file type validation + presigned URL generation
+- [x] Rewire all route handlers to delegate to service functions (thin handlers: parse → auth → service → respond)
+- [x] Run `npm test` and confirm all integration tests still pass without modification
 
 ## Task 5: Add unit tests for extracted services
 
-- [ ] Create `tests/services/receipt-service.test.ts`
-- [ ] Create `tests/services/ocr-service.test.ts`
-- [ ] Create `tests/services/auth-service.test.ts`
-- [ ] Create `tests/services/review-platform-service.test.ts`
-- [ ] Create `tests/services/drive-service.test.ts`
-- [ ] Create `tests/services/automation-service.test.ts`
-- [ ] Create `tests/services/admin-service.test.ts`
-- [ ] Create `tests/services/upload-service.test.ts`
-- [ ] Run full suite (`npm test`) and confirm everything passes
+- [x] Create `tests/services/receipt-service.test.ts`
+- [x] Create `tests/services/ocr-service.test.ts`
+- [x] Create `tests/services/auth-service.test.ts`
+- [x] Create `tests/services/review-platform-service.test.ts`
+- [x] Create `tests/services/drive-service.test.ts`
+- [x] Create `tests/services/automation-service.test.ts`
+- [x] Create `tests/services/admin-service.test.ts`
+- [x] Create `tests/services/upload-service.test.ts`
+- [x] Run full suite (`npm test`) and confirm everything passes

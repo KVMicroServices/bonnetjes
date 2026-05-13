@@ -1,5 +1,99 @@
 # Changes
 
+## [025] Add unit tests for ocr-service
+
+**What**: Created `tests/services/ocr-service.test.ts` with 19 unit tests covering all exported OCR service functions
+**Decisions**:
+- Mocks global fetch directly for API call tests rather than module-level mocking
+- Tests verification status logic against actual priority order (verified check before duplicate check)
+- Saves/restores process.env for config tests
+
+## [024] Add unit tests for receipt-service
+
+**What**: Created `tests/services/receipt-service.test.ts` with 26 unit tests covering all exported service functions
+**Decisions**:
+- Uses dependency injection directly (no module-level mocking needed)
+- Tests both success and error paths for each function
+- Covers access control, fraud pipeline, admin action logging, and date grouping
+
+## [023] Rewire all route handlers to delegate to service functions
+
+**What**: Converted 21 route handlers into thin wrappers (parse → auth → service → respond)
+**Decisions**:
+- Drive routes keep inline getAccessToken/triggerOCR to preserve exact test behavior (service's refreshGoogleToken adds env var checks not present in original)
+- Automation PATCH/DELETE keep direct prisma calls since service adds existence checks the original didn't have
+- OCR streaming route delegates message building and API call to ocr-service but keeps stream handling inline
+- Admin receipts route unchanged (already thin, no matching service function needed)
+**Files**: All 21 route.ts files under app/api/
+
+## [022] Extract upload-service module
+
+**What**: Created `lib/services/upload-service.ts` with generateUploadUrl (file type validation + presigned URL generation)
+**Decisions**:
+- StorageClient interface abstracts the presigned URL generation for testability
+- Allowed content types defined as a named constant array
+- Returns discriminated union result type consistent with auth-service pattern
+
+## [021] Extract admin-service module
+
+**What**: Created `lib/services/admin-service.ts` with getDashboardStats, listUsers, updateUserRole
+**Decisions**:
+- Super-admin emails stored as a named constant array (matches existing hardcoded list)
+- updateUserRole returns statusCode in error case so route handler can map to correct HTTP status
+- getDashboardStats preserves the exact same query structure and response shape as the current route
+
+## [020] Extract automation-service module
+
+**What**: Created `lib/services/automation-service.ts` with listWorkflows, getWorkflow, createWorkflow, updateWorkflow, deleteWorkflow, executeWorkflow
+**Decisions**:
+- Platform credentials passed via dependency object rather than reading process.env inside the service
+- Delegates actual execution to existing lib/automation/executor.ts (no duplication)
+- executeWorkflow returns structured response matching the current route's JSON shape for easy rewiring
+
+## [019] Extract drive-service module
+
+**What**: Created `lib/services/drive-service.ts` with getAccessToken, listDriveFiles, and importDriveFile
+**Decisions**:
+- Delegates token refresh to auth-service's refreshGoogleToken instead of duplicating OAuth logic
+- Delegates receipt creation to receipt-service's createReceipt with fraud detection
+- Delegates OCR to ocr-service's processReceiptOcr (fire-and-forget, non-blocking)
+- Storage upload interface accepts generatePresignedUploadUrl + getFileAsBuffer for testability
+
+## [018] Extract review-platform-service module
+
+**What**: Created `lib/services/review-platform-service.ts` with fetchLocations, fetchReviewsForLocation, moderateReview, fetchPendingReviews, fetchNotificationCount
+**Decisions**:
+- Token passed explicitly per call rather than via dependency object (no DB/storage needed)
+- Sequential fetching with rate-limit delay preserved from original moderation route
+- Pending status detection uses set-based lookup instead of chained OR conditions
+
+## [017] Extract ocr-service module
+
+**What**: Created `lib/services/ocr-service.ts` with buildOcrMessages, buildOcrMessagesWithFileUpload, callOcrApi, parseOcrResult, determineVerificationStatus, processReceiptOcr
+**Why**: Deduplicates OCR logic from receipts/[id]/ocr (streaming) and drive/import (non-streaming) routes
+**Decisions**:
+- Returns raw Response from callOcrApi so route handlers control streaming vs non-streaming consumption
+- buildOcrMessagesWithFileUpload handles the OpenAI Files API upload path for PDFs (streaming route)
+- buildOcrMessages uses base64 data URI fallback (non-streaming route and PDF upload failure)
+- FraudDetectionClient interface decouples from the singleton fraud-detection module
+
+## [016] Extract receipt-service module
+
+**What**: Created `lib/services/receipt-service.ts` with listReceipts, getReceipt, createReceipt, updateReceiptStatus, archiveReceipts, listArchivedReceipts, getDownloadUrl
+**Decisions**:
+- FraudDetectionModule passed as explicit parameter to createReceipt (avoids importing singleton)
+- StorageClient interface abstracts S3 operations (getFileUrl, getFileAsBuffer)
+- Fraud pipeline failure is non-fatal — proceeds with zero-risk defaults
+
+## [015] Extract auth-service module
+
+**What**: Created `lib/services/auth-service.ts` with validateCredentials, registerUser, and refreshGoogleToken
+**Why**: First service extraction — consolidates duplicated token refresh logic and isolates auth business logic from route handlers
+**Decisions**:
+- Discriminated union result types instead of throwing errors
+- Input validation (Zod) happens inside registerUser since it's a boundary function
+- refreshGoogleToken accepts accountId and handles both fresh-token and refresh cases
+
 ## [014] Add AI integration test for OCR extraction
 
 **What**: Created `tests/ai-integration/ocr-extraction.test.ts` that sends the fixture image to the real AI API and validates the response schema

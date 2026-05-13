@@ -29,8 +29,6 @@ export async function GET() {
     console.error("Admin receipts error:", error);
     return NextResponse.json({ error: "Failed to fetch receipts" }, { status: 500 });
   }
-
-  // PATCH: update status (approve/reject)
 }
 
 export async function PATCH(request: Request) {

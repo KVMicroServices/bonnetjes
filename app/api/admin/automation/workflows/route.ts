@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
+import { listWorkflows, createWorkflow } from "@/lib/services/automation-service";
 
-// GET /api/admin/automation/workflows - list all workflows
-// POST /api/admin/automation/workflows - create a workflow
+const PLATFORM_CREDENTIALS = {
+  kvUser: process.env.KV_USER || "",
+  kvPass: process.env.KV_PASS || "",
+  kiyohUser: process.env.KIYOH_USER || "",
+  kiyohPass: process.env.KIYOH_PASS || "",
+};
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -12,11 +17,16 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const workflows = await prisma.automationWorkflow.findMany({
-    orderBy: { updatedAt: "desc" },
+  const result = await listWorkflows({
+    database: prisma,
+    credentials: PLATFORM_CREDENTIALS,
   });
 
-  return NextResponse.json({ workflows });
+  if (!result.success) {
+    return NextResponse.json({ error: result.error }, { status: 500 });
+  }
+
+  return NextResponse.json({ workflows: result.workflows });
 }
 
 export async function POST(request: NextRequest) {
@@ -25,21 +35,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { name, platform, description, steps } = await request.json();
+  const body = await request.json();
 
-  if (!name || !platform || !steps) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  const result = await createWorkflow(
+    { database: prisma, credentials: PLATFORM_CREDENTIALS },
+    {
+      name: body.name,
+      platform: body.platform,
+      description: body.description,
+      steps: body.steps,
+    }
+  );
+
+  if (!result.success) {
+    const statusCode = result.validationError ? 400 : 500;
+    return NextResponse.json({ error: result.error }, { status: statusCode });
   }
 
-  const workflow = await prisma.automationWorkflow.create({
-    data: {
-      name,
-      platform,
-      description: description ?? null,
-      steps: JSON.stringify(steps),
-      isActive: true,
-    },
-  });
-
-  return NextResponse.json({ workflow });
+  return NextResponse.json({ workflow: result.workflow });
 }
