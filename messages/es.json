@@ -1,0 +1,15 @@
+{
+  "ReviewDisable": {
+    "title": "Desactivar reseña manualmente",
+    "description": "Desactive una reseña en KlantenVertellen ingresando el ID de la reseña, el ID de ubicación y el ID del inquilino.",
+    "reviewIdLabel": "ID de reseña",
+    "reviewIdPlaceholder": "UUID de la reseña",
+    "locationIdLabel": "ID de ubicación",
+    "locationIdPlaceholder": "ej. 1080211",
+    "tenantIdLabel": "ID de inquilino",
+    "submitButton": "Desactivar reseña",
+    "successMessage": "Reseña desactivada exitosamente",
+    "errorMessage": "Error al desactivar",
+    "networkError": "Error de red al desactivar"
+  }
+}

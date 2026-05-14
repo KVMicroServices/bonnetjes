@@ -1,0 +1,15 @@
+{
+  "ReviewDisable": {
+    "title": "Cima uphononongo ngesandla",
+    "description": "Cima uphononongo ku-KlantenVertellen ngokufaka i-ID yophononongo, i-ID yendawo ne-ID yomqeshi.",
+    "reviewIdLabel": "I-ID yophononongo",
+    "reviewIdPlaceholder": "I-UUID yophononongo",
+    "locationIdLabel": "I-ID yendawo",
+    "locationIdPlaceholder": "umz. 1080211",
+    "tenantIdLabel": "I-ID yomqeshi",
+    "submitButton": "Cima uphononongo",
+    "successMessage": "Uphononongo lucinywe ngempumelelo",
+    "errorMessage": "Ukucima akuphumelelanga",
+    "networkError": "Impazamo yenethiwekhi xa kucinywa"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "ReviewDisable": {
+    "title": "Manually disable review",
+    "description": "Disable a review on KlantenVertellen by entering the review ID, location ID and tenant ID.",
+    "reviewIdLabel": "Review ID",
+    "reviewIdPlaceholder": "UUID of the review",
+    "locationIdLabel": "Location ID",
+    "locationIdPlaceholder": "e.g. 1080211",
+    "tenantIdLabel": "Tenant ID",
+    "submitButton": "Disable Review",
+    "successMessage": "Review successfully disabled",
+    "errorMessage": "Failed to disable review",
+    "networkError": "Network error while disabling"
+  }
+}

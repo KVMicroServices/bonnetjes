@@ -1,0 +1,15 @@
+{
+  "ReviewDisable": {
+    "title": "Khubaza ukubuyekezwa ngesandla",
+    "description": "Khubaza ukubuyekezwa ku-KlantenVertellen ngokufaka i-ID yokubuyekezwa, i-ID yendawo ne-ID yomqashi.",
+    "reviewIdLabel": "I-ID yokubuyekezwa",
+    "reviewIdPlaceholder": "I-UUID yokubuyekezwa",
+    "locationIdLabel": "I-ID yendawo",
+    "locationIdPlaceholder": "isib. 1080211",
+    "tenantIdLabel": "I-ID yomqashi",
+    "submitButton": "Khubaza ukubuyekezwa",
+    "successMessage": "Ukubuyekezwa kukhubazwe ngempumelelo",
+    "errorMessage": "Ukukhubaza akuphumelelanga",
+    "networkError": "Iphutha lenethiwekhi ngesikhathi kukhubazwa"
+  }
+}

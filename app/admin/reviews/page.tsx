@@ -18,7 +18,10 @@ import {
   Users,
   Flag,
   MessageSquare,
-  Clock
+  Clock,
+  ChevronDown,
+  ChevronRight,
+  Ban,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -302,6 +305,137 @@ function LocationCard({ location, onSelect }: { location: Location; onSelect: ()
   );
 }
 
+function ManualDisableForm() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [reviewId, setReviewId] = useState("");
+  const [locationId, setLocationId] = useState("");
+  const [tenantId, setTenantId] = useState("99");
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setResult(null);
+
+    try {
+      const response = await fetch("/api/admin/reviews/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "disable-manual",
+          reviewId: reviewId.trim(),
+          locationId: locationId.trim(),
+          tenantId: Number(tenantId),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setResult({ success: true, message: "Review succesvol uitgeschakeld" });
+        setReviewId("");
+        setLocationId("");
+        setTenantId("99");
+      } else {
+        setResult({ success: false, message: data.error || "Uitschakelen mislukt" });
+      }
+    } catch {
+      setResult({ success: false, message: "Netwerkfout bij uitschakelen" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isFormValid = reviewId.trim().length > 0 && locationId.trim().length > 0 && tenantId.trim().length > 0;
+
+  return (
+    <div className="mb-6 rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between px-5 py-4 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Ban className="h-4 w-4 text-red-500" />
+          <span className="text-sm font-semibold text-gray-900">Handmatig review uitschakelen</span>
+        </div>
+        {isOpen ? (
+          <ChevronDown className="h-4 w-4 text-gray-500" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-gray-500" />
+        )}
+      </button>
+
+      {isOpen && (
+        <form onSubmit={handleSubmit} className="border-t px-5 pb-5 pt-4">
+          <p className="mb-4 text-xs text-gray-500">
+            Schakel een review uit op KlantenVertellen door het review ID, locatie ID en tenant ID in te voeren.
+          </p>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <label htmlFor="manual-review-id" className="mb-1 block text-xs font-medium text-gray-700">
+                Review ID
+              </label>
+              <input
+                id="manual-review-id"
+                type="text"
+                value={reviewId}
+                onChange={(event) => setReviewId(event.target.value)}
+                placeholder="UUID van de review"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+              />
+            </div>
+            <div>
+              <label htmlFor="manual-location-id" className="mb-1 block text-xs font-medium text-gray-700">
+                Locatie ID
+              </label>
+              <input
+                id="manual-location-id"
+                type="text"
+                value={locationId}
+                onChange={(event) => setLocationId(event.target.value)}
+                placeholder="bijv. 1080211"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+              />
+            </div>
+            <div>
+              <label htmlFor="manual-tenant-id" className="mb-1 block text-xs font-medium text-gray-700">
+                Tenant ID
+              </label>
+              <input
+                id="manual-tenant-id"
+                type="text"
+                value={tenantId}
+                onChange={(event) => setTenantId(event.target.value)}
+                placeholder="98"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={submitting || !isFormValid}
+              className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+              Review uitschakelen
+            </button>
+
+            {result && (
+              <span className={`text-sm ${result.success ? "text-green-600" : "text-red-600"}`}>
+                {result.message}
+              </span>
+            )}
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export default function ReviewsPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
@@ -442,6 +576,9 @@ export default function ReviewsPage() {
             Vernieuwen
           </button>
         </div>
+
+        {/* Manual disable form */}
+        <ManualDisableForm />
 
         {/* Summary stats */}
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">

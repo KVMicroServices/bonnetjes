@@ -1,5 +1,24 @@
 # Changes
 
+## [034] Fix OCR for KV-synced receipts and GPT-5.4 nano compatibility
+
+**What**: Fixed OCR processing for receipts synced from KV (stored in separate S3 bucket), switched `max_tokens` to `max_completion_tokens` for GPT-5.4 nano, added error body logging to LLM API calls, fixed Kiyoh auth URL and tenantId.
+**Decisions**:
+- OCR route now detects `kv-sync:` prefix and uses KvS3Client to fetch from the correct bucket
+- `max_completion_tokens` replaces deprecated `max_tokens` for newer OpenAI models
+- Auth URL corrected to `klantenvertellen.nl` (not `kiyoh.com`), tenantId corrected to 99
+**Files**: `app/api/receipts/[id]/ocr/route.ts`, `lib/services/ocr-service.ts`, `lib/review-disable/kiyoh-auth-client.ts`, `app/admin/reviews/page.tsx`, `tests/services/ocr-service.test.ts`, `tests/services/review-disable-service.test.ts`
+
+## [033] Add review disable/enable on failed verification
+
+**What**: Disable (and re-enable) reviews on KlantenVertellen when receipt verification fails, with Kiyoh admin TOTP auth, auto-disable on rejection, and manual disable form.
+**Decisions**:
+- Tokens not cached (admin operations are infrequent)
+- Auto-disable is fire-and-forget (non-blocking) controlled by RECEIPT_AUTO_DISABLE_ENABLED env var
+- Manual disable form accepts raw reviewId/locationId/tenantId without requiring a linked receipt
+- Added `otpauth` dependency for TOTP generation
+**Files**: `lib/review-disable/kiyoh-auth-client.ts`, `lib/review-disable/review-disable-service.ts`, `app/api/admin/reviews/disable/route.ts`, `app/api/admin/receipts/route.ts`, `app/admin/reviews/page.tsx`, `tests/services/review-disable-service.test.ts`, `messages/*.json`
+
 ## [032] Fix KV API response parsing and process reviews per-location
 
 **What**: Fixed locations URL (removed `dateSince`, only `updatedSince`), fixed reviews response parsing (`response.reviews[]` with `dateSince` as creation date), restructured sync engine to process reviews immediately per-location with resumability.

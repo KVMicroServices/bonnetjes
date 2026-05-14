@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { logger } from "@/lib/logger";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -222,7 +223,7 @@ export async function callOcrApi(
   const requestBody = {
     model: config.model,
     messages,
-    max_tokens: MAX_TOKENS,
+    max_completion_tokens: MAX_TOKENS,
     response_format: { type: "json_object" },
     stream: config.streaming
   };
@@ -237,6 +238,11 @@ export async function callOcrApi(
   });
 
   if (!response.ok) {
+    const errorBody = await response.text();
+    logger.error(
+      { status: response.status, body: errorBody, model: config.model },
+      "LLM API request failed"
+    );
     return { success: false, error: `LLM API error: ${response.status}` };
   }
 

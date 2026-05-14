@@ -6,6 +6,27 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { getFileAsBuffer } from "@/lib/s3";
 import { calculateFraudRiskScore, detectSuspiciousPatterns } from "@/lib/fraud-detection";
+
+const KV_SYNC_PATH_PREFIX = "kv-sync:";
+
+/** Fetches receipt file content, handling both R2 and KV S3 bucket paths. */
+async function getReceiptFileBuffer(cloudStoragePath: string): Promise<Buffer> {
+  if (cloudStoragePath.startsWith(KV_SYNC_PATH_PREFIX)) {
+    const s3Key = cloudStoragePath.substring(KV_SYNC_PATH_PREFIX.length);
+    const { loadSyncConfiguration } = await import("@/lib/receipt-sync/config");
+    const { KvS3Client } = await import("@/lib/receipt-sync/kv-s3-client");
+
+    const configuration = loadSyncConfiguration();
+    if (!configuration || configuration.kvReceiptS3BucketName.length === 0) {
+      throw new Error("KV S3 configuration missing — cannot fetch synced receipt");
+    }
+
+    const kvS3Client = new KvS3Client(configuration);
+    return kvS3Client.getReceiptContent(s3Key);
+  }
+
+  return getFileAsBuffer(cloudStoragePath);
+}
 import {
   buildOcrMessagesWithFileUpload,
   callOcrApi,
@@ -41,7 +62,7 @@ export async function POST(
     }
 
     // Get file content
-    const fileBuffer = await getFileAsBuffer(receipt.cloudStoragePath);
+    const fileBuffer = await getReceiptFileBuffer(receipt.cloudStoragePath);
     const fileType = receipt.fileType || "image";
     const originalFilename = receipt.originalFilename || "receipt";
 

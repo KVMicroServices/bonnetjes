@@ -1,0 +1,15 @@
+{
+  "ReviewDisable": {
+    "title": "Deaktiveer resensie handmatig",
+    "description": "Deaktiveer 'n resensie op KlantenVertellen deur die resensie-ID, ligging-ID en huurder-ID in te voer.",
+    "reviewIdLabel": "Resensie-ID",
+    "reviewIdPlaceholder": "UUID van die resensie",
+    "locationIdLabel": "Ligging-ID",
+    "locationIdPlaceholder": "bv. 1080211",
+    "tenantIdLabel": "Huurder-ID",
+    "submitButton": "Deaktiveer resensie",
+    "successMessage": "Resensie suksesvol gedeaktiveer",
+    "errorMessage": "Deaktivering het misluk",
+    "networkError": "Netwerkfout tydens deaktivering"
+  }
+}

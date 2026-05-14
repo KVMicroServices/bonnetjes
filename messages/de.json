@@ -1,0 +1,15 @@
+{
+  "ReviewDisable": {
+    "title": "Bewertung manuell deaktivieren",
+    "description": "Deaktivieren Sie eine Bewertung auf KlantenVertellen durch Eingabe der Bewertungs-ID, Standort-ID und Mandanten-ID.",
+    "reviewIdLabel": "Bewertungs-ID",
+    "reviewIdPlaceholder": "UUID der Bewertung",
+    "locationIdLabel": "Standort-ID",
+    "locationIdPlaceholder": "z.B. 1080211",
+    "tenantIdLabel": "Mandanten-ID",
+    "submitButton": "Bewertung deaktivieren",
+    "successMessage": "Bewertung erfolgreich deaktiviert",
+    "errorMessage": "Deaktivierung fehlgeschlagen",
+    "networkError": "Netzwerkfehler beim Deaktivieren"
+  }
+}

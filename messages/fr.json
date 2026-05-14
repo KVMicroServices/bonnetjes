@@ -1,0 +1,15 @@
+{
+  "ReviewDisable": {
+    "title": "Désactiver manuellement un avis",
+    "description": "Désactivez un avis sur KlantenVertellen en saisissant l'ID de l'avis, l'ID de l'emplacement et l'ID du locataire.",
+    "reviewIdLabel": "ID de l'avis",
+    "reviewIdPlaceholder": "UUID de l'avis",
+    "locationIdLabel": "ID de l'emplacement",
+    "locationIdPlaceholder": "ex. 1080211",
+    "tenantIdLabel": "ID du locataire",
+    "submitButton": "Désactiver l'avis",
+    "successMessage": "Avis désactivé avec succès",
+    "errorMessage": "Échec de la désactivation",
+    "networkError": "Erreur réseau lors de la désactivation"
+  }
+}

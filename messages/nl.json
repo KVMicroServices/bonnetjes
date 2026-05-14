@@ -1,0 +1,15 @@
+{
+  "ReviewDisable": {
+    "title": "Handmatig review uitschakelen",
+    "description": "Schakel een review uit op KlantenVertellen door het review ID, locatie ID en tenant ID in te voeren.",
+    "reviewIdLabel": "Review ID",
+    "reviewIdPlaceholder": "UUID van de review",
+    "locationIdLabel": "Locatie ID",
+    "locationIdPlaceholder": "bijv. 1080211",
+    "tenantIdLabel": "Tenant ID",
+    "submitButton": "Review uitschakelen",
+    "successMessage": "Review succesvol uitgeschakeld",
+    "errorMessage": "Uitschakelen mislukt",
+    "networkError": "Netwerkfout bij uitschakelen"
+  }
+}

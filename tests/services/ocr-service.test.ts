@@ -333,6 +333,7 @@ describe("callOcrApi", () => {
     const mockResponse = {
       ok: false,
       status: 429,
+      text: () => Promise.resolve("Rate limit exceeded"),
     } as unknown as Response;
 
     globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
