@@ -107,9 +107,6 @@ export default function DashboardPage() {
   const [archiving, setArchiving] = useState(false);
 
   const isAdmin = (session?.user as any)?.role === "admin";
-  const [activeTab, setActiveTab] = useState<"receipts" | "queue" | "reviews">("receipts");
-  const [adminReceipts, setAdminReceipts] = useState<any[]>([]);
-  const [loadingAdmin, setLoadingAdmin] = useState(false);
   const [reviewNotifications, setReviewNotifications] = useState({ count: 0 });
 
   const toggleSelection = (id: string) => {
@@ -204,24 +201,14 @@ export default function DashboardPage() {
 
   const fetchAdminData = useCallback(async () => {
     if (!isAdmin) return;
-    setLoadingAdmin(true);
     try {
-      const [receiptsRes, notifyRes] = await Promise.all([
-        fetch("/api/admin/receipts").catch(() => fetch("/api/receipts")),
-        fetch("/api/admin/reviews/notifications")
-      ]);
-      if (receiptsRes.ok) {
-        const data = await receiptsRes.json();
-        setAdminReceipts(data ?? []);
-      }
+      const notifyRes = await fetch("/api/admin/reviews/notifications");
       if (notifyRes.ok) {
         const data = await notifyRes.json();
         setReviewNotifications(data);
       }
     } catch (err) {
       console.error("Admin data fetch failed:", err);
-    } finally {
-      setLoadingAdmin(false);
     }
   }, [isAdmin]);
 
@@ -488,29 +475,6 @@ export default function DashboardPage() {
         {isAdmin && (
           <div className="mb-6 flex gap-2 flex-wrap">
             <button
-              onClick={() => setActiveTab("receipts")}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === "receipts" ? "bg-kv-green text-white" : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <Receipt className="h-4 w-4" />
-              My Receipts
-            </button>
-            <button
-              onClick={() => { setActiveTab("queue"); fetchAdminData(); }}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === "queue" ? "bg-kv-green text-white" : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <Shield className="h-4 w-4" />
-              Review Queue
-              {(stats.pending ?? 0) > 0 && activeTab !== "queue" && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-kv-orange text-[10px] font-bold text-white">
-                  {stats.pending}
-                </span>
-              )}
-            </button>
-            <button
               onClick={() => router.push("/admin/moderation")}
               className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition-colors"
             >
@@ -539,9 +503,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Stats - only for My Receipts tab */}
-        {activeTab === "receipts" && (
-          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Stats */}
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Total", value: stats.total, icon: Receipt, color: "bg-blue-100 text-blue-600" },
             { label: "Pending", value: stats.pending, icon: Clock, color: "bg-yellow-100 text-yellow-600" },
@@ -566,10 +529,7 @@ export default function DashboardPage() {
             </motion.div>
           ))}
         </div>
-        )}
 
-        {activeTab === "receipts" && (
-        <>
         {/* Actions */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -900,8 +860,6 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-        )}
-        </>
         )}
 
       </main>

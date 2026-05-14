@@ -147,7 +147,10 @@ export default function AdminPage() {
 
       if (receiptsRes.ok) {
         const receiptsData = await receiptsRes.json();
-        setReceipts(receiptsData);
+        const receiptsList = Array.isArray(receiptsData)
+          ? receiptsData
+          : receiptsData.receipts;
+        setReceipts(receiptsList || []);
       }
 
       if (usersRes.ok) {

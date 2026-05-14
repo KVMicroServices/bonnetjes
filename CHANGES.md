@@ -1,5 +1,15 @@
 # Changes
 
+## [039] Remove dead Review Queue tab from dashboard
+
+**What**: Removed the non-functional "Review Queue" tab button and its associated state/data-fetching from the dashboard page.
+**Why**: The tab set `activeTab` to `"queue"` but no UI rendered for that state, leaving users with a blank screen.
+
+## [038] Fix admin page crash from paginated receipts response
+
+**What**: Admin page called `.filter()` on the raw API response object instead of extracting the `receipts` array from the pagination envelope introduced in [035].
+**Why**: Change [035] wrapped the `/api/receipts` response in `{ receipts, nextCursor, hasMore }` but the admin page fetch was never updated.
+
 ## [037] Use POLL_INTERVAL_SECONDS env var for dashboard auto-refresh
 
 **What**: Dashboard pending-receipt polling now uses the server-configured `POLL_INTERVAL_SECONDS` instead of a hardcoded 5-second interval.
