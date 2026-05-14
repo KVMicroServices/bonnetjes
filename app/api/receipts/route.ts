@@ -24,10 +24,16 @@ export async function GET(request: NextRequest) {
     const userId = (session.user as any).id;
     const isAdmin = (session.user as any).role === "admin";
 
+    const searchParams = request.nextUrl.searchParams;
+    const cursor = searchParams.get("cursor") || undefined;
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? parseInt(limitParam, 10) : 15;
+
     const result = await listReceipts(
       { database: prisma, storage: { getFileUrl, getFileAsBuffer } },
       userId,
-      isAdmin
+      isAdmin,
+      { cursor, limit }
     );
 
     if (!result.success) {
@@ -37,7 +43,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(result.receipts);
+    return NextResponse.json({
+      receipts: result.receipts,
+      nextCursor: result.nextCursor,
+      hasMore: result.hasMore,
+    });
   } catch (error) {
     console.error("Get receipts error:", error);
     return NextResponse.json(

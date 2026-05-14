@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Header } from "@/components/header";
 import { ReceiptUpload } from "@/components/receipt-upload";
 import { GoogleDriveImport } from "@/components/google-drive-import";
@@ -90,6 +90,10 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [receipts, setReceipts] = useState<ReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [showDriveImport, setShowDriveImport] = useState(false);
   const [filter, setFilter] = useState<string>("all");
@@ -163,17 +167,33 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchReceipts = useCallback(async () => {
+  const fetchReceipts = useCallback(async (cursor?: string) => {
+    if (cursor) {
+      setLoadingMore(true);
+    }
     try {
-      const response = await fetch("/api/receipts");
+      const params = new URLSearchParams();
+      params.set("limit", "15");
+      if (cursor) {
+        params.set("cursor", cursor);
+      }
+      const response = await fetch(`/api/receipts?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        setReceipts(data ?? []);
+        const incoming = data.receipts ?? [];
+        if (cursor) {
+          setReceipts(prev => [...prev, ...incoming]);
+        } else {
+          setReceipts(incoming);
+        }
+        setNextCursor(data.nextCursor ?? null);
+        setHasMore(data.hasMore ?? false);
       }
     } catch (error) {
       console.error("Failed to fetch receipts:", error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, []);
 
@@ -223,6 +243,32 @@ export default function DashboardPage() {
       return () => clearInterval(interval);
     }
   }, [receipts, fetchReceipts]);
+
+  // Infinite scroll: load more when sentinel element is visible
+  useEffect(() => {
+    if (!hasMore || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const firstEntry = entries[0];
+        if (firstEntry.isIntersecting && nextCursor) {
+          fetchReceipts(nextCursor);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasMore, loadingMore, nextCursor, fetchReceipts]);
 
   const handleViewReceipt = async (receipt: ReceiptData) => {
     setSelectedReceipt(receipt);
@@ -278,9 +324,11 @@ export default function DashboardPage() {
         });
         fetchReceipts();
         if (selectedReceipt?.id === receipt.id) {
-          const updatedReceipts = await fetch("/api/receipts").then(r => r.json());
-          const updated = updatedReceipts.find((r: ReceiptData) => r.id === receipt.id);
-          if (updated) setSelectedReceipt(updated);
+          const updatedResponse = await fetch(`/api/receipts/${receipt.id}`);
+          if (updatedResponse.ok) {
+            const updated = await updatedResponse.json();
+            if (updated) setSelectedReceipt(updated);
+          }
         }
       }
     } catch (error) {
@@ -836,6 +884,16 @@ export default function DashboardPage() {
                 ))}
               </tbody>
             </table>
+
+            {/* Load more sentinel */}
+            <div ref={loadMoreRef} className="flex items-center justify-center py-4">
+              {loadingMore && (
+                <Loader2 className="h-5 w-5 animate-spin text-kv-green" />
+              )}
+              {!hasMore && receipts.length > 0 && (
+                <p className="text-sm text-gray-400">All receipts loaded</p>
+              )}
+            </div>
           </div>
         )}
         </>

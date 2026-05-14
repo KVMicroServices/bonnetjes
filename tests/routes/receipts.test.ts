@@ -144,8 +144,9 @@ describe("GET /api/receipts", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toHaveLength(1);
-    expect(body[0].id).toBe("receipt-001");
+    expect(body.receipts).toHaveLength(1);
+    expect(body.receipts[0].id).toBe("receipt-001");
+    expect(body.hasMore).toBe(false);
 
     expect(mockPrisma.receipt.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -165,7 +166,8 @@ describe("GET /api/receipts", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toHaveLength(2);
+    expect(body.receipts).toHaveLength(2);
+    expect(body.hasMore).toBe(false);
 
     expect(mockPrisma.receipt.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -25,7 +25,7 @@ export interface CreateReceiptInput {
 // ─── Result Types ────────────────────────────────────────────────────────────
 
 export type ListReceiptsResult =
-  | { success: true; receipts: ReadonlyArray<ReceiptWithUser> }
+  | { success: true; receipts: ReadonlyArray<ReceiptWithUser>; nextCursor: string | null; hasMore: boolean }
   | { success: false; error: string };
 
 export type GetReceiptResult =
@@ -193,11 +193,13 @@ const KV_PRESIGNED_URL_EXPIRY_SECONDS = 3600;
 export async function listReceipts(
   dependencies: ReceiptServiceDependencies,
   userId: string,
-  isAdmin: boolean
+  isAdmin: boolean,
+  options?: { cursor?: string; limit?: number }
 ): Promise<ListReceiptsResult> {
   const whereClause = isAdmin ? {} : { userId };
+  const limit = options?.limit ?? 15;
 
-  const receipts = await dependencies.database.receipt.findMany({
+  const findOptions: Record<string, unknown> = {
     where: whereClause,
     include: {
       user: {
@@ -205,9 +207,21 @@ export async function listReceipts(
       },
     },
     orderBy: { createdAt: "desc" },
-  });
+    take: limit + 1,
+  };
 
-  return { success: true, receipts };
+  if (options?.cursor) {
+    findOptions.cursor = { id: options.cursor };
+    findOptions.skip = 1;
+  }
+
+  const receipts = await dependencies.database.receipt.findMany(findOptions as any) as unknown as ReceiptWithUser[];
+
+  const hasMore = receipts.length > limit;
+  const resultReceipts = hasMore ? receipts.slice(0, limit) : receipts;
+  const nextCursor = hasMore ? resultReceipts[resultReceipts.length - 1].id : null;
+
+  return { success: true, receipts: resultReceipts, nextCursor, hasMore };
 }
 
 /** Retrieve a single receipt with access control. */

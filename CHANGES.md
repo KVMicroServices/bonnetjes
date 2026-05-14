@@ -1,5 +1,23 @@
 # Changes
 
+## [036] Add app-dev container for local development with hot reload
+
+**What**: Added `app-dev` service to docker-compose that bind-mounts source code and runs `npm run dev` for live reload on file changes.
+**Decisions**:
+- Reuses the `dependencies` Dockerfile stage (has node_modules installed, no build step)
+- Anonymous volume for `/app/node_modules` prevents host overwriting container deps
+- `WATCHPACK_POLLING=true` ensures file-change detection works across Docker filesystem boundaries
+- Runs `prisma generate` before dev server to ensure client is up to date
+
+## [035] Add infinite scroll pagination to receipt list
+
+**What**: Dashboard receipt list now loads 15 receipts at a time with cursor-based pagination and infinite scroll
+**Decisions**:
+- Cursor-based pagination using Prisma's `cursor` + `skip: 1` pattern for stable ordering
+- IntersectionObserver on a sentinel div at the bottom of the table triggers loading more
+- API response changed from flat array to `{ receipts, nextCursor, hasMore }` envelope
+**Files**: `app/api/receipts/route.ts`, `lib/services/receipt-service.ts`, `app/dashboard/page.tsx`, `tests/routes/receipts.test.ts`, `tests/services/receipt-service.test.ts`
+
 ## [034] Fix OCR for KV-synced receipts and GPT-5.4 nano compatibility
 
 **What**: Fixed OCR processing for receipts synced from KV (stored in separate S3 bucket), switched `max_tokens` to `max_completion_tokens` for GPT-5.4 nano, added error body logging to LLM API calls, fixed Kiyoh auth URL and tenantId.
