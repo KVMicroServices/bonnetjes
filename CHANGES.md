@@ -1,5 +1,18 @@
 # Changes
 
+## [045] Add failure reasons, secondary analysis, and English-only to OCR judging
+
+**What**: Enhanced the AI receipt verification system with structured failure reason codes, a secondary AI analysis pass on rejections, and enforced English-only responses.
+**Why**: Failure reasons were implicit in the confidence/readable flags — now they're explicit and consistent. Secondary analysis catches borderline rejections and adds nuance.
+**Decisions**:
+- Failure reasons are string enum-like values stored in DB (not a Prisma enum) for flexibility: NOT_A_RECEIPT, IMAGE_UNCLEAR, INSUFFICIENT_INFO, DUPLICATE_RECEIPT, RECEIPT_TOO_OLD, SUSPECTED_FRAUD, UNREADABLE_TEXT, MISSING_KEY_FIELDS
+- Secondary analysis only runs on rejections to avoid unnecessary API calls
+- System-level failure reasons (DUPLICATE_RECEIPT, RECEIPT_TOO_OLD, SUSPECTED_FRAUD) are set by code logic, not the AI
+- English enforced via prompt instruction regardless of receipt language
+- Both the streaming OCR endpoint and the batch `processReceiptOcr` function updated
+- Admin card shows failure reason + secondary analysis in expanded view; user card shows inline under confidence bar
+**Files**: `lib/services/ocr-service.ts`, `prisma/schema.prisma`, `prisma/migrations/20260601000001_add_failure_reason_and_secondary_analysis/migration.sql`, `app/api/receipts/[id]/ocr/route.ts`, `components/receipt-card.tsx`, `components/admin-receipt-card.tsx`, `tests/services/ocr-service.test.ts`
+
 ## [044] Cap AI analysis reasoning via prompt instruction
 
 **What**: Added `OCR_REASONING_MAX_TOKENS` env var (default 150) that instructs the OCR model to keep its reasoning field under that token count.

@@ -33,6 +33,7 @@ import {
   createOcrApiConfig,
   parseOcrResult,
   determineVerificationStatus,
+  runSecondaryAnalysis,
 } from "@/lib/services/ocr-service";
 
 export async function POST(
@@ -118,6 +119,17 @@ export async function POST(
                       ocrResult.extractedDate
                     );
 
+                    // Run secondary analysis on rejections
+                    let secondaryAnalysis: string | null = null;
+                    if (verificationDecision.status === "rejected" && verificationDecision.failureReason) {
+                      secondaryAnalysis = await runSecondaryAnalysis(
+                        messages,
+                        ocrResult,
+                        verificationDecision.failureReason,
+                        config
+                      );
+                    }
+
                     // Update suspicious patterns with extracted data
                     const patternAnalysis = await detectSuspiciousPatterns(
                       receipt.userId,
@@ -148,6 +160,8 @@ export async function POST(
                         ocrConfidence: ocrResult.confidence,
                         ocrReasoning,
                         receiptReadable: ocrResult.receiptReadable,
+                        failureReason: verificationDecision.failureReason,
+                        secondaryAnalysis,
                         suspiciousPatterns: JSON.stringify(patternAnalysis.patterns),
                         fraudRiskScore: newFraudRiskScore,
                         verificationStatus: verificationDecision.status,
@@ -164,6 +178,8 @@ export async function POST(
                         receiptReadable: ocrResult.receiptReadable,
                         confidence: ocrResult.confidence,
                         reasoning: ocrResult.reasoning,
+                        failureReason: verificationDecision.failureReason,
+                        secondaryAnalysis,
                         isDateTooOld: verificationDecision.isDateTooOld,
                         dateValidationMessage: verificationDecision.dateValidationMessage,
                         fraudRiskScore: newFraudRiskScore,

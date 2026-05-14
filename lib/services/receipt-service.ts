@@ -77,6 +77,8 @@ interface ReceiptWithUser {
   ocrReasoning: string | null;
   receiptReadable: boolean | null;
   verificationStatus: string;
+  failureReason: string | null;
+  secondaryAnalysis: string | null;
   imageHash: string | null;
   isDuplicate: boolean;
   duplicateOfId: string | null;

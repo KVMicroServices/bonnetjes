@@ -77,6 +77,8 @@ interface ReceiptData {
   verificationStatus: string;
   ocrConfidence: number | null;
   ocrReasoning: string | null;
+  failureReason: string | null;
+  secondaryAnalysis: string | null;
   fraudRiskScore: number | null;
   isDuplicate: boolean;
   createdAt: string;
@@ -1030,6 +1032,24 @@ export default function DashboardPage() {
                     <div className="rounded-lg bg-blue-50 p-3">
                       <p className="text-xs font-medium text-blue-700 mb-1">AI Analysis</p>
                       <p className="text-sm text-blue-900">{selectedReceipt.ocrReasoning}</p>
+                    </div>
+                  )}
+
+                  {/* Failure Reason */}
+                  {selectedReceipt.failureReason && (
+                    <div className="rounded-lg bg-red-50 p-3">
+                      <p className="text-xs font-medium text-red-700 mb-1">Failure Reason</p>
+                      <p className="text-sm font-medium text-red-900">
+                        {selectedReceipt.failureReason.replace(/_/g, " ")}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Secondary Analysis */}
+                  {selectedReceipt.secondaryAnalysis && (
+                    <div className="rounded-lg bg-amber-50 p-3">
+                      <p className="text-xs font-medium text-amber-700 mb-1">Secondary Analysis</p>
+                      <p className="text-sm text-amber-900">{selectedReceipt.secondaryAnalysis}</p>
                     </div>
                   )}
 

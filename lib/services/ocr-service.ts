@@ -6,19 +6,26 @@ import { logger } from "@/lib/logger";
 const DEFAULT_AI_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_AI_MODEL = "gpt-4o-mini";
 const MAX_TOKENS = 2000;
-const SIX_MONTHS_IN_MS = 6 * 30 * 24 * 60 * 60 * 1000;
 const HIGH_CONFIDENCE_THRESHOLD = 70;
 const LOW_CONFIDENCE_THRESHOLD = 30;
 const OCR_REASONING_MAX_TOKENS = parseInt(process.env.OCR_REASONING_MAX_TOKENS || "150", 10);
 
-const OCR_PROMPT = `You are a receipt verification expert. Analyze this receipt and extract the following information:
+const OCR_PROMPT = `You are a receipt verification expert. ALWAYS respond in English regardless of the language on the receipt.
+
+Analyze this receipt and extract the following information:
 
 1. Shop/Store name (the business name on the receipt)
 2. Transaction date (format: YYYY-MM-DD)
 3. Total amount (number only, without currency symbol)
 4. Whether the receipt is clearly readable
 5. Your confidence level (0-100)
-6. Brief reasoning about your analysis (keep under ${OCR_REASONING_MAX_TOKENS} tokens)
+6. Brief reasoning about your analysis in English (keep under ${OCR_REASONING_MAX_TOKENS} tokens)
+7. If this is NOT a valid receipt or cannot be verified, provide a failure reason from this exact list:
+   - NOT_A_RECEIPT: The image is not a purchase receipt
+   - IMAGE_UNCLEAR: The image is too blurry, dark, or damaged to read
+   - INSUFFICIENT_INFO: The receipt lacks key information (shop name, date, or amount)
+   - UNREADABLE_TEXT: Text is present but cannot be reliably extracted
+   - MISSING_KEY_FIELDS: Some required fields (shop, date, amount) are completely absent
 
 Respond with JSON in this exact format:
 {
@@ -27,10 +34,32 @@ Respond with JSON in this exact format:
   "extractedAmount": number or null if not found,
   "receiptReadable": true/false,
   "confidence": 0-100,
-  "reasoning": "1-2 sentences max"
+  "reasoning": "1-2 sentences max, always in English",
+  "failureReason": "one of the failure codes above, or null if receipt is valid"
 }
 
-Respond with raw JSON only.`;
+Respond with raw JSON only. All text in your response must be in English.`;
+
+const SECONDARY_ANALYSIS_PROMPT = `You are a receipt verification quality assurance expert. ALWAYS respond in English.
+
+A receipt was analyzed and REJECTED by the primary analysis. Your job is to review the rejection reasoning and either confirm it or provide additional nuance.
+
+Primary analysis result:
+- Confidence: {confidence}
+- Readable: {readable}
+- Failure reason: {failureReason}
+- Reasoning: {reasoning}
+
+Review the receipt image again and determine:
+1. Is the initial rejection valid? If yes, respond with "Initial analysis valid"
+2. If the rejection seems borderline or there are nuances worth noting, explain briefly what additional context might be relevant (e.g., partial data that could still be useful, specific areas that are unclear, etc.)
+
+Respond with JSON in this exact format:
+{
+  "secondaryVerdict": "string - either 'Initial analysis valid' or a brief explanation of nuances (1-3 sentences, always in English)"
+}
+
+Respond with raw JSON only. All text must be in English.`;
 
 // ─── Dependencies ────────────────────────────────────────────────────────────
 
@@ -91,6 +120,21 @@ export interface OcrMessage {
   content: ReadonlyArray<MessageContent>;
 }
 
+// ─── Failure Reason Constants ─────────────────────────────────────────────────
+
+export const FAILURE_REASONS = [
+  "NOT_A_RECEIPT",
+  "IMAGE_UNCLEAR",
+  "INSUFFICIENT_INFO",
+  "DUPLICATE_RECEIPT",
+  "RECEIPT_TOO_OLD",
+  "SUSPECTED_FRAUD",
+  "UNREADABLE_TEXT",
+  "MISSING_KEY_FIELDS"
+] as const;
+
+export type FailureReason = typeof FAILURE_REASONS[number];
+
 // ─── Result Types ────────────────────────────────────────────────────────────
 
 export interface OcrExtractedResult {
@@ -100,6 +144,7 @@ export interface OcrExtractedResult {
   receiptReadable: boolean;
   confidence: number;
   reasoning: string;
+  failureReason: FailureReason | null;
 }
 
 export interface ParsedOcrResult {
@@ -109,12 +154,18 @@ export interface ParsedOcrResult {
   receiptReadable: boolean;
   confidence: number;
   reasoning: string;
+  failureReason: FailureReason | null;
+}
+
+export interface SecondaryAnalysisResult {
+  secondaryVerdict: string;
 }
 
 export type VerificationStatus = "pending" | "verified" | "rejected";
 
 export interface VerificationDecision {
   status: VerificationStatus;
+  failureReason: FailureReason | null;
   isDateTooOld: boolean;
   dateValidationMessage: string;
 }
@@ -266,13 +317,19 @@ export function parseOcrResult(rawJson: string): ParsedOcrResult {
     extractedAmount = parseFloat(String(parsed.extractedAmount));
   }
 
+  let failureReason: FailureReason | null = null;
+  if (parsed.failureReason && FAILURE_REASONS.includes(parsed.failureReason as FailureReason)) {
+    failureReason = parsed.failureReason as FailureReason;
+  }
+
   return {
     extractedShopName: parsed.extractedShopName,
     extractedDate,
     extractedAmount,
     receiptReadable: parsed.receiptReadable,
     confidence: parsed.confidence,
-    reasoning: parsed.reasoning
+    reasoning: parsed.reasoning,
+    failureReason
   };
 }
 
@@ -295,7 +352,11 @@ export function determineVerificationStatus(
   }
 
   if (isDateTooOld) {
-    return { status: "rejected", isDateTooOld, dateValidationMessage };
+    return { status: "rejected", failureReason: "RECEIPT_TOO_OLD", isDateTooOld, dateValidationMessage };
+  }
+
+  if (isDuplicate) {
+    return { status: "rejected", failureReason: "DUPLICATE_RECEIPT", isDateTooOld, dateValidationMessage };
   }
 
   const hasHighConfidence = ocrResult.confidence >= HIGH_CONFIDENCE_THRESHOLD;
@@ -304,16 +365,74 @@ export function determineVerificationStatus(
   const hasDate = receiptDate !== null;
 
   if (hasHighConfidence && isReadable && hasShopName && hasDate) {
-    return { status: "verified", isDateTooOld, dateValidationMessage };
+    return { status: "verified", failureReason: null, isDateTooOld, dateValidationMessage };
   }
 
   const hasLowConfidence = ocrResult.confidence < LOW_CONFIDENCE_THRESHOLD;
 
-  if (!isReadable || hasLowConfidence || isDuplicate) {
-    return { status: "rejected", isDateTooOld, dateValidationMessage };
+  if (!isReadable || hasLowConfidence) {
+    const failureReason = ocrResult.failureReason || "IMAGE_UNCLEAR";
+    return { status: "rejected", failureReason, isDateTooOld, dateValidationMessage };
   }
 
-  return { status: "pending", isDateTooOld, dateValidationMessage };
+  return { status: "pending", failureReason: null, isDateTooOld, dateValidationMessage };
+}
+
+/** Run a secondary AI analysis on a rejected receipt to confirm or add nuance. */
+export async function runSecondaryAnalysis(
+  messages: ReadonlyArray<OcrMessage>,
+  ocrResult: ParsedOcrResult,
+  failureReason: FailureReason,
+  config: OcrApiConfig
+): Promise<string> {
+  const filledPrompt = SECONDARY_ANALYSIS_PROMPT
+    .replace("{confidence}", String(ocrResult.confidence))
+    .replace("{readable}", String(ocrResult.receiptReadable))
+    .replace("{failureReason}", failureReason)
+    .replace("{reasoning}", ocrResult.reasoning);
+
+  const originalContent = messages[0].content;
+  const secondaryMessages: OcrMessage[] = [
+    {
+      role: "user",
+      content: [
+        ...originalContent,
+        { type: "text", text: filledPrompt }
+      ]
+    }
+  ];
+
+  const requestBody = {
+    model: config.model,
+    messages: secondaryMessages,
+    max_completion_tokens: MAX_TOKENS,
+    response_format: { type: "json_object" },
+    stream: false
+  };
+
+  try {
+    const response = await fetch(`${config.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      logger.warn({ status: response.status }, "Secondary analysis API call failed");
+      return "Secondary analysis unavailable";
+    }
+
+    const llmResponse = await response.json();
+    const rawContent: string = llmResponse.choices[0].message.content;
+    const parsed: SecondaryAnalysisResult = JSON.parse(rawContent);
+    return parsed.secondaryVerdict;
+  } catch (error) {
+    logger.warn({ error }, "Secondary analysis parsing failed");
+    return "Secondary analysis unavailable";
+  }
 }
 
 /** Full OCR pipeline: fetch file, run OCR, update fraud scores, persist to database. */
@@ -364,6 +483,16 @@ export async function processReceiptOcr(
     ocrResult.extractedDate
   );
 
+  let secondaryAnalysis: string | null = null;
+  if (verificationDecision.status === "rejected" && verificationDecision.failureReason) {
+    secondaryAnalysis = await runSecondaryAnalysis(
+      messages,
+      ocrResult,
+      verificationDecision.failureReason,
+      config
+    );
+  }
+
   const patternAnalysis = await dependencies.fraudDetection.detectSuspiciousPatterns(
     receipt.userId,
     ocrResult.extractedShopName,
@@ -391,6 +520,8 @@ export async function processReceiptOcr(
       ocrConfidence: ocrResult.confidence,
       ocrReasoning,
       receiptReadable: ocrResult.receiptReadable,
+      failureReason: verificationDecision.failureReason,
+      secondaryAnalysis,
       suspiciousPatterns: JSON.stringify(patternAnalysis.patterns),
       fraudRiskScore: newFraudRiskScore,
       verificationStatus: verificationDecision.status,

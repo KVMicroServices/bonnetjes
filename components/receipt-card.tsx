@@ -28,6 +28,8 @@ interface ReceiptData {
   verificationStatus: string;
   ocrConfidence: number | null;
   ocrReasoning: string | null;
+  failureReason: string | null;
+  secondaryAnalysis: string | null;
   fraudRiskScore: number | null;
   isDuplicate: boolean;
   createdAt: string;
@@ -237,6 +239,16 @@ export function ReceiptCard({ receipt, onRefresh }: ReceiptCardProps) {
           {receipt.ocrReasoning && receipt.ocrReasoning.includes("older than 6 months") && (
             <div className="mt-2 text-xs text-red-600 font-medium">
               ⚠️ Receipt is older than 6 months
+            </div>
+          )}
+          {receipt.failureReason && (
+            <div className="mt-2 text-xs text-red-600 font-medium">
+              ⚠️ {receipt.failureReason.replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
+            </div>
+          )}
+          {receipt.secondaryAnalysis && receipt.secondaryAnalysis !== "Initial analysis valid" && (
+            <div className="mt-1 text-xs text-amber-700">
+              {receipt.secondaryAnalysis}
             </div>
           )}
         </div>
