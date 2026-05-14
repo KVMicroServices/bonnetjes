@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 const REJECTION_EMAIL_TEMPLATE = `Beste heer/mevrouw,
 
@@ -87,6 +88,7 @@ export default function DashboardPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("Dashboard");
   const [receipts, setReceipts] = useState<ReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -144,8 +146,8 @@ export default function DashboardPage() {
       if (response.ok) {
         const { archivedCount } = await response.json();
         toast({
-          title: "Gearchiveerd",
-          description: `${archivedCount} bonnen zijn gearchiveerd`
+          title: t("archived"),
+          description: t("archivedDescription", { count: archivedCount })
         });
         setSelectedIds(new Set());
         fetchReceipts();
@@ -154,7 +156,7 @@ export default function DashboardPage() {
       console.error("Archive error:", error);
       toast({
         title: "Error",
-        description: "Failed to archive receipts",
+        description: t("failedToArchive"),
         variant: "destructive"
       });
     } finally {
@@ -261,7 +263,7 @@ export default function DashboardPage() {
       console.error("Failed to load preview:", error);
       toast({
         title: "Error",
-        description: "Failed to load receipt preview",
+        description: t("failedToLoad"),
         variant: "destructive"
       });
     } finally {
@@ -297,8 +299,8 @@ export default function DashboardPage() {
       });
       if (response.ok) {
         toast({
-          title: "Reprocessing Complete",
-          description: "Receipt has been reprocessed successfully"
+          title: t("reprocessingComplete"),
+          description: t("reprocessingDescription")
         });
         fetchReceipts();
         if (selectedReceipt?.id === receipt.id) {
@@ -313,7 +315,7 @@ export default function DashboardPage() {
       console.error("Reprocess error:", error);
       toast({
         title: "Error",
-        description: "Failed to reprocess receipt",
+        description: t("failedToReprocess"),
         variant: "destructive"
       });
     } finally {
@@ -332,8 +334,8 @@ export default function DashboardPage() {
 
       if (response.ok) {
         toast({
-          title: "Status Updated",
-          description: `Receipt marked as ${newStatus}`
+          title: t("statusUpdated"),
+          description: t("statusUpdatedDescription", { status: newStatus })
         });
         fetchReceipts();
         if (selectedReceipt?.id === receiptId) {
@@ -344,7 +346,7 @@ export default function DashboardPage() {
       console.error("Failed to update receipt:", error);
       toast({
         title: "Error",
-        description: "Failed to update receipt status",
+        description: t("failedToUpdate"),
         variant: "destructive"
       });
     } finally {
@@ -355,8 +357,8 @@ export default function DashboardPage() {
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(REJECTION_EMAIL_TEMPLATE);
     toast({
-      title: "Copied!",
-      description: "Email template copied to clipboard"
+      title: t("copied"),
+      description: t("copiedDescription")
     });
   };
 
@@ -452,9 +454,9 @@ export default function DashboardPage() {
         {/* Welcome */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
-            Welcome, {session?.user?.name ?? "User"}
+            {t("welcome", { name: session?.user?.name ?? "User" })}
           </h1>
-          <p className="text-gray-600">Manage and verify your receipt submissions</p>
+          <p className="text-gray-600">{t("subtitle")}</p>
         </div>
 
 
@@ -462,10 +464,10 @@ export default function DashboardPage() {
         {/* Stats */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Total", value: stats.total, icon: Receipt, color: "bg-blue-100 text-blue-600" },
-            { label: "Pending", value: stats.pending, icon: Clock, color: "bg-yellow-100 text-yellow-600" },
-            { label: "Verified", value: stats.verified, icon: CheckCircle, color: "bg-green-100 text-green-600" },
-            { label: "Rejected", value: stats.rejected, icon: XCircle, color: "bg-red-100 text-red-600" }
+            { label: t("statsTotal"), value: stats.total, icon: Receipt, color: "bg-blue-100 text-blue-600" },
+            { label: t("statsPending"), value: stats.pending, icon: Clock, color: "bg-yellow-100 text-yellow-600" },
+            { label: t("statsVerified"), value: stats.verified, icon: CheckCircle, color: "bg-green-100 text-green-600" },
+            { label: t("statsRejected"), value: stats.rejected, icon: XCircle, color: "bg-red-100 text-red-600" }
           ].map((stat) => (
             <motion.div
               key={stat.label}
@@ -495,10 +497,10 @@ export default function DashboardPage() {
               onChange={(e) => setFilter(e.target.value)}
               className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-kv-green focus:outline-none"
             >
-              <option value="all">All Receipts</option>
-              <option value="pending">Pending</option>
-              <option value="verified">Verified</option>
-              <option value="rejected">Rejected</option>
+              <option value="all">{t("filterAll")}</option>
+              <option value="pending">{t("filterPending")}</option>
+              <option value="verified">{t("filterVerified")}</option>
+              <option value="rejected">{t("filterRejected")}</option>
             </select>
           </div>
 
@@ -508,14 +510,14 @@ export default function DashboardPage() {
               className="flex items-center gap-2 rounded-lg border border-kv-green px-4 py-2 font-medium text-kv-green transition-colors hover:bg-kv-green/10"
             >
               <FolderOpen className="h-5 w-5" />
-              Google Drive
+              {t("googleDrive")}
             </button>
             <button
               onClick={() => setShowUpload(true)}
               className="flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 font-medium text-white transition-colors hover:bg-kv-green/90"
             >
               <Plus className="h-5 w-5" />
-              Upload
+              {t("upload")}
             </button>
           </div>
         </div>
@@ -552,13 +554,13 @@ export default function DashboardPage() {
           >
             <div className="flex items-center gap-4">
               <span className="font-medium text-kv-green">
-                {selectedIds.size} geselecteerd
+                {t("selected", { count: selectedIds.size })}
               </span>
               <button
                 onClick={clearSelection}
                 className="text-sm text-gray-600 hover:text-gray-900"
               >
-                Deselecteer alles
+                {t("deselectAll")}
               </button>
             </div>
             <button
@@ -571,7 +573,7 @@ export default function DashboardPage() {
               ) : (
                 <Archive className="h-4 w-4" />
               )}
-              Archiveren
+              {t("archive")}
             </button>
           </motion.div>
         )}
@@ -585,17 +587,17 @@ export default function DashboardPage() {
           >
             <Receipt className="mx-auto mb-4 h-12 w-12 text-gray-400" />
             <h3 className="mb-2 text-lg font-semibold text-gray-900">
-              No receipts yet
+              {t("noReceipts")}
             </h3>
             <p className="mb-4 text-gray-600">
-              Upload your first receipt to start verifying your reviews
+              {t("noReceiptsDescription")}
             </p>
             <button
               onClick={() => setShowUpload(true)}
               className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 font-medium text-white transition-colors hover:bg-kv-green/90"
             >
               <Plus className="h-5 w-5" />
-              Upload Receipt
+              {t("uploadReceipt")}
             </button>
           </motion.div>
         ) : (
@@ -609,12 +611,12 @@ export default function DashboardPage() {
                 {selectedIds.size > 0 ? (
                   <>
                     <CheckSquare className="h-4 w-4" />
-                    Deselecteer
+                    {t("deselect")}
                   </>
                 ) : (
                   <>
                     <Square className="h-4 w-4" />
-                    Selecteer alles
+                    {t("selectAll")}
                   </>
                 )}
               </button>
@@ -624,7 +626,7 @@ export default function DashboardPage() {
                   className="flex items-center gap-2 text-sm text-kv-orange hover:text-kv-orange/80"
                 >
                   <Archive className="h-4 w-4" />
-                  Archief ({archivedCount})
+                  {t("archiveFolder", { count: archivedCount })}
                 </button>
               )}
             </div>
@@ -632,13 +634,13 @@ export default function DashboardPage() {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-4 py-3 w-10"></th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Receipt</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Confidence</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("tableReceipt")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("tableDate")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("tableAmount")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("tableConfidence")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("tableRisk")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("tableStatus")}</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("tableActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -751,14 +753,14 @@ export default function DashboardPage() {
                         <button
                           onClick={() => handleViewReceipt(receipt)}
                           className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                          title="View Receipt"
+                          title={t("viewReceipt")}
                         >
                           <Eye className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDownload(receipt)}
                           className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                          title="Download"
+                          title={t("download")}
                         >
                           <Download className="h-4 w-4" />
                         </button>
@@ -768,7 +770,7 @@ export default function DashboardPage() {
                             onClick={() => handleStatusUpdate(receipt.id, "verified")}
                             disabled={updatingId === receipt.id}
                             className="rounded-lg p-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
-                            title="Approve"
+                            title={t("approve")}
                           >
                             {updatingId === receipt.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -782,7 +784,7 @@ export default function DashboardPage() {
                           <button
                             onClick={() => setShowEmailModal(true)}
                             className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                            title="Email Template"
+                            title={t("emailTemplate")}
                           >
                             <Mail className="h-4 w-4" />
                           </button>
@@ -791,7 +793,7 @@ export default function DashboardPage() {
                           onClick={() => handleReprocess(receipt)}
                           disabled={reprocessingId === receipt.id}
                           className="rounded-lg p-2 text-kv-green hover:bg-kv-green/5 disabled:opacity-50"
-                          title="Reprocess"
+                          title={t("reprocess")}
                         >
                           {reprocessingId === receipt.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />

@@ -4,11 +4,14 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Receipt, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
+import { LanguageSelector } from "@/components/language-selector";
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useTranslations("Login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,12 +31,12 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        setError(t("invalidCredentials"));
       } else {
         router.replace("/dashboard");
       }
     } catch {
-      setError("An error occurred. Please try again.");
+      setError(t("genericError"));
     } finally {
       setLoading(false);
     }
@@ -53,7 +56,7 @@ export default function LoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/kiyoh-logo.png" alt="Kiyoh" className="h-12 w-auto" />
           </Link>
-          <p className="mt-4 text-gray-600">Sign in to your account</p>
+          <p className="mt-4 text-gray-600">{t("subtitle")}</p>
         </div>
 
         <div className="rounded-2xl bg-white p-8 shadow-xl">
@@ -66,7 +69,7 @@ export default function LoginPage() {
 
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
-                Email
+                {t("emailLabel")}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -75,7 +78,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-4 text-gray-900 focus:border-kv-green focus:outline-none focus:ring-2 focus:ring-kv-green/20"
-                  placeholder="you@example.com"
+                  placeholder={t("emailPlaceholder")}
                   required
                 />
               </div>
@@ -83,7 +86,7 @@ export default function LoginPage() {
 
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
-                Password
+                {t("passwordLabel")}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -92,7 +95,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-12 text-gray-900 focus:border-kv-green focus:outline-none focus:ring-2 focus:ring-kv-green/20"
-                  placeholder="••••••••"
+                  placeholder={t("passwordPlaceholder")}
                   required
                 />
                 <button
@@ -117,10 +120,10 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  Signing in...
+                  {t("submitting")}
                 </>
               ) : (
-                "Sign In"
+                t("submitButton")
               )}
             </button>
           </form>
@@ -131,7 +134,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-2 text-gray-500">Of</span>
+              <span className="bg-white px-2 text-gray-500">{t("orDivider")}</span>
             </div>
           </div>
 
@@ -159,18 +162,22 @@ export default function LoginPage() {
                 fill="#EA4335"
               />
             </svg>
-            Sign in met Google
+            {t("googleButton")}
           </button>
 
           <p className="mt-6 text-center text-sm text-gray-600">
-            Don&apos;t have an account?{" "}
+            {t("noAccount")}{" "}
             <Link
               href="/signup"
               className="font-medium text-kv-green hover:text-kv-green/90"
             >
-              Sign up
+              {t("signUpLink")}
             </Link>
           </p>
+        </div>
+
+        <div className="mt-4 flex justify-center">
+          <LanguageSelector />
         </div>
       </motion.div>
     </div>

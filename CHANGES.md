@@ -1,5 +1,17 @@
 # Changes
 
+## [041] Add i18n infrastructure with next-intl and language selector
+
+**What**: Installed next-intl, set up cookie-based locale persistence, added a language selector dropdown in the header, created full translation files for all 8 languages, and wired up `useTranslations()` in all page components.
+**Decisions**:
+- Cookie-based locale persistence (`NEXT_LOCALE`) set directly on the client — no async API call needed for switching
+- `window.location.reload()` after cookie set to ensure clean server re-render (no flash)
+- Removed Accept-Language detection to avoid flash between detected locale and cookie locale
+- Default locale is `nl` (Dutch) since the primary audience is Dutch
+- Split `lib/i18n.ts` (server-only) from `lib/i18n-config.ts` (shared constants) to avoid `next/headers` import in client components
+- Removed Pino transport worker (was causing crashes in Next.js dev mode webpack bundling)
+**Files**: `lib/i18n.ts`, `lib/i18n-config.ts`, `next.config.js`, `app/layout.tsx`, `app/api/locale/route.ts`, `components/language-selector.tsx`, `components/header.tsx`, `app/login/page.tsx`, `app/signup/page.tsx`, `app/dashboard/page.tsx`, `app/archive/page.tsx`, `app/admin/page.tsx`, `app/admin/moderation/page.tsx`, `app/admin/reviews/page.tsx`, `app/admin/settings/automation/page.tsx`, `lib/logger.ts`, `messages/*.json`
+
 ## [040] Move admin nav tabs from dashboard into header
 
 **What**: Removed the tab-style admin buttons (Review Moderatie, Review Platforms, Admin Panel) from the dashboard page and added Moderation/Platforms links to the header nav. Renamed header "Reviews" button to "Platforms". Removed the "Review Platforms (Full)" tab from the admin page since it's now accessible via the header.

@@ -34,6 +34,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 const REJECTION_EMAIL_TEMPLATE = `Beste heer/mevrouw,
 
@@ -108,6 +109,7 @@ export default function AdminPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("Admin");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [receipts, setReceipts] = useState<ReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,8 +128,8 @@ export default function AdminPage() {
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(REJECTION_EMAIL_TEMPLATE);
     toast({
-      title: "Copied!",
-      description: "Email template copied to clipboard"
+      title: t("copied"),
+      description: t("copiedDescription")
     });
   };
 
@@ -174,10 +176,10 @@ export default function AdminPage() {
       });
       if (res.ok) {
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-        toast({ title: "Rol bijgewerkt", description: `Gebruiker is nu ${newRole}` });
+        toast({ title: t("roleUpdated"), description: t("roleUpdatedDescription", { role: newRole }) });
       }
     } catch {
-      toast({ title: "Fout", description: "Rol bijwerken mislukt", variant: "destructive" });
+      toast({ title: t("roleUpdateFailed"), description: t("roleUpdateFailedDescription"), variant: "destructive" });
     } finally {
       setUpdatingUser(null);
     }
@@ -208,7 +210,7 @@ export default function AdminPage() {
       console.error("Failed to load preview:", error);
       toast({
         title: "Error",
-        description: "Failed to load receipt preview",
+        description: t("failedToLoad"),
         variant: "destructive"
       });
     } finally {
@@ -235,8 +237,8 @@ export default function AdminPage() {
 
       if (response.ok) {
         toast({
-          title: "Status Updated",
-          description: `Receipt marked as ${newStatus}`
+          title: t("statusUpdated"),
+          description: t("statusUpdatedDescription", { status: newStatus })
         });
         fetchData();
         // Update selected receipt if it's currently being viewed
@@ -248,7 +250,7 @@ export default function AdminPage() {
       console.error("Failed to update receipt:", error);
       toast({
         title: "Error",
-        description: "Failed to update receipt status",
+        description: t("failedToUpdate"),
         variant: "destructive"
       });
     } finally {
@@ -349,8 +351,8 @@ export default function AdminPage() {
             <Shield className="h-6 w-6 text-kv-green" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-            <p className="text-gray-600">Review and manage receipt submissions</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
+            <p className="text-gray-600">{t("subtitle")}</p>
           </div>
         </div>
 
@@ -363,7 +365,7 @@ export default function AdminPage() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Receipts</p>
+                <p className="text-sm text-gray-600">{t("totalReceipts")}</p>
                 <p className="text-3xl font-bold text-gray-900">
                   {stats?.totalReceipts ?? 0}
                 </p>
@@ -382,7 +384,7 @@ export default function AdminPage() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Pending Review</p>
+                <p className="text-sm text-gray-600">{t("pendingReview")}</p>
                 <p className="text-3xl font-bold text-yellow-600">
                   {stats?.pendingCount ?? 0}
                 </p>
@@ -401,7 +403,7 @@ export default function AdminPage() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Users</p>
+                <p className="text-sm text-gray-600">{t("totalUsers")}</p>
                 <p className="text-3xl font-bold text-gray-900">
                   {stats?.totalUsers ?? 0}
                 </p>
@@ -420,7 +422,7 @@ export default function AdminPage() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">High Risk</p>
+                <p className="text-sm text-gray-600">{t("highRisk")}</p>
                 <p className="text-3xl font-bold text-red-600">
                   {stats?.fraudStats?.highRiskCount ?? 0}
                 </p>
@@ -443,7 +445,7 @@ export default function AdminPage() {
             }`}
           >
             <Receipt className="h-4 w-4" />
-            Review Queue
+            {t("reviewQueue")}
             {(stats?.pendingCount ?? 0) > 0 && (
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-kv-orange text-[10px] font-bold text-white">
                 {stats?.pendingCount}
@@ -459,7 +461,7 @@ export default function AdminPage() {
             }`}
           >
             <Users className="h-4 w-4" />
-            Gebruikers
+            {t("users")}
           </button>
           <button
             onClick={() => setActiveTab("stats")}
@@ -470,7 +472,7 @@ export default function AdminPage() {
             }`}
           >
             <BarChart3 className="h-4 w-4" />
-            Statistieken
+            {t("statistics")}
           </button>
         </div>
 
@@ -481,10 +483,10 @@ export default function AdminPage() {
               <Filter className="h-5 w-5 text-gray-500" />
               <div className="flex flex-wrap gap-2">
                 {[
-                  { value: "all", label: "All", icon: Receipt },
-                  { value: "pending", label: "Pending", icon: Clock },
-                  { value: "verified", label: "Verified", icon: CheckCircle },
-                  { value: "rejected", label: "Rejected", icon: XCircle }
+                  { value: "all", label: t("filterAll"), icon: Receipt },
+                  { value: "pending", label: t("filterPending"), icon: Clock },
+                  { value: "verified", label: t("filterVerified"), icon: CheckCircle },
+                  { value: "rejected", label: t("filterRejected"), icon: XCircle }
                 ].map((item) => (
                   <button
                     key={item.value}
@@ -507,22 +509,22 @@ export default function AdminPage() {
               <div className="rounded-xl bg-white p-12 text-center shadow-sm">
                 <Receipt className="mx-auto mb-4 h-12 w-12 text-gray-400" />
                 <h3 className="mb-2 text-lg font-semibold text-gray-900">
-                  No receipts to review
+                  {t("noReceipts")}
                 </h3>
-                <p className="text-gray-600">All caught up! Check back later.</p>
+                <p className="text-gray-600">{t("noReceiptsDescription")}</p>
               </div>
             ) : (
               <div className="overflow-hidden rounded-xl bg-white shadow-sm">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Receipt</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipt")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("user")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("date")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("amount")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("risk")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("status")}</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("actions")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -619,14 +621,14 @@ export default function AdminPage() {
                             <button
                               onClick={() => handleViewReceipt(receipt)}
                               className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                              title="View Receipt"
+                              title={t("viewReceipt")}
                             >
                               <Eye className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDownload(receipt)}
                               className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                              title="Download"
+                              title={t("download")}
                             >
                               <Download className="h-4 w-4" />
                             </button>
@@ -634,7 +636,7 @@ export default function AdminPage() {
                               onClick={() => handleStatusUpdate(receipt.id, "verified")}
                               disabled={updatingId === receipt.id || receipt.verificationStatus === "verified"}
                               className="rounded-lg p-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
-                              title="Approve"
+                              title={t("approve")}
                             >
                               {updatingId === receipt.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -646,7 +648,7 @@ export default function AdminPage() {
                               onClick={() => handleStatusUpdate(receipt.id, "rejected")}
                               disabled={updatingId === receipt.id || receipt.verificationStatus === "rejected"}
                               className="rounded-lg p-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
-                              title="Reject"
+                              title={t("reject")}
                             >
                               <XIcon className="h-4 w-4" />
                             </button>
@@ -654,7 +656,7 @@ export default function AdminPage() {
                               <button
                                 onClick={() => setShowEmailModal(true)}
                                 className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                                title="Email Template"
+                                title={t("emailTemplate")}
                               >
                                 <Mail className="h-4 w-4" />
                               </button>
@@ -676,11 +678,11 @@ export default function AdminPage() {
             <div className="rounded-xl bg-white p-6 shadow-sm">
               <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
                 <Shield className="h-5 w-5 text-kv-green" />
-                Fraud Detection Statistics
+                {t("fraudDetection")}
               </h3>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="rounded-lg bg-gray-50 p-4">
-                  <p className="text-sm text-gray-600">Average Risk Score</p>
+                  <p className="text-sm text-gray-600">{t("averageRiskScore")}</p>
                   <p className="text-2xl font-bold text-gray-900">
                     {stats?.fraudStats?.averageRiskScore ?? 0}%
                   </p>
@@ -688,7 +690,7 @@ export default function AdminPage() {
                 <div className="rounded-lg bg-gray-50 p-4">
                   <div className="flex items-center gap-2">
                     <Copy className="h-4 w-4 text-red-500" />
-                    <p className="text-sm text-gray-600">Duplicates Detected</p>
+                    <p className="text-sm text-gray-600">{t("duplicatesDetected")}</p>
                   </div>
                   <p className="text-2xl font-bold text-red-600">
                     {stats?.fraudStats?.duplicateCount ?? 0}
@@ -697,7 +699,7 @@ export default function AdminPage() {
                 <div className="rounded-lg bg-gray-50 p-4">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    <p className="text-sm text-gray-600">High Risk Submissions</p>
+                    <p className="text-sm text-gray-600">{t("highRiskSubmissions")}</p>
                   </div>
                   <p className="text-2xl font-bold text-orange-600">
                     {stats?.fraudStats?.highRiskCount ?? 0}
@@ -708,9 +710,9 @@ export default function AdminPage() {
 
             {/* Recent Actions */}
             <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-semibold text-gray-900">Recent Admin Actions</h3>
+              <h3 className="mb-4 text-lg font-semibold text-gray-900">{t("recentActions")}</h3>
               {(stats?.recentActions?.length ?? 0) === 0 ? (
-                <p className="text-gray-500">No recent actions</p>
+                <p className="text-gray-500">{t("noRecentActions")}</p>
               ) : (
                 <div className="space-y-3">
                   {stats?.recentActions?.map((action) => (
@@ -737,8 +739,8 @@ export default function AdminPage() {
         {activeTab === "users" && (
           <div className="rounded-xl bg-white shadow-sm overflow-hidden">
             <div className="border-b px-6 py-4 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Gebruikersbeheer</h3>
-              <span className="text-sm text-gray-500">{users.length} gebruikers</span>
+              <h3 className="font-semibold text-gray-900">{t("userManagement")}</h3>
+              <span className="text-sm text-gray-500">{t("usersCount", { count: users.length })}</span>
             </div>
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
