@@ -1,5 +1,10 @@
 # Changes
 
+## [043] Fix UI not updating after receipt reprocessing
+
+**What**: Dashboard `handleReprocess` now reads the SSE stream from the OCR endpoint and waits for the `"completed"` event before refreshing data.
+**Why**: The OCR endpoint returns a streaming response; the old code checked `response.ok` (which is true immediately on stream open) and called `fetchReceipts()` before processing finished, so the DB still had stale data.
+
 ## [042] Fix Kiyoh TOTP generation and add token caching
 
 **What**: Fixed `Secret.fromBase32()` usage in TOTP generation (was passing raw string, producing wrong OTP codes) and added in-memory bearer token caching with 25-minute TTL to avoid re-authenticating on every API call.

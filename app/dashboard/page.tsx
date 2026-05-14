@@ -297,7 +297,50 @@ export default function DashboardPage() {
       const response = await fetch(`/api/receipts/${receipt.id}/ocr`, {
         method: "POST"
       });
-      if (response.ok) {
+
+      if (!response.ok) {
+        throw new Error("OCR request failed");
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("No response stream available");
+      }
+
+      const decoder = new TextDecoder();
+      let streamBuffer = "";
+      let completed = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        streamBuffer += decoder.decode(value, { stream: true });
+        const lines = streamBuffer.split("\n");
+        streamBuffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data.length === 0) continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.status === "completed") {
+              completed = true;
+            } else if (parsed.status === "error") {
+              throw new Error(parsed.message || "OCR processing failed");
+            }
+          } catch (parseError) {
+            if (parseError instanceof SyntaxError) {
+              continue;
+            }
+            throw parseError;
+          }
+        }
+      }
+
+      if (completed) {
         toast({
           title: t("reprocessingComplete"),
           description: t("reprocessingDescription")
@@ -307,7 +350,9 @@ export default function DashboardPage() {
           const updatedResponse = await fetch(`/api/receipts/${receipt.id}`);
           if (updatedResponse.ok) {
             const updated = await updatedResponse.json();
-            if (updated) setSelectedReceipt(updated);
+            if (updated) {
+              setSelectedReceipt(updated);
+            }
           }
         }
       }
