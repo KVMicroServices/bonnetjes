@@ -167,6 +167,8 @@ export default function DashboardPage() {
     }
   };
 
+  const [pollIntervalMilliseconds, setPollIntervalMilliseconds] = useState(5000);
+
   const fetchReceipts = useCallback(async (cursor?: string) => {
     if (cursor) {
       setLoadingMore(true);
@@ -188,6 +190,9 @@ export default function DashboardPage() {
         }
         setNextCursor(data.nextCursor ?? null);
         setHasMore(data.hasMore ?? false);
+        if (data.pollIntervalSeconds) {
+          setPollIntervalMilliseconds(data.pollIntervalSeconds * 1000);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch receipts:", error);
@@ -238,11 +243,11 @@ export default function DashboardPage() {
     if (hasPendingReceipts) {
       const interval = setInterval(() => {
         fetchReceipts();
-      }, 5000); // Refresh every 5 seconds
+      }, pollIntervalMilliseconds);
       
       return () => clearInterval(interval);
     }
-  }, [receipts, fetchReceipts]);
+  }, [receipts, fetchReceipts, pollIntervalMilliseconds]);
 
   // Infinite scroll: load more when sentinel element is visible
   useEffect(() => {

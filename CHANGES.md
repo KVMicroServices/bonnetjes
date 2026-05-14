@@ -1,5 +1,13 @@
 # Changes
 
+## [037] Use POLL_INTERVAL_SECONDS env var for dashboard auto-refresh
+
+**What**: Dashboard pending-receipt polling now uses the server-configured `POLL_INTERVAL_SECONDS` instead of a hardcoded 5-second interval.
+**Decisions**:
+- Poll interval is included in the `/api/receipts` JSON response so the client component can read it without `NEXT_PUBLIC_` prefix
+- Falls back to 300s (5 min) if env var is missing or invalid
+**Files**: `app/api/receipts/route.ts`, `app/dashboard/page.tsx`
+
 ## [036] Add app-dev container for local development with hot reload
 
 **What**: Added `app-dev` service to docker-compose that bind-mounts source code and runs `npm run dev` for live reload on file changes.

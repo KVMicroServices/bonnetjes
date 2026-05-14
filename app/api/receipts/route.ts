@@ -43,10 +43,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const DEFAULT_POLL_INTERVAL_SECONDS = 300;
+    const pollIntervalSecondsRaw = parseInt(process.env.POLL_INTERVAL_SECONDS || "", 10);
+    const pollIntervalSeconds = Number.isFinite(pollIntervalSecondsRaw)
+      ? pollIntervalSecondsRaw
+      : DEFAULT_POLL_INTERVAL_SECONDS;
+
     return NextResponse.json({
       receipts: result.receipts,
       nextCursor: result.nextCursor,
       hasMore: result.hasMore,
+      pollIntervalSeconds,
     });
   } catch (error) {
     console.error("Get receipts error:", error);
