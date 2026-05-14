@@ -9,6 +9,7 @@ const MAX_TOKENS = 2000;
 const SIX_MONTHS_IN_MS = 6 * 30 * 24 * 60 * 60 * 1000;
 const HIGH_CONFIDENCE_THRESHOLD = 70;
 const LOW_CONFIDENCE_THRESHOLD = 30;
+const OCR_REASONING_MAX_TOKENS = parseInt(process.env.OCR_REASONING_MAX_TOKENS || "150", 10);
 
 const OCR_PROMPT = `You are a receipt verification expert. Analyze this receipt and extract the following information:
 
@@ -17,7 +18,7 @@ const OCR_PROMPT = `You are a receipt verification expert. Analyze this receipt 
 3. Total amount (number only, without currency symbol)
 4. Whether the receipt is clearly readable
 5. Your confidence level (0-100)
-6. Brief reasoning about your analysis
+6. Brief reasoning about your analysis (keep under ${OCR_REASONING_MAX_TOKENS} tokens)
 
 Respond with JSON in this exact format:
 {
@@ -26,7 +27,7 @@ Respond with JSON in this exact format:
   "extractedAmount": number or null if not found,
   "receiptReadable": true/false,
   "confidence": 0-100,
-  "reasoning": "brief explanation"
+  "reasoning": "1-2 sentences max"
 }
 
 Respond with raw JSON only.`;

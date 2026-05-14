@@ -1,5 +1,10 @@
 # Changes
 
+## [044] Cap AI analysis reasoning via prompt instruction
+
+**What**: Added `OCR_REASONING_MAX_TOKENS` env var (default 150) that instructs the OCR model to keep its reasoning field under that token count.
+**Files**: `lib/services/ocr-service.ts`, `.env.example`
+
 ## [043] Fix UI not updating after receipt reprocessing
 
 **What**: Dashboard `handleReprocess` now reads the SSE stream from the OCR endpoint and waits for the `"completed"` event before refreshing data.
