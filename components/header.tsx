@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { LogOut, Shield, LayoutDashboard, Menu, X, Star } from "lucide-react";
+import { LogOut, Shield, LayoutDashboard, Menu, X, Star, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -50,11 +50,18 @@ export function Header() {
                     Admin Panel
                   </Link>
                   <Link
+                    href="/admin/moderation"
+                    className="flex items-center gap-2 rounded-lg bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-100"
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    Moderation
+                  </Link>
+                  <Link
                     href="/admin/reviews"
                     className="flex items-center gap-2 rounded-lg bg-yellow-50 px-4 py-2 text-sm font-medium text-yellow-700 transition-colors hover:bg-yellow-100"
                   >
                     <Star className="h-4 w-4" />
-                    Reviews
+                    Platforms
                   </Link>
                 </>
               )}
@@ -128,12 +135,20 @@ export function Header() {
                         Admin Panel
                       </Link>
                       <Link
+                        href="/admin/moderation"
+                        className="flex items-center gap-2 rounded-lg bg-orange-50 px-4 py-3 text-sm font-medium text-orange-700"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <ShieldCheck className="h-4 w-4" />
+                        Moderation
+                      </Link>
+                      <Link
                         href="/admin/reviews"
                         className="flex items-center gap-2 rounded-lg bg-yellow-50 px-4 py-3 text-sm font-medium text-yellow-700"
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         <Star className="h-4 w-4" />
-                        Reviews
+                        Platforms
                       </Link>
                     </>
                   )}

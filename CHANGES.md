@@ -1,5 +1,10 @@
 # Changes
 
+## [040] Move admin nav tabs from dashboard into header
+
+**What**: Removed the tab-style admin buttons (Review Moderatie, Review Platforms, Admin Panel) from the dashboard page and added Moderation/Platforms links to the header nav. Renamed header "Reviews" button to "Platforms". Removed the "Review Platforms (Full)" tab from the admin page since it's now accessible via the header.
+**Files**: `app/dashboard/page.tsx`, `components/header.tsx`, `app/admin/page.tsx`
+
 ## [039] Remove dead Review Queue tab from dashboard
 
 **What**: Removed the non-functional "Review Queue" tab button and its associated state/data-fetching from the dashboard page.

@@ -34,8 +34,7 @@ import {
   CheckSquare,
   Square,
   User,
-  Check,
-  ExternalLink
+  Check
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -107,7 +106,6 @@ export default function DashboardPage() {
   const [archiving, setArchiving] = useState(false);
 
   const isAdmin = (session?.user as any)?.role === "admin";
-  const [reviewNotifications, setReviewNotifications] = useState({ count: 0 });
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => {
@@ -199,27 +197,15 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const fetchAdminData = useCallback(async () => {
-    if (!isAdmin) return;
-    try {
-      const notifyRes = await fetch("/api/admin/reviews/notifications");
-      if (notifyRes.ok) {
-        const data = await notifyRes.json();
-        setReviewNotifications(data);
-      }
-    } catch (err) {
-      console.error("Admin data fetch failed:", err);
-    }
-  }, [isAdmin]);
+
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/login");
     } else if (status === "authenticated") {
       fetchReceipts();
-      if (isAdmin) fetchAdminData();
     }
-  }, [status, router, fetchReceipts, fetchAdminData, isAdmin]);
+  }, [status, router, fetchReceipts]);
 
   // Auto-refresh when there are pending/processing receipts
   useEffect(() => {
@@ -471,37 +457,7 @@ export default function DashboardPage() {
           <p className="text-gray-600">Manage and verify your receipt submissions</p>
         </div>
 
-        {/* Admin Tabs (only for admins) */}
-        {isAdmin && (
-          <div className="mb-6 flex gap-2 flex-wrap">
-            <button
-              onClick={() => router.push("/admin/moderation")}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition-colors"
-            >
-              <Shield className="h-4 w-4" />
-              Review Moderatie
-            </button>
-            <button
-              onClick={() => router.push("/admin/reviews")}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-kv-green/10 text-kv-green hover:bg-kv-green/20 transition-colors"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Review Platforms
-              {reviewNotifications.count > 0 && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                  {reviewNotifications.count}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => router.push("/admin")}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-            >
-              <Shield className="h-4 w-4" />
-              Admin Panel
-            </button>
-          </div>
-        )}
+
 
         {/* Stats */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
