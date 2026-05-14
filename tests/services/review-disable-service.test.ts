@@ -61,10 +61,12 @@ function mockSuccessfulAuthAndDisable() {
 // ─── Tests: Kiyoh Auth Client ──────────────────────────────────────────────────
 
 describe("authenticateKiyohAdmin", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.KIYOH_ADMIN_USERNAME = "testuser";
     process.env.KIYOH_ADMIN_PASSWORD = "testpass";
     process.env.KIYOH_ADMIN_TOTP = "JBSWY3DPEHPK3PXP";
+    const { invalidateKiyohTokenCache } = await import("@/lib/review-disable/kiyoh-auth-client");
+    invalidateKiyohTokenCache();
   });
 
   it("performs login and OTP verification to obtain bearer token", async () => {
@@ -124,10 +126,12 @@ describe("authenticateKiyohAdmin", () => {
 // ─── Tests: Review Disable Service ─────────────────────────────────────────────
 
 describe("disableReviewByReceiptId", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.KIYOH_ADMIN_USERNAME = "testuser";
     process.env.KIYOH_ADMIN_PASSWORD = "testpass";
     process.env.KIYOH_ADMIN_TOTP = "JBSWY3DPEHPK3PXP";
+    const { invalidateKiyohTokenCache } = await import("@/lib/review-disable/kiyoh-auth-client");
+    invalidateKiyohTokenCache();
   });
 
   it("disables review when ReceiptSyncState exists", async () => {
@@ -179,10 +183,12 @@ describe("disableReviewByReceiptId", () => {
 });
 
 describe("enableReviewByReceiptId", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.KIYOH_ADMIN_USERNAME = "testuser";
     process.env.KIYOH_ADMIN_PASSWORD = "testpass";
     process.env.KIYOH_ADMIN_TOTP = "JBSWY3DPEHPK3PXP";
+    const { invalidateKiyohTokenCache } = await import("@/lib/review-disable/kiyoh-auth-client");
+    invalidateKiyohTokenCache();
   });
 
   it("enables review when ReceiptSyncState exists", async () => {
@@ -215,10 +221,12 @@ describe("enableReviewByReceiptId", () => {
 });
 
 describe("disableReviewManual", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.KIYOH_ADMIN_USERNAME = "testuser";
     process.env.KIYOH_ADMIN_PASSWORD = "testpass";
     process.env.KIYOH_ADMIN_TOTP = "JBSWY3DPEHPK3PXP";
+    const { invalidateKiyohTokenCache } = await import("@/lib/review-disable/kiyoh-auth-client");
+    invalidateKiyohTokenCache();
   });
 
   it("disables review by direct IDs without ReceiptSyncState lookup", async () => {

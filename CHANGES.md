@@ -1,5 +1,15 @@
 # Changes
 
+## [042] Fix Kiyoh TOTP generation and add token caching
+
+**What**: Fixed `Secret.fromBase32()` usage in TOTP generation (was passing raw string, producing wrong OTP codes) and added in-memory bearer token caching with 25-minute TTL to avoid re-authenticating on every API call.
+**Why**: Every OTP code was invalid because the otpauth library treated the base32 secret as a raw UTF-8 string. Each failed OTP counted as a failed login attempt on Kiyoh's side, triggering account lockout even on a single disable attempt.
+**Decisions**:
+- 25-minute cache TTL (conservative, avoids expired token on actual API calls)
+- Service retries once on 401 from the review-active endpoint (invalidates cache, re-authenticates, retries)
+- Removed logging of request bodies that contained credentials and OTP codes
+**Files**: `lib/review-disable/kiyoh-auth-client.ts`, `lib/review-disable/review-disable-service.ts`, `tests/services/review-disable-service.test.ts`
+
 ## [041] Add i18n infrastructure with next-intl and language selector
 
 **What**: Installed next-intl, set up cookie-based locale persistence, added a language selector dropdown in the header, created full translation files for all 8 languages, and wired up `useTranslations()` in all page components.

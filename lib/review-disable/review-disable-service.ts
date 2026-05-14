@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { authenticateKiyohAdmin } from "./kiyoh-auth-client";
+import { authenticateKiyohAdmin, invalidateKiyohTokenCache } from "./kiyoh-auth-client";
 
 const KLANTENVERTELLEN_REVIEW_ACTIVE_URL = "https://www.klantenvertellen.nl/v1/review/active";
+const HTTP_UNAUTHORIZED = 401;
 
 export interface DisableByReceiptResult {
   readonly success: boolean;
@@ -17,14 +18,16 @@ export interface DisableByReviewIdResult {
 
 /**
  * Sets the active status of a review on KlantenVertellen.
+ * If the first attempt returns 401, invalidates the cached token and retries once.
  */
 async function setReviewActiveStatus(
   reviewId: string,
   locationId: string,
   tenantId: number,
-  active: boolean,
-  bearerToken: string
+  active: boolean
 ): Promise<{ success: boolean; error?: string }> {
+  const { bearerToken } = await authenticateKiyohAdmin();
+
   const response = await fetch(KLANTENVERTELLEN_REVIEW_ACTIVE_URL, {
     method: "PUT",
     headers: {
@@ -33,6 +36,33 @@ async function setReviewActiveStatus(
     },
     body: JSON.stringify({ locationId, tenantId, reviewId, active }),
   });
+
+  if (response.status === HTTP_UNAUTHORIZED) {
+    logger.warn({ reviewId }, "KlantenVertellen returned 401, refreshing token and retrying");
+    invalidateKiyohTokenCache();
+
+    const { bearerToken: freshToken } = await authenticateKiyohAdmin();
+
+    const retryResponse = await fetch(KLANTENVERTELLEN_REVIEW_ACTIVE_URL, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${freshToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ locationId, tenantId, reviewId, active }),
+    });
+
+    if (!retryResponse.ok) {
+      const retryBody = await retryResponse.text();
+      logger.error(
+        { status: retryResponse.status, body: retryBody, reviewId, active },
+        "KlantenVertellen review active update failed after token refresh"
+      );
+      return { success: false, error: `HTTP ${retryResponse.status}: ${retryBody}` };
+    }
+
+    return { success: true };
+  }
 
   if (!response.ok) {
     const responseBody = await response.text();
@@ -67,14 +97,11 @@ export async function disableReviewByReceiptId(receiptId: string): Promise<Disab
     return { success: false, error: "No ReceiptSyncState found for receipt" };
   }
 
-  const { bearerToken } = await authenticateKiyohAdmin();
-
   const result = await setReviewActiveStatus(
     syncState.reviewId,
     syncState.locationId,
     syncState.tenantId,
-    false,
-    bearerToken
+    false
   );
 
   if (!result.success) {
@@ -95,14 +122,11 @@ export async function enableReviewByReceiptId(receiptId: string): Promise<Disabl
     return { success: false, error: "No ReceiptSyncState found for receipt" };
   }
 
-  const { bearerToken } = await authenticateKiyohAdmin();
-
   const result = await setReviewActiveStatus(
     syncState.reviewId,
     syncState.locationId,
     syncState.tenantId,
-    true,
-    bearerToken
+    true
   );
 
   if (!result.success) {
@@ -120,14 +144,11 @@ export async function disableReviewManual(
   locationId: string,
   tenantId: number
 ): Promise<DisableByReviewIdResult> {
-  const { bearerToken } = await authenticateKiyohAdmin();
-
   const result = await setReviewActiveStatus(
     reviewId,
     locationId,
     tenantId,
-    false,
-    bearerToken
+    false
   );
 
   return result;
