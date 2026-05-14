@@ -77,19 +77,34 @@ export async function authenticateKiyohAdmin(): Promise<KiyohAuthResult> {
     password,
   });
 
-  logger.info({ url: KIYOH_LOGIN_URL }, "Kiyoh login request");
+  logger.info({ url: KIYOH_LOGIN_URL, username }, "Kiyoh login request starting");
 
-  const loginResponse = await fetch(KIYOH_LOGIN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: loginBody.toString(),
-  });
+  let loginResponse: Response;
+  try {
+    loginResponse = await fetch(KIYOH_LOGIN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: loginBody.toString(),
+    });
+  } catch (fetchError) {
+    const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+    logger.error({ url: KIYOH_LOGIN_URL, error: errorMessage }, "Kiyoh login fetch threw an exception");
+    throw new Error(`Kiyoh login fetch failed: ${errorMessage}`);
+  }
 
   const loginResponseText = await loginResponse.text();
 
+  logger.info(
+    { status: loginResponse.status, statusText: loginResponse.statusText, body: loginResponseText },
+    "Kiyoh login response received"
+  );
+
   if (!loginResponse.ok) {
-    logger.error({ status: loginResponse.status }, "Kiyoh login request failed");
-    throw new Error(`Kiyoh login failed with status ${loginResponse.status}`);
+    logger.error(
+      { status: loginResponse.status, statusText: loginResponse.statusText, body: loginResponseText },
+      "Kiyoh login request failed"
+    );
+    throw new Error(`Kiyoh login failed with status ${loginResponse.status}: ${loginResponseText}`);
   }
 
   const loginData = JSON.parse(loginResponseText) as LoginResponse;
@@ -108,19 +123,34 @@ export async function authenticateKiyohAdmin(): Promise<KiyohAuthResult> {
     otpCode,
   });
 
-  logger.info({ url: KIYOH_VERIFY_OTP_URL }, "Kiyoh OTP verify request");
+  logger.info({ url: KIYOH_VERIFY_OTP_URL, otpSessionId: loginData.otpSessionId }, "Kiyoh OTP verify request starting");
 
-  const verifyResponse = await fetch(KIYOH_VERIFY_OTP_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: verifyBody.toString(),
-  });
+  let verifyResponse: Response;
+  try {
+    verifyResponse = await fetch(KIYOH_VERIFY_OTP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: verifyBody.toString(),
+    });
+  } catch (fetchError) {
+    const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+    logger.error({ url: KIYOH_VERIFY_OTP_URL, error: errorMessage }, "Kiyoh OTP verify fetch threw an exception");
+    throw new Error(`Kiyoh OTP verify fetch failed: ${errorMessage}`);
+  }
 
   const verifyResponseText = await verifyResponse.text();
 
+  logger.info(
+    { status: verifyResponse.status, statusText: verifyResponse.statusText, body: verifyResponseText },
+    "Kiyoh OTP verify response received"
+  );
+
   if (!verifyResponse.ok) {
-    logger.error({ status: verifyResponse.status }, "Kiyoh OTP verification failed");
-    throw new Error(`Kiyoh OTP verification failed with status ${verifyResponse.status}`);
+    logger.error(
+      { status: verifyResponse.status, statusText: verifyResponse.statusText, body: verifyResponseText },
+      "Kiyoh OTP verification failed"
+    );
+    throw new Error(`Kiyoh OTP verification failed with status ${verifyResponse.status}: ${verifyResponseText}`);
   }
 
   const verifyData = JSON.parse(verifyResponseText) as VerifyOtpResponse;
