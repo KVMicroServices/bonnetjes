@@ -1,5 +1,14 @@
 # Changes
 
+## [048] Add context token exchange step to Kiyoh auth flow
+
+**What**: After login (with or without OTP), the auth client now calls `GET /v1/common/context?hash=<loginHash>` to exchange the portal session hash for the real API bearer token.
+**Why**: Kiyoh's login hash is a portal session id, not a valid bearer. The portal exchanges it via the context endpoint before making review API calls. Our code was sending the raw login hash, causing 401 `invalid_token` on every review disable/enable call.
+**Decisions**:
+- New env var `KIYOH_CONTEXT_URL` (defaults to KlantenVertellen for backwards compat)
+- Removed unused `error.cause` accesses that broke `tsc --noEmit`
+**Files**: `lib/review-disable/kiyoh-auth-client.ts`, `tests/services/review-disable-service.test.ts`, `.env`, `.env.example`
+
 ## [047] Make review disable platform URLs configurable via env vars
 
 **What**: The auth and review-active URLs in the review disable module are now configurable instead of hardcoded to klantenvertellen.nl.

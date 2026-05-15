@@ -40,7 +40,20 @@ const LOGIN_RESPONSE = {
 };
 
 const VERIFY_OTP_RESPONSE = {
-  hash: "bearer-token-hash-value",
+  hash: "login-hash-value",
+};
+
+const CONTEXT_RESPONSE = {
+  token: "bearer-token-hash-value",
+  refreshToken: "refresh-token-value",
+  user: {
+    userId: "19529",
+    tenantId: 99,
+    name: "Test User",
+    email: "test@example.com",
+    active: true,
+    role: "TENANT_ADMIN",
+  },
 };
 
 // ─── Helper: Mock successful auth flow ─────────────────────────────────────────
@@ -48,13 +61,15 @@ const VERIFY_OTP_RESPONSE = {
 function mockSuccessfulAuth() {
   fetchMock
     .mockResolvedValueOnce(createJsonResponse(LOGIN_RESPONSE))
-    .mockResolvedValueOnce(createJsonResponse(VERIFY_OTP_RESPONSE));
+    .mockResolvedValueOnce(createJsonResponse(VERIFY_OTP_RESPONSE))
+    .mockResolvedValueOnce(createJsonResponse(CONTEXT_RESPONSE));
 }
 
 function mockSuccessfulAuthAndDisable() {
   fetchMock
     .mockResolvedValueOnce(createJsonResponse(LOGIN_RESPONSE))
     .mockResolvedValueOnce(createJsonResponse(VERIFY_OTP_RESPONSE))
+    .mockResolvedValueOnce(createJsonResponse(CONTEXT_RESPONSE))
     .mockResolvedValueOnce(createJsonResponse({ success: true }));
 }
 
@@ -69,12 +84,13 @@ describe("authenticateKiyohAdmin", () => {
     invalidateKiyohTokenCache();
   });
 
-  it("performs login and OTP verification to obtain bearer token", async () => {
+  it("performs login, OTP verification, and context exchange to obtain bearer token", async () => {
     const { authenticateKiyohAdmin } = await import("@/lib/review-disable/kiyoh-auth-client");
 
     fetchMock
       .mockResolvedValueOnce(createJsonResponse(LOGIN_RESPONSE))
-      .mockResolvedValueOnce(createJsonResponse(VERIFY_OTP_RESPONSE));
+      .mockResolvedValueOnce(createJsonResponse(VERIFY_OTP_RESPONSE))
+      .mockResolvedValueOnce(createJsonResponse(CONTEXT_RESPONSE));
 
     const result = await authenticateKiyohAdmin();
 
@@ -94,6 +110,11 @@ describe("authenticateKiyohAdmin", () => {
     expect(otpCall[1].method).toBe("POST");
     expect(otpCall[1].body).toContain("otpSessionId=session-abc-123");
     expect(otpCall[1].body).toContain("otpCode=");
+
+    // Verify context exchange call
+    const contextCall = fetchMock.mock.calls[2];
+    expect(contextCall[0]).toBe("https://www.klantenvertellen.nl/v1/common/context?hash=login-hash-value");
+    expect(contextCall[1].method).toBe("GET");
   });
 
   it("throws when login request fails", async () => {
@@ -146,7 +167,7 @@ describe("disableReviewByReceiptId", () => {
     expect(result.reviewId).toBe("review-uuid-123");
 
     // Verify the PUT call to KlantenVertellen
-    const putCall = fetchMock.mock.calls[2];
+    const putCall = fetchMock.mock.calls[3];
     expect(putCall[0]).toBe("https://www.klantenvertellen.nl/v1/review/active");
     expect(putCall[1].method).toBe("PUT");
 
@@ -203,7 +224,7 @@ describe("enableReviewByReceiptId", () => {
     expect(result.reviewId).toBe("review-uuid-123");
 
     // Verify active: true in the PUT body
-    const putCall = fetchMock.mock.calls[2];
+    const putCall = fetchMock.mock.calls[3];
     const putBody = JSON.parse(putCall[1].body);
     expect(putBody.active).toBe(true);
   });
@@ -242,7 +263,7 @@ describe("disableReviewManual", () => {
     expect(mockPrisma.receiptSyncState.findFirst).not.toHaveBeenCalled();
 
     // Verify the PUT call
-    const putCall = fetchMock.mock.calls[2];
+    const putCall = fetchMock.mock.calls[3];
     const putBody = JSON.parse(putCall[1].body);
     expect(putBody.reviewId).toBe("review-uuid-456");
     expect(putBody.locationId).toBe("1080211");
