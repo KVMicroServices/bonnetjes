@@ -1,5 +1,15 @@
 # Changes
 
+## [047] Make review disable platform URLs configurable via env vars
+
+**What**: The auth and review-active URLs in the review disable module are now configurable instead of hardcoded to klantenvertellen.nl.
+**Why**: Allows switching between Kiyoh and KlantenVertellen (or other platform instances) without code changes.
+**Decisions**:
+- Three new env vars: `KIYOH_AUTH_BASE_URL`, `KIYOH_REVIEW_API_BASE_URL`, `KIYOH_TENANT_ID`
+- All default to the existing KlantenVertellen values for backwards compatibility
+- Tenant ID parsed at call time (not module load) so env can be changed without restart in tests
+**Files**: `lib/review-disable/kiyoh-auth-client.ts`, `lib/review-disable/review-disable-service.ts`, `.env.example`
+
 ## [046] Add BullMQ message queue for async receipt OCR processing
 
 **What**: Receipt OCR and fraud re-scoring now runs asynchronously via a BullMQ worker backed by Redis, instead of blocking the HTTP response or running fire-and-forget.

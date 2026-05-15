@@ -2,7 +2,12 @@ import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { authenticateKiyohAdmin, invalidateKiyohTokenCache } from "./kiyoh-auth-client";
 
-const KLANTENVERTELLEN_REVIEW_ACTIVE_URL = "https://www.klantenvertellen.nl/v1/review/active";
+const DEFAULT_REVIEW_API_BASE_URL = "https://www.klantenvertellen.nl/v1/review";
+
+function getReviewActiveUrl(): string {
+  const baseUrl = process.env.KIYOH_REVIEW_API_BASE_URL || DEFAULT_REVIEW_API_BASE_URL;
+  return `${baseUrl}/active`;
+}
 const HTTP_UNAUTHORIZED = 401;
 
 export interface DisableByReceiptResult {
@@ -33,15 +38,16 @@ async function setReviewActiveStatus(
 
   const { bearerToken } = await authenticateKiyohAdmin();
 
+  const reviewActiveUrl = getReviewActiveUrl();
   const requestBody = { locationId, tenantId, reviewId, active };
   logger.info(
-    { url: KLANTENVERTELLEN_REVIEW_ACTIVE_URL, requestBody },
+    { url: reviewActiveUrl, requestBody },
     "Sending review active status update"
   );
 
   let response: Response;
   try {
-    response = await fetch(KLANTENVERTELLEN_REVIEW_ACTIVE_URL, {
+    response = await fetch(reviewActiveUrl, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${bearerToken}`,
@@ -52,7 +58,7 @@ async function setReviewActiveStatus(
   } catch (fetchError) {
     const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
     logger.error(
-      { url: KLANTENVERTELLEN_REVIEW_ACTIVE_URL, error: errorMessage, reviewId, active },
+      { url: reviewActiveUrl, error: errorMessage, reviewId, active },
       "Review active status fetch threw an exception"
     );
     return { success: false, error: `Fetch failed: ${errorMessage}` };
@@ -72,7 +78,7 @@ async function setReviewActiveStatus(
 
     let retryResponse: Response;
     try {
-      retryResponse = await fetch(KLANTENVERTELLEN_REVIEW_ACTIVE_URL, {
+      retryResponse = await fetch(reviewActiveUrl, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${freshToken}`,
@@ -83,7 +89,7 @@ async function setReviewActiveStatus(
     } catch (fetchError) {
       const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
       logger.error(
-        { url: KLANTENVERTELLEN_REVIEW_ACTIVE_URL, error: errorMessage, reviewId, active },
+        { url: reviewActiveUrl, error: errorMessage, reviewId, active },
         "Review active status retry fetch threw an exception"
       );
       return { success: false, error: `Retry fetch failed: ${errorMessage}` };

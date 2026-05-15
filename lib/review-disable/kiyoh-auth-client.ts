@@ -1,9 +1,20 @@
 import { TOTP, Secret } from "otpauth";
 import { logger } from "@/lib/logger";
 
-const KIYOH_LOGIN_URL = "https://www.klantenvertellen.nl/v1/authentication/login";
-const KIYOH_VERIFY_OTP_URL = "https://www.klantenvertellen.nl/v1/authentication/verify-otp";
-const TENANT_ID = 99;
+const DEFAULT_KIYOH_AUTH_BASE_URL = "https://www.klantenvertellen.nl/v1/authentication";
+const DEFAULT_TENANT_ID = 99;
+
+function getAuthBaseUrl(): string {
+  return process.env.KIYOH_AUTH_BASE_URL || DEFAULT_KIYOH_AUTH_BASE_URL;
+}
+
+function getTenantId(): number {
+  const raw = parseInt(process.env.KIYOH_TENANT_ID || "", 10);
+  if (Number.isFinite(raw)) {
+    return raw;
+  }
+  return DEFAULT_TENANT_ID;
+}
 
 /**
  * Token cache lifetime in milliseconds.
@@ -72,23 +83,25 @@ export async function authenticateKiyohAdmin(): Promise<KiyohAuthResult> {
   }
 
   const loginBody = new URLSearchParams({
-    tenantId: String(TENANT_ID),
+    tenantId: String(getTenantId()),
     username,
     password,
   });
 
-  logger.info({ url: KIYOH_LOGIN_URL, username }, "Kiyoh login request starting");
+  const loginUrl = `${getAuthBaseUrl()}/login`;
+
+  logger.info({ url: loginUrl, username }, "Kiyoh login request starting");
 
   let loginResponse: Response;
   try {
-    loginResponse = await fetch(KIYOH_LOGIN_URL, {
+    loginResponse = await fetch(loginUrl, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: loginBody.toString(),
     });
   } catch (fetchError) {
     const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
-    logger.error({ url: KIYOH_LOGIN_URL, error: errorMessage }, "Kiyoh login fetch threw an exception");
+    logger.error({ url: loginUrl, error: errorMessage }, "Kiyoh login fetch threw an exception");
     throw new Error(`Kiyoh login fetch failed: ${errorMessage}`);
   }
 
@@ -123,18 +136,20 @@ export async function authenticateKiyohAdmin(): Promise<KiyohAuthResult> {
     otpCode,
   });
 
-  logger.info({ url: KIYOH_VERIFY_OTP_URL, otpSessionId: loginData.otpSessionId }, "Kiyoh OTP verify request starting");
+  logger.info({ url: `${getAuthBaseUrl()}/verify-otp`, otpSessionId: loginData.otpSessionId }, "Kiyoh OTP verify request starting");
+
+  const verifyOtpUrl = `${getAuthBaseUrl()}/verify-otp`;
 
   let verifyResponse: Response;
   try {
-    verifyResponse = await fetch(KIYOH_VERIFY_OTP_URL, {
+    verifyResponse = await fetch(verifyOtpUrl, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: verifyBody.toString(),
     });
   } catch (fetchError) {
     const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
-    logger.error({ url: KIYOH_VERIFY_OTP_URL, error: errorMessage }, "Kiyoh OTP verify fetch threw an exception");
+    logger.error({ url: verifyOtpUrl, error: errorMessage }, "Kiyoh OTP verify fetch threw an exception");
     throw new Error(`Kiyoh OTP verify fetch failed: ${errorMessage}`);
   }
 
