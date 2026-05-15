@@ -167,7 +167,9 @@
     "failedToLoad": "Failed to load receipt preview",
     "failedToUpdate": "Failed to update receipt status",
     "copied": "Copied!",
-    "copiedDescription": "Email template copied to clipboard"
+    "copiedDescription": "Email template copied to clipboard",
+    "failureReason": "Failure Reason",
+    "secondaryAnalysis": "Secondary Analysis"
   },
   "Moderation": {
     "title": "Review Moderation",
@@ -287,5 +289,25 @@
     "inactive": "Inactive",
     "variablesNotice": "Runtime Variables: Use {{username}} and {{password}} for login credentials (automatically filled from railway environment). Use {{reviewId}} for the review ID you fill in when executing.",
     "enterVariable": "Enter {name}..."
+  },
+  "ReceiptCard": {
+    "failureReason": "Failure Reason",
+    "secondaryAnalysis": "Secondary Analysis",
+    "failureNotAReceipt": "Not a Receipt",
+    "failureImageUnclear": "Image Unclear",
+    "failureInsufficientInfo": "Insufficient Information",
+    "failureDuplicateReceipt": "Duplicate Receipt",
+    "failureReceiptTooOld": "Receipt Too Old",
+    "failureSuspectedFraud": "Suspected Fraud",
+    "failureUnreadableText": "Unreadable Text",
+    "failureMissingKeyFields": "Missing Key Fields",
+    "failure_NOT_A_RECEIPT": "Not a Receipt",
+    "failure_IMAGE_UNCLEAR": "Image Unclear",
+    "failure_INSUFFICIENT_INFO": "Insufficient Information",
+    "failure_DUPLICATE_RECEIPT": "Duplicate Receipt",
+    "failure_RECEIPT_TOO_OLD": "Receipt Too Old",
+    "failure_SUSPECTED_FRAUD": "Suspected Fraud",
+    "failure_UNREADABLE_TEXT": "Unreadable Text",
+    "failure_MISSING_KEY_FIELDS": "Missing Key Fields"
   }
 }

@@ -89,7 +89,10 @@ async function exchangeLoginHashForBearerToken(loginHash: string): Promise<strin
       headers: { Accept: "application/json" },
     });
   } catch (fetchError) {
-    const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+    let errorMessage = String(fetchError);
+    if (fetchError instanceof Error) {
+      errorMessage = fetchError.message;
+    }
     logger.error(
       { url: getContextUrl(), error: errorMessage },
       "Kiyoh context exchange fetch threw an exception"
@@ -112,7 +115,16 @@ async function exchangeLoginHashForBearerToken(loginHash: string): Promise<strin
     throw new Error(`Kiyoh context exchange failed with status ${contextResponse.status}: ${contextResponseText}`);
   }
 
-  const contextData = JSON.parse(contextResponseText) as ContextResponse;
+  let contextData: ContextResponse;
+  try {
+    contextData = JSON.parse(contextResponseText) as ContextResponse;
+  } catch {
+    logger.error(
+      { body: contextResponseText },
+      "Kiyoh context exchange returned non-JSON response"
+    );
+    throw new Error(`Kiyoh context exchange returned invalid JSON: ${contextResponseText.substring(0, 200)}`);
+  }
 
   if (!contextData.token) {
     logger.error({ contextData }, "Kiyoh context response missing token");
@@ -161,9 +173,14 @@ export async function authenticateKiyohAdmin(): Promise<KiyohAuthResult> {
       body: loginBody.toString(),
     });
   } catch (fetchError) {
-    const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+    let errorMessage = String(fetchError);
+    let errorStack: string | undefined = undefined;
+    if (fetchError instanceof Error) {
+      errorMessage = fetchError.message;
+      errorStack = fetchError.stack;
+    }
     logger.error(
-      { url: loginUrl, error: errorMessage, stack: fetchError instanceof Error ? fetchError.stack : undefined },
+      { url: loginUrl, error: errorMessage, stack: errorStack },
       "Kiyoh login fetch threw an exception"
     );
     throw new Error(`Kiyoh login fetch failed: ${errorMessage}`);
@@ -184,7 +201,16 @@ export async function authenticateKiyohAdmin(): Promise<KiyohAuthResult> {
     throw new Error(`Kiyoh login failed with status ${loginResponse.status}: ${loginResponseText}`);
   }
 
-  const loginData = JSON.parse(loginResponseText) as LoginResponse;
+  let loginData: LoginResponse;
+  try {
+    loginData = JSON.parse(loginResponseText) as LoginResponse;
+  } catch {
+    logger.error(
+      { body: loginResponseText },
+      "Kiyoh login returned non-JSON response"
+    );
+    throw new Error(`Kiyoh login returned invalid JSON: ${loginResponseText.substring(0, 200)}`);
+  }
 
   // If the API returned a hash directly (OTP not required for this IP), exchange it for the real token
   if (!loginData.requiresOtp && loginData.hash) {
@@ -228,9 +254,14 @@ export async function authenticateKiyohAdmin(): Promise<KiyohAuthResult> {
       body: verifyBody.toString(),
     });
   } catch (fetchError) {
-    const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+    let errorMessage = String(fetchError);
+    let errorStack: string | undefined = undefined;
+    if (fetchError instanceof Error) {
+      errorMessage = fetchError.message;
+      errorStack = fetchError.stack;
+    }
     logger.error(
-      { url: verifyOtpUrl, error: errorMessage, stack: fetchError instanceof Error ? fetchError.stack : undefined },
+      { url: verifyOtpUrl, error: errorMessage, stack: errorStack },
       "Kiyoh OTP verify fetch threw an exception"
     );
     throw new Error(`Kiyoh OTP verify fetch failed: ${errorMessage}`);
@@ -251,7 +282,16 @@ export async function authenticateKiyohAdmin(): Promise<KiyohAuthResult> {
     throw new Error(`Kiyoh OTP verification failed with status ${verifyResponse.status}: ${verifyResponseText}`);
   }
 
-  const verifyData = JSON.parse(verifyResponseText) as VerifyOtpResponse;
+  let verifyData: VerifyOtpResponse;
+  try {
+    verifyData = JSON.parse(verifyResponseText) as VerifyOtpResponse;
+  } catch {
+    logger.error(
+      { body: verifyResponseText },
+      "Kiyoh OTP verify returned non-JSON response"
+    );
+    throw new Error(`Kiyoh OTP verify returned invalid JSON: ${verifyResponseText.substring(0, 200)}`);
+  }
 
   if (!verifyData.hash) {
     logger.error({ verifyData }, "Kiyoh OTP response missing hash");

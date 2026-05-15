@@ -167,9 +167,10 @@
     "failedToLoad": "Impossible de charger l'aperçu du reçu",
     "failedToUpdate": "Impossible de mettre à jour le statut du reçu",
     "copied": "Copié !",
-    "copiedDescription": "Modèle d'e-mail copié dans le presse-papiers"
+    "copiedDescription": "Modèle d'e-mail copié dans le presse-papiers",
+    "failureReason": "Raison du rejet",
+    "secondaryAnalysis": "Analyse secondaire"
   },
-  "Moderation": {
     "title": "Modération des avis",
     "pendingReviews": "{count} avis en attente sur toutes les plateformes",
     "buildingQueue": "Construction de la file d'attente...",
@@ -287,5 +288,25 @@
     "inactive": "Inactif",
     "variablesNotice": "Variables d'exécution : Utilisez {{username}} et {{password}} pour les identifiants de connexion (remplis automatiquement depuis l'environnement Railway). Utilisez {{reviewId}} pour l'ID de l'avis que vous remplissez lors de l'exécution.",
     "enterVariable": "Entrer {name}..."
+  },
+  "ReceiptCard": {
+    "failureReason": "Raison du rejet",
+    "secondaryAnalysis": "Analyse secondaire",
+    "failureNotAReceipt": "Pas un reçu",
+    "failureImageUnclear": "Image floue",
+    "failureInsufficientInfo": "Informations insuffisantes",
+    "failureDuplicateReceipt": "Reçu en double",
+    "failureReceiptTooOld": "Reçu trop ancien",
+    "failureSuspectedFraud": "Suspicion de fraude",
+    "failureUnreadableText": "Texte illisible",
+    "failureMissingKeyFields": "Champs obligatoires manquants",
+    "failure_NOT_A_RECEIPT": "Pas un reçu",
+    "failure_IMAGE_UNCLEAR": "Image floue",
+    "failure_INSUFFICIENT_INFO": "Informations insuffisantes",
+    "failure_DUPLICATE_RECEIPT": "Reçu en double",
+    "failure_RECEIPT_TOO_OLD": "Reçu trop ancien",
+    "failure_SUSPECTED_FRAUD": "Suspicion de fraude",
+    "failure_UNREADABLE_TEXT": "Texte illisible",
+    "failure_MISSING_KEY_FIELDS": "Champs obligatoires manquants"
   }
 }

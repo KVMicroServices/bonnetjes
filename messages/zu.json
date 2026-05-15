@@ -167,9 +167,10 @@
     "failedToLoad": "Yehlulekile ukulayisha ukubuka kuqala kwerisidi",
     "failedToUpdate": "Yehlulekile ukubuyekeza isimo serisidi",
     "copied": "Ikopishiwe!",
-    "copiedDescription": "Isifanekiso se-imeyili sikopishwe kuklipbhodi"
+    "copiedDescription": "Isifanekiso se-imeyili sikopishwe kuklipbhodi",
+    "failureReason": "Isizathu sokugatshwa",
+    "secondaryAnalysis": "Ukuhlaziywa kwesibili"
   },
-  "Moderation": {
     "title": "Ukulawula ukubuyekezwa",
     "pendingReviews": "Ukubuyekezwa okungu-{count} okulindile kuwo wonke amapulatifomu",
     "buildingQueue": "Umugqa uyakhiwa...",
@@ -287,5 +288,25 @@
     "inactive": "Ayisebenzi",
     "variablesNotice": "Okuguqukayo Kwesikhathi Sokusebenza: Sebenzisa {{username}} ne-{{password}} ngeziqinisekiso zokungena (zigcwaliswa ngokuzenzakalelayo kusuka endaweni ye-Railway). Sebenzisa {{reviewId}} ye-ID yokubuyekezwa oyigcwalisa uma usebenzisa.",
     "enterVariable": "Faka {name}..."
+  },
+  "ReceiptCard": {
+    "failureReason": "Isizathu sokugatshwa",
+    "secondaryAnalysis": "Ukuhlaziywa kwesibili",
+    "failureNotAReceipt": "Akuyona irisidi",
+    "failureImageUnclear": "Isithombe asicacile",
+    "failureInsufficientInfo": "Ulwazi alwanele",
+    "failureDuplicateReceipt": "Irisidi ephindaphindiwe",
+    "failureReceiptTooOld": "Irisidi indala kakhulu",
+    "failureSuspectedFraud": "Ukukhwabanisa okusolwayo",
+    "failureUnreadableText": "Umbhalo ongafundeki",
+    "failureMissingKeyFields": "Izindawo ezingekho",
+    "failure_NOT_A_RECEIPT": "Akuyona irisidi",
+    "failure_IMAGE_UNCLEAR": "Isithombe asicacile",
+    "failure_INSUFFICIENT_INFO": "Ulwazi alwanele",
+    "failure_DUPLICATE_RECEIPT": "Irisidi ephindaphindiwe",
+    "failure_RECEIPT_TOO_OLD": "Irisidi indala kakhulu",
+    "failure_SUSPECTED_FRAUD": "Ukukhwabanisa okusolwayo",
+    "failure_UNREADABLE_TEXT": "Umbhalo ongafundeki",
+    "failure_MISSING_KEY_FIELDS": "Izindawo ezingekho"
   }
 }

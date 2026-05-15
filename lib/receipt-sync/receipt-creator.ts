@@ -23,6 +23,11 @@ export async function createReceiptFromSync(params: {
   const originalFilename = params.s3Key;
   const fileType = inferFileType(params.s3Key);
 
+  let processingStatus = "idle";
+  if (params.receiptAutoVerifyEnabled) {
+    processingStatus = "queued";
+  }
+
   const receipt = await prisma.receipt.create({
     data: {
       userId: systemUserId,
@@ -31,7 +36,7 @@ export async function createReceiptFromSync(params: {
       fileType,
       fileSize: params.fileSize,
       verificationStatus: "pending",
-      processingStatus: params.receiptAutoVerifyEnabled ? "queued" : "idle",
+      processingStatus,
       extractedShopName: params.review.shopName || null,
       extractedDate: parseReviewDate(params.review.reviewDate),
       extractedAmount: params.review.amount || null,

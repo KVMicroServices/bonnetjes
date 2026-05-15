@@ -167,7 +167,9 @@
     "failedToLoad": "Kon bonvoorbeeld niet laden",
     "failedToUpdate": "Kon bonstatus niet bijwerken",
     "copied": "Gekopieerd!",
-    "copiedDescription": "E-mailsjabloon gekopieerd naar klembord"
+    "copiedDescription": "E-mailsjabloon gekopieerd naar klembord",
+    "failureReason": "Reden van afwijzing",
+    "secondaryAnalysis": "Tweede analyse"
   },
   "Moderation": {
     "title": "Review Moderatie",
@@ -287,5 +289,25 @@
     "inactive": "Inactief",
     "variablesNotice": "Runtime Variabelen: Gebruik {{username}} en {{password}} voor inloggegevens (automatisch gevuld vanuit railwayomgeving). Gebruik {{reviewId}} voor het review-ID dat je invult bij het uitvoeren.",
     "enterVariable": "Voer {name} in..."
+  },
+  "ReceiptCard": {
+    "failureReason": "Reden van afwijzing",
+    "secondaryAnalysis": "Tweede analyse",
+    "failureNotAReceipt": "Geen bon",
+    "failureImageUnclear": "Afbeelding onduidelijk",
+    "failureInsufficientInfo": "Onvoldoende informatie",
+    "failureDuplicateReceipt": "Duplicaat bon",
+    "failureReceiptTooOld": "Bon te oud",
+    "failureSuspectedFraud": "Vermoeden van fraude",
+    "failureUnreadableText": "Onleesbare tekst",
+    "failureMissingKeyFields": "Ontbrekende velden",
+    "failure_NOT_A_RECEIPT": "Geen bon",
+    "failure_IMAGE_UNCLEAR": "Afbeelding onduidelijk",
+    "failure_INSUFFICIENT_INFO": "Onvoldoende informatie",
+    "failure_DUPLICATE_RECEIPT": "Duplicaat bon",
+    "failure_RECEIPT_TOO_OLD": "Bon te oud",
+    "failure_SUSPECTED_FRAUD": "Vermoeden van fraude",
+    "failure_UNREADABLE_TEXT": "Onleesbare tekst",
+    "failure_MISSING_KEY_FIELDS": "Ontbrekende velden"
   }
 }

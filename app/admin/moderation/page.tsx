@@ -146,14 +146,15 @@ export default function ModerationQueuePage() {
   }, [status, isAdmin, router, fetchModeration]);
 
   // ID extraction – tries every known field, including backend-normalized _id
-  const getReviewId = (r: ModerationReview): string =>
-    r._id ??
-    r.reviewId ??
-    r.id ??
-    r.feedbackId ??
-    r.hashCode ??
-    r.externalId ??
-    "";
+  const getReviewId = (r: ModerationReview): string => {
+    if (r._id) return r._id;
+    if (r.reviewId) return r.reviewId;
+    if (r.id) return r.id;
+    if (r.feedbackId) return r.feedbackId;
+    if (r.hashCode) return r.hashCode;
+    if (r.externalId) return r.externalId;
+    return "";
+  };
 
   const toggleDebug = (id: string) => {
     setShowDebug(prev => ({ ...prev, [id]: !prev[id] }));

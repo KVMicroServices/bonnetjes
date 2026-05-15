@@ -167,9 +167,10 @@
     "failedToLoad": "No se pudo cargar la vista previa del recibo",
     "failedToUpdate": "No se pudo actualizar el estado del recibo",
     "copied": "¡Copiado!",
-    "copiedDescription": "Plantilla de correo copiada al portapapeles"
+    "copiedDescription": "Plantilla de correo copiada al portapapeles",
+    "failureReason": "Motivo del rechazo",
+    "secondaryAnalysis": "Análisis secundario"
   },
-  "Moderation": {
     "title": "Moderación de reseñas",
     "pendingReviews": "{count} reseñas pendientes en todas las plataformas",
     "buildingQueue": "Construyendo cola...",
@@ -287,5 +288,25 @@
     "inactive": "Inactivo",
     "variablesNotice": "Variables de ejecución: Usa {{username}} y {{password}} para credenciales de inicio de sesión (llenados automáticamente desde el entorno Railway). Usa {{reviewId}} para el ID de reseña que ingresas al ejecutar.",
     "enterVariable": "Ingresa {name}..."
+  },
+  "ReceiptCard": {
+    "failureReason": "Motivo del rechazo",
+    "secondaryAnalysis": "Análisis secundario",
+    "failureNotAReceipt": "No es un recibo",
+    "failureImageUnclear": "Imagen poco clara",
+    "failureInsufficientInfo": "Información insuficiente",
+    "failureDuplicateReceipt": "Recibo duplicado",
+    "failureReceiptTooOld": "Recibo demasiado antiguo",
+    "failureSuspectedFraud": "Sospecha de fraude",
+    "failureUnreadableText": "Texto ilegible",
+    "failureMissingKeyFields": "Campos obligatorios faltantes",
+    "failure_NOT_A_RECEIPT": "No es un recibo",
+    "failure_IMAGE_UNCLEAR": "Imagen poco clara",
+    "failure_INSUFFICIENT_INFO": "Información insuficiente",
+    "failure_DUPLICATE_RECEIPT": "Recibo duplicado",
+    "failure_RECEIPT_TOO_OLD": "Recibo demasiado antiguo",
+    "failure_SUSPECTED_FRAUD": "Sospecha de fraude",
+    "failure_UNREADABLE_TEXT": "Texto ilegible",
+    "failure_MISSING_KEY_FIELDS": "Campos obligatorios faltantes"
   }
 }

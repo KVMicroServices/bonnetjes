@@ -167,9 +167,10 @@
     "failedToLoad": "Belegvorschau konnte nicht geladen werden",
     "failedToUpdate": "Belegstatus konnte nicht aktualisiert werden",
     "copied": "Kopiert!",
-    "copiedDescription": "E-Mail-Vorlage in Zwischenablage kopiert"
+    "copiedDescription": "E-Mail-Vorlage in Zwischenablage kopiert",
+    "failureReason": "Ablehnungsgrund",
+    "secondaryAnalysis": "Zweite Analyse"
   },
-  "Moderation": {
     "title": "Review-Moderation",
     "pendingReviews": "{count} ausstehende Bewertungen plattformweit",
     "buildingQueue": "Warteschlange wird aufgebaut...",
@@ -287,5 +288,25 @@
     "inactive": "Inaktiv",
     "variablesNotice": "Laufzeitvariablen: Verwenden Sie {{username}} und {{password}} für Anmeldedaten (automatisch aus der Railway-Umgebung gefüllt). Verwenden Sie {{reviewId}} für die Bewertungs-ID, die Sie bei der Ausführung eingeben.",
     "enterVariable": "{name} eingeben..."
+  },
+  "ReceiptCard": {
+    "failureReason": "Ablehnungsgrund",
+    "secondaryAnalysis": "Zweite Analyse",
+    "failureNotAReceipt": "Kein Beleg",
+    "failureImageUnclear": "Bild unklar",
+    "failureInsufficientInfo": "Unzureichende Informationen",
+    "failureDuplicateReceipt": "Doppelter Beleg",
+    "failureReceiptTooOld": "Beleg zu alt",
+    "failureSuspectedFraud": "Betrugsverdacht",
+    "failureUnreadableText": "Unlesbarer Text",
+    "failureMissingKeyFields": "Fehlende Pflichtfelder",
+    "failure_NOT_A_RECEIPT": "Kein Beleg",
+    "failure_IMAGE_UNCLEAR": "Bild unklar",
+    "failure_INSUFFICIENT_INFO": "Unzureichende Informationen",
+    "failure_DUPLICATE_RECEIPT": "Doppelter Beleg",
+    "failure_RECEIPT_TOO_OLD": "Beleg zu alt",
+    "failure_SUSPECTED_FRAUD": "Betrugsverdacht",
+    "failure_UNREADABLE_TEXT": "Unlesbarer Text",
+    "failure_MISSING_KEY_FIELDS": "Fehlende Pflichtfelder"
   }
 }

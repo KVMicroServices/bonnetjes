@@ -5,6 +5,13 @@ import { getRedisConnection } from "./connection";
 
 export const RECEIPT_PROCESSING_QUEUE = "receipt-processing";
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const COMPLETED_JOB_RETENTION_SECONDS = 86400;
+const COMPLETED_JOB_MAX_COUNT = 1000;
+const FAILED_JOB_RETENTION_SECONDS = 604800;
+const RETRY_BACKOFF_DELAY_MILLISECONDS = 5000;
+
 // ─── Job Types ───────────────────────────────────────────────────────────────
 
 export interface ReceiptProcessingJobData {
@@ -30,14 +37,14 @@ export function getReceiptProcessingQueue(): Queue<ReceiptProcessingJobData> {
       attempts: 3,
       backoff: {
         type: "exponential",
-        delay: 5000,
+        delay: RETRY_BACKOFF_DELAY_MILLISECONDS,
       },
       removeOnComplete: {
-        age: 86400,
-        count: 1000,
+        age: COMPLETED_JOB_RETENTION_SECONDS,
+        count: COMPLETED_JOB_MAX_COUNT,
       },
       removeOnFail: {
-        age: 604800,
+        age: FAILED_JOB_RETENTION_SECONDS,
       },
     },
   });

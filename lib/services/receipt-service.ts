@@ -198,7 +198,10 @@ export async function listReceipts(
   isAdmin: boolean,
   options?: { cursor?: string; limit?: number }
 ): Promise<ListReceiptsResult> {
-  const whereClause = isAdmin ? {} : { userId };
+  let whereClause = {};
+  if (!isAdmin) {
+    whereClause = { userId };
+  }
   const limit = options?.limit ?? 15;
 
   const findOptions: Record<string, unknown> = {
@@ -217,11 +220,21 @@ export async function listReceipts(
     findOptions.skip = 1;
   }
 
-  const receipts = await dependencies.database.receipt.findMany(findOptions as any) as unknown as ReceiptWithUser[];
+  const receipts = await dependencies.database.receipt.findMany(
+    findOptions as Parameters<typeof dependencies.database.receipt.findMany>[0]
+  ) as unknown as ReceiptWithUser[];
 
   const hasMore = receipts.length > limit;
-  const resultReceipts = hasMore ? receipts.slice(0, limit) : receipts;
-  const nextCursor = hasMore ? resultReceipts[resultReceipts.length - 1].id : null;
+
+  let resultReceipts = receipts;
+  if (hasMore) {
+    resultReceipts = receipts.slice(0, limit);
+  }
+
+  let nextCursor: string | null = null;
+  if (hasMore) {
+    nextCursor = resultReceipts[resultReceipts.length - 1].id;
+  }
 
   return { success: true, receipts: resultReceipts, nextCursor, hasMore };
 }
@@ -281,10 +294,25 @@ export async function createReceipt(
     fraudDetection
   );
 
-  const isPublic = input.isPublic === true ? true : false;
-  const originalFilename = input.originalFilename ? input.originalFilename : "receipt";
-  const fileType = input.fileType ? input.fileType : "image";
-  const fileSize = input.fileSize ? input.fileSize : 0;
+  let isPublic = false;
+  if (input.isPublic === true) {
+    isPublic = true;
+  }
+
+  let originalFilename = "receipt";
+  if (input.originalFilename) {
+    originalFilename = input.originalFilename;
+  }
+
+  let fileType = "image";
+  if (input.fileType) {
+    fileType = input.fileType;
+  }
+
+  let fileSize = 0;
+  if (input.fileSize) {
+    fileSize = input.fileSize;
+  }
 
   const receipt = await dependencies.database.receipt.create({
     data: {

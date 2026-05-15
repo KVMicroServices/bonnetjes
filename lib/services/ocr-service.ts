@@ -392,10 +392,20 @@ export async function runSecondaryAnalysis(
   failureReason: FailureReason,
   config: OcrApiConfig
 ): Promise<string> {
+  let dateString = "null";
+  if (ocrResult.extractedDate) {
+    dateString = ocrResult.extractedDate.toISOString().split("T")[0];
+  }
+
+  let amountString = "null";
+  if (ocrResult.extractedAmount !== null) {
+    amountString = String(ocrResult.extractedAmount);
+  }
+
   const filledPrompt = SECONDARY_ANALYSIS_PROMPT
     .replace("{shopName}", ocrResult.extractedShopName || "null")
-    .replace("{date}", ocrResult.extractedDate ? ocrResult.extractedDate.toISOString().split("T")[0] : "null")
-    .replace("{amount}", ocrResult.extractedAmount !== null ? String(ocrResult.extractedAmount) : "null")
+    .replace("{date}", dateString)
+    .replace("{amount}", amountString)
     .replace("{confidence}", String(ocrResult.confidence))
     .replace("{readable}", String(ocrResult.receiptReadable))
     .replace("{failureReason}", failureReason)
@@ -549,7 +559,10 @@ export function createOcrApiConfig(overrides?: Partial<OcrApiConfig>): OcrApiCon
   const baseUrl = overrides?.baseUrl || process.env.AI_API_BASE_URL || DEFAULT_AI_BASE_URL;
   const apiKey = overrides?.apiKey || process.env.AI_API_KEY || "";
   const model = overrides?.model || process.env.AI_MODEL_NAME || DEFAULT_AI_MODEL;
-  const streaming = overrides?.streaming !== undefined ? overrides.streaming : false;
+  let streaming = false;
+  if (overrides?.streaming !== undefined) {
+    streaming = overrides.streaming;
+  }
 
   return { baseUrl, apiKey, model, streaming };
 }

@@ -28,7 +28,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const cursor = searchParams.get("cursor") || undefined;
     const limitParam = searchParams.get("limit");
-    const limit = limitParam ? parseInt(limitParam, 10) : 15;
+    let limit = 15;
+    if (limitParam) {
+      limit = parseInt(limitParam, 10);
+    }
 
     const result = await listReceipts(
       { database: prisma, storage: { getFileUrl, getFileAsBuffer } },
@@ -46,9 +49,10 @@ export async function GET(request: NextRequest) {
 
     const DEFAULT_POLL_INTERVAL_SECONDS = 300;
     const pollIntervalSecondsRaw = parseInt(process.env.POLL_INTERVAL_SECONDS || "", 10);
-    const pollIntervalSeconds = Number.isFinite(pollIntervalSecondsRaw)
-      ? pollIntervalSecondsRaw
-      : DEFAULT_POLL_INTERVAL_SECONDS;
+    let pollIntervalSeconds = DEFAULT_POLL_INTERVAL_SECONDS;
+    if (Number.isFinite(pollIntervalSecondsRaw)) {
+      pollIntervalSeconds = pollIntervalSecondsRaw;
+    }
 
     return NextResponse.json({
       receipts: result.receipts,

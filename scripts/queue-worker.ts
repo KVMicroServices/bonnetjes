@@ -11,6 +11,14 @@ import { startReviewDisableWorker, stopReviewDisableWorker } from "@/lib/queue/r
 import { closeRedisConnection } from "@/lib/queue/connection";
 import { logger } from "@/lib/logger";
 
+// ─── Startup Validation ──────────────────────────────────────────────────────
+
+if (!process.env.REDIS_URL) {
+  logger.warn(
+    "REDIS_URL is not set — falling back to localhost:6379. Set REDIS_URL in production."
+  );
+}
+
 logger.info("Starting queue worker process...");
 
 startReceiptWorker();

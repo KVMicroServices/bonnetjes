@@ -85,9 +85,15 @@ export function startReviewDisableWorker(): Worker<ReviewDisableJobData> {
   });
 
   workerInstance.on("failed", (job, error) => {
-    const receiptId = job ? job.data.receiptId : "unknown";
-    const reviewId = job ? job.data.reviewId : "unknown";
-    const isFinalAttempt = job ? job.attemptsMade >= (job.opts.attempts || 5) : false;
+    let receiptId = "unknown";
+    let reviewId = "unknown";
+    let isFinalAttempt = false;
+
+    if (job) {
+      receiptId = job.data.receiptId;
+      reviewId = job.data.reviewId;
+      isFinalAttempt = job.attemptsMade >= (job.opts.attempts || 5);
+    }
 
     if (isFinalAttempt && job) {
       // Mark audit as permanently failed

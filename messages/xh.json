@@ -167,9 +167,10 @@
     "failedToLoad": "Ayikwazanga ukulayisha imboniso yerisithi",
     "failedToUpdate": "Ayikwazanga ukuvuselela isimo serisithi",
     "copied": "Ikopishiwe!",
-    "copiedDescription": "Isifanekiso se-imeyili sikopishwe kwiklipbhodi"
+    "copiedDescription": "Isifanekiso se-imeyili sikopishwe kwiklipbhodi",
+    "failureReason": "Isizathu sokugatywa",
+    "secondaryAnalysis": "Uhlalutyo lwesibini"
   },
-  "Moderation": {
     "title": "Ukulawula uphononongo",
     "pendingReviews": "Uphononongo oluyi-{count} olulindileyo kuwo onke amaqonga",
     "buildingQueue": "Umgca uyakhiwa...",
@@ -287,5 +288,25 @@
     "inactive": "Ayisebenzi",
     "variablesNotice": "Iinguqu Zexesha Lokusebenza: Sebenzisa {{username}} ne-{{password}} ngeziqinisekiso zokungena (zigcwaliswa ngokuzenzekelayo kwimeko ye-Railway). Sebenzisa {{reviewId}} ye-ID yophononongo oyigcwalisa xa usebenzisa.",
     "enterVariable": "Faka {name}..."
+  },
+  "ReceiptCard": {
+    "failureReason": "Isizathu sokugatywa",
+    "secondaryAnalysis": "Uhlalutyo lwesibini",
+    "failureNotAReceipt": "Ayiyiyo irisithi",
+    "failureImageUnclear": "Umfanekiso awucacanga",
+    "failureInsufficientInfo": "Ulwazi alwanelanga",
+    "failureDuplicateReceipt": "Irisithi ephindaphindiweyo",
+    "failureReceiptTooOld": "Irisithi indala kakhulu",
+    "failureSuspectedFraud": "Ukuqhathwa okurhanelwayo",
+    "failureUnreadableText": "Isicatshulwa esingafundekiyo",
+    "failureMissingKeyFields": "Iindawo ezingekhoyo",
+    "failure_NOT_A_RECEIPT": "Ayiyiyo irisithi",
+    "failure_IMAGE_UNCLEAR": "Umfanekiso awucacanga",
+    "failure_INSUFFICIENT_INFO": "Ulwazi alwanelanga",
+    "failure_DUPLICATE_RECEIPT": "Irisithi ephindaphindiweyo",
+    "failure_RECEIPT_TOO_OLD": "Irisithi indala kakhulu",
+    "failure_SUSPECTED_FRAUD": "Ukuqhathwa okurhanelwayo",
+    "failure_UNREADABLE_TEXT": "Isicatshulwa esingafundekiyo",
+    "failure_MISSING_KEY_FIELDS": "Iindawo ezingekhoyo"
   }
 }

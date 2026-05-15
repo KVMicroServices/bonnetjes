@@ -18,6 +18,9 @@ export interface ReviewDisableJobData {
 
 const DEFAULT_MAX_ATTEMPTS = 5;
 const BASE_BACKOFF_DELAY_MILLISECONDS = 10000;
+const COMPLETED_JOB_RETENTION_SECONDS = 604800;
+const COMPLETED_JOB_MAX_COUNT = 5000;
+const FAILED_JOB_RETENTION_SECONDS = 2592000;
 
 function getMaxAttempts(): number {
   const raw = parseInt(process.env.MAX_RETRY_ATTEMPTS || "", 10);
@@ -48,11 +51,11 @@ export function getReviewDisableQueue(): Queue<ReviewDisableJobData> {
         delay: BASE_BACKOFF_DELAY_MILLISECONDS,
       },
       removeOnComplete: {
-        age: 604800,
-        count: 5000,
+        age: COMPLETED_JOB_RETENTION_SECONDS,
+        count: COMPLETED_JOB_MAX_COUNT,
       },
       removeOnFail: {
-        age: 2592000,
+        age: FAILED_JOB_RETENTION_SECONDS,
       },
     },
   });

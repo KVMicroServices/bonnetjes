@@ -18,6 +18,7 @@ import {
   FileText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 interface ReceiptData {
   id: string;
@@ -43,6 +44,7 @@ interface ReceiptCardProps {
 
 export function ReceiptCard({ receipt, onRefresh }: ReceiptCardProps) {
   const { toast } = useToast();
+  const t = useTranslations("ReceiptCard");
   const [downloading, setDownloading] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
 
@@ -243,7 +245,7 @@ export function ReceiptCard({ receipt, onRefresh }: ReceiptCardProps) {
           )}
           {receipt.failureReason && (
             <div className="mt-2 text-xs text-red-600 font-medium">
-              ⚠️ {receipt.failureReason.replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
+              ⚠️ {t(`failure_${receipt.failureReason}`)}
             </div>
           )}
           {receipt.secondaryAnalysis && receipt.secondaryAnalysis !== "Initial analysis valid" && (

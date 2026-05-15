@@ -1,5 +1,18 @@
 # Changes
 
+## [052] Fix code review findings from 26.05.15-cleanup-sprint
+
+**What**: Resolved all 15 standards violations, 4 localization issues, and 3 stability issues from the cleanup sprint code review.
+**Decisions**:
+- Ternaries replaced with if-else blocks across 8 files
+- Magic numbers extracted to named constants in queue configs
+- Chained `??` in moderation page replaced with explicit if-null checks
+- `as any` cast replaced with proper Prisma type assertion
+- Added `ReceiptCard` translation namespace with failure reason labels in all 8 languages
+- Wrapped `request.json()` and external `JSON.parse()` calls in try-catch
+- Added REDIS_URL startup warning in queue worker
+**Files**: `lib/services/receipt-service.ts`, `lib/queue/receipt-worker.ts`, `lib/queue/review-disable-worker.ts`, `lib/queue/receipt-queue.ts`, `lib/queue/review-disable-queue.ts`, `lib/receipt-sync/receipt-creator.ts`, `lib/review-disable/kiyoh-auth-client.ts`, `lib/services/ocr-service.ts`, `app/api/receipts/route.ts`, `app/admin/moderation/page.tsx`, `app/api/locale/route.ts`, `scripts/queue-worker.ts`, `components/admin-receipt-card.tsx`, `components/receipt-card.tsx`, `app/admin/page.tsx`, `messages/*.json`
+
 ## [051] Use gpt-5.4-mini for secondary analysis with improved prompt
 
 **What**: Secondary analysis now uses a separate, configurable model (`SECONDARY_AI_MODEL_NAME`, defaults to `gpt-5.4-mini`) and an improved prompt that includes the full primary extraction data and instructs the model to independently review the image rather than just rubber-stamp the rejection.

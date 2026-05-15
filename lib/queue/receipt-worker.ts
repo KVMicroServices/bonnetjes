@@ -191,7 +191,10 @@ export function startReceiptWorker(): Worker<ReceiptProcessingJobData> {
   });
 
   workerInstance.on("failed", (job, error) => {
-    const receiptId = job ? job.data.receiptId : "unknown";
+    let receiptId = "unknown";
+    if (job) {
+      receiptId = job.data.receiptId;
+    }
     logger.error({ jobId: job?.id, receiptId, error: error.message }, "Job failed");
   });
 
