@@ -68,6 +68,7 @@ model Receipt {
   // Verification results
   receiptReadable     Boolean?
   verificationStatus  String    @default("pending") // pending, verified, rejected, flagged
+  processingStatus    String    @default("queued")  // idle, queued, processing, completed, failed
   failureReason       String?   // enum-like: NOT_A_RECEIPT, IMAGE_UNCLEAR, INSUFFICIENT_INFO, DUPLICATE_RECEIPT, RECEIPT_TOO_OLD, SUSPECTED_FRAUD, UNREADABLE_TEXT, MISSING_KEY_FIELDS
   secondaryAnalysis   String?   // secondary AI check reasoning on failures
   

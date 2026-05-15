@@ -8,7 +8,8 @@
     "lint": "next lint",
     "check": "tsc --noEmit",
     "test": "vitest run",
-    "test:ai": "vitest run --config tests/ai-integration/vitest.config.ts"
+    "test:ai": "vitest run --config tests/ai-integration/vitest.config.ts",
+    "worker": "tsx scripts/queue-worker.ts"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/safe-seed.ts"
@@ -81,6 +82,7 @@
     "@types/react-plotly.js": "2.6.3",
     "autoprefixer": "10.4.15",
     "bcryptjs": "2.4.3",
+    "bullmq": "5.34.3",
     "chart.js": "4.4.9",
     "class-variance-authority": "0.7.0",
     "clsx": "2.1.1",
@@ -95,6 +97,7 @@
     "framer-motion": "10.18.0",
     "gray-matter": "4.0.3",
     "input-otp": "1.2.4",
+    "ioredis": "5.4.1",
     "jotai": "2.6.0",
     "jsonwebtoken": "9.0.2",
     "lodash": "4.17.21",

@@ -295,6 +295,7 @@ export async function createReceipt(
       fileType,
       fileSize,
       verificationStatus: "pending",
+      processingStatus: "queued",
       imageHash: fraudAnalysis.imageHash,
       isDuplicate: fraudAnalysis.isDuplicate,
       duplicateOfId: fraudAnalysis.duplicateOfId,

@@ -1,5 +1,20 @@
 # Changes
 
+## [046] Add BullMQ message queue for async receipt OCR processing
+
+**What**: Receipt OCR and fraud re-scoring now runs asynchronously via a BullMQ worker backed by Redis, instead of blocking the HTTP response or running fire-and-forget.
+**Why**: Synchronous OCR blocked uploads for seconds; fire-and-forget in Drive import had no retry or visibility. Queue gives retries (3 attempts, exponential backoff), concurrency control, and job tracking.
+**Decisions**:
+- Redis 7 Alpine in its own docker-compose container
+- BullMQ with ioredis — lightweight, Node-native, no extra protocol
+- Added `processingStatus` field to Receipt (idle/queued/processing/completed/failed) for client polling
+- Separate `queue-worker` container in docker-compose runs the worker process
+- Drive import's 200-line inline `triggerOCR` removed — now enqueues like regular uploads
+- Receipt-sync module (`RECEIPT_AUTO_VERIFY_ENABLED=true`) now enqueues for real OCR processing instead of blindly marking as "verified"
+- Synced receipts with auto-verify OFF get `processingStatus: "idle"` (not queued, awaiting manual trigger)
+- Worker reuses existing `processReceiptOcr` from ocr-service (no logic duplication)
+**Files**: `lib/queue/connection.ts`, `lib/queue/receipt-queue.ts`, `lib/queue/receipt-worker.ts`, `lib/queue/index.ts`, `scripts/queue-worker.ts`, `docker-compose.yml`, `prisma/schema.prisma`, `prisma/migrations/20260515000000_add_processing_status_and_queue/migration.sql`, `app/api/receipts/route.ts`, `app/api/drive/import/route.ts`, `lib/services/receipt-service.ts`, `lib/receipt-sync/receipt-creator.ts`, `.env.example`, `package.json`
+
 ## [045] Add failure reasons, secondary analysis, and English-only to OCR judging
 
 **What**: Enhanced the AI receipt verification system with structured failure reason codes, a secondary AI analysis pass on rejections, and enforced English-only responses.

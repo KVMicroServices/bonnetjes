@@ -13,6 +13,7 @@ import {
   calculateFraudRiskScore
 } from "@/lib/fraud-detection";
 import { listReceipts, createReceipt } from "@/lib/services/receipt-service";
+import { enqueueReceiptProcessing } from "@/lib/queue";
 
 export async function GET(request: NextRequest) {
   try {
@@ -93,6 +94,9 @@ export async function POST(request: NextRequest) {
         { status: result.statusCode }
       );
     }
+
+    // Enqueue async OCR + fraud re-scoring
+    await enqueueReceiptProcessing(result.receipt.id, userId);
 
     return NextResponse.json(result.receipt, { status: 201 });
   } catch (error) {

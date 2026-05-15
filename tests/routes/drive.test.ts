@@ -36,6 +36,12 @@ vi.mock("@/lib/fraud-detection", () => ({
   calculateFraudRiskScore: (...args: unknown[]) => mockCalculateFraudRiskScore(...args),
 }));
 
+// Mock queue module
+const mockEnqueueReceiptProcessing = vi.fn().mockResolvedValue("job-id-123");
+vi.mock("@/lib/queue", () => ({
+  enqueueReceiptProcessing: (...args: unknown[]) => mockEnqueueReceiptProcessing(...args),
+}));
+
 // ─── Imports (after mocks) ─────────────────────────────────────────────────────
 
 import { GET as getFiles } from "@/app/api/drive/files/route";
@@ -424,8 +430,7 @@ describe("POST /api/drive/import", () => {
 
     mockPrisma.account.findFirst.mockResolvedValue(GOOGLE_ACCOUNT as any);
     mockPrisma.receipt.create.mockResolvedValue(SAMPLE_RECEIPT as any);
-    // Mock for triggerOCR background call
-    mockPrisma.receipt.findUnique.mockResolvedValue(null);
+    // Queue mock handles OCR enqueue
 
     setupDriveApiFetchMock();
 

@@ -33,6 +33,12 @@ vi.mock("@/lib/fraud-detection", () => ({
   calculateFraudRiskScore: (...args: unknown[]) => mockCalculateFraudRiskScore(...args),
 }));
 
+// Mock queue module
+const mockEnqueueReceiptProcessing = vi.fn().mockResolvedValue("job-id-123");
+vi.mock("@/lib/queue", () => ({
+  enqueueReceiptProcessing: (...args: unknown[]) => mockEnqueueReceiptProcessing(...args),
+}));
+
 // ─── Imports (after mocks) ─────────────────────────────────────────────────────
 
 import { GET as getReceipts, POST as createReceipt } from "@/app/api/receipts/route";

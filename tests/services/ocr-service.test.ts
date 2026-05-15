@@ -40,7 +40,7 @@ function createMockOcrApiConfig(overrides?: Partial<OcrApiConfig>): OcrApiConfig
   return {
     baseUrl: "https://api.test.com/v1",
     apiKey: "test-api-key",
-    model: "gpt-4o-mini",
+    model: "gpt-5.4-nano",
     streaming: false,
     ...overrides,
   };
@@ -366,7 +366,7 @@ describe("processReceiptOcr", () => {
     originalEnv = { ...process.env };
     process.env.AI_API_KEY = "test-key";
     process.env.AI_API_BASE_URL = "https://api.test.com/v1";
-    process.env.AI_MODEL_NAME = "gpt-4o-mini";
+    process.env.AI_MODEL_NAME = "gpt-5.4-nano";
   });
 
   afterEach(() => {

@@ -4,7 +4,7 @@ import { resolve } from "path";
 
 const AI_API_KEY = process.env.AI_API_KEY;
 const AI_API_BASE_URL = process.env.AI_API_BASE_URL || "https://api.openai.com/v1";
-const AI_MODEL_NAME = process.env.AI_MODEL_NAME || "gpt-4o-mini";
+const AI_MODEL_NAME = process.env.AI_MODEL_NAME || "gpt-5.4-nano";
 
 const FIXTURE_PATH = resolve(__dirname, "fixtures/sample-receipt.jpg");
 

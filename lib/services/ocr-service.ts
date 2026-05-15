@@ -4,7 +4,7 @@ import { logger } from "@/lib/logger";
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const DEFAULT_AI_BASE_URL = "https://api.openai.com/v1";
-const DEFAULT_AI_MODEL = "gpt-4o-mini";
+const DEFAULT_AI_MODEL = "gpt-5.4-nano";
 const MAX_TOKENS = 2000;
 const HIGH_CONFIDENCE_THRESHOLD = 70;
 const LOW_CONFIDENCE_THRESHOLD = 30;
