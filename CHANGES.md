@@ -6,16 +6,15 @@
 **Why**: Synced receipts were failing OCR because `getFileAsBuffer` fetched from R2 where they don't exist. Tests failed because they didn't isolate URL env vars from the host.
 **Files**: `lib/queue/receipt-worker.ts`, `tests/services/review-disable-service.test.ts`
 
-## [053] Add Sync Now button and review disable/enable toggle
+## [053] Add Sync Now button, review disable/enable on receipts, rename reviews to platforms
 
-**What**: Added a "Sync Now" button on the dashboard (admin-only) and admin pages to trigger an immediate S3 receipt sync tick, a disable/enable toggle button on each review card, and moved the ManualDisableForm from the reviews page to the admin page.
+**What**: Added "Sync Now" button and review disable/enable toggle on receipt cards in the dashboard and admin pages. Moved ManualDisableForm to admin page. Renamed `/admin/reviews` to `/admin/platforms`.
 **Decisions**:
-- Sync Now button placed on dashboard (admin-only) and admin page, not the reviews page
-- ManualDisableForm moved to admin page (before tabs) since it's an admin tool, not a reviews-browsing feature
-- New API route `/api/admin/receipt-sync/trigger` calls `executeTick()` directly without resetting watermark
-- Added `enable-manual` action to the existing disable route for symmetry with `disable-manual`
-- Review card toggle uses the same `setReviewActiveStatus` logic as the queue-based disable
-**Files**: `app/admin/page.tsx`, `app/dashboard/page.tsx`, `app/admin/reviews/page.tsx`, `app/api/admin/receipt-sync/trigger/route.ts`, `app/api/admin/reviews/disable/route.ts`, `lib/review-disable/review-disable-service.ts`, `messages/*.json`
+- Disable/enable button appears on rejected/flagged receipts, uses the `disable`/`enable` actions which look up ReceiptSyncState by receiptId
+- Client tracks disabled state locally (optimistic) since the API doesn't return current review status
+- Route renamed from `/admin/reviews` to `/admin/platforms` to prevent confusion with receipt reviews
+- Toggle removed from platform review cards (those are for browsing, not managing)
+**Files**: `app/admin/platforms/page.tsx`, `app/admin/page.tsx`, `app/dashboard/page.tsx`, `app/admin/moderation/page.tsx`, `components/header.tsx`, `app/api/admin/receipt-sync/trigger/route.ts`, `app/api/admin/reviews/disable/route.ts`, `lib/review-disable/review-disable-service.ts`, `messages/*.json`
 
 ## [052] Fix code review findings from 26.05.15-cleanup-sprint
 

@@ -102,7 +102,14 @@
     "failedToArchive": "Kon bonnen niet archiveren",
     "syncNow": "Sync nu",
     "syncTriggered": "Sync gestart",
-    "syncTriggeredDescription": "Bon-synchronisatie is gestart"
+    "syncTriggeredDescription": "Bon-synchronisatie is gestart",
+    "reviewToggled": "Review bijgewerkt",
+    "reviewDisabled": "Review is uitgeschakeld op het platform",
+    "reviewEnabled": "Review is weer ingeschakeld op het platform",
+    "reviewToggleFailed": "Review toggle mislukt",
+    "reviewToggleFailedDescription": "Kon reviewstatus niet bijwerken",
+    "disableReview": "Review uitschakelen op platform",
+    "enableReview": "Review weer inschakelen op platform"
   },
   "Archive": {
     "backToDashboard": "Terug naar Dashboard",
@@ -175,7 +182,14 @@
     "secondaryAnalysis": "Tweede analyse",
     "syncNow": "Sync nu",
     "syncTriggered": "Sync gestart",
-    "syncTriggeredDescription": "Bon-synchronisatie is gestart"
+    "syncTriggeredDescription": "Bon-synchronisatie is gestart",
+    "reviewToggled": "Review bijgewerkt",
+    "reviewDisabled": "Review is uitgeschakeld op het platform",
+    "reviewEnabled": "Review is weer ingeschakeld op het platform",
+    "reviewToggleFailed": "Review toggle mislukt",
+    "reviewToggleFailedDescription": "Kon reviewstatus niet bijwerken",
+    "disableReview": "Review uitschakelen op platform",
+    "enableReview": "Review weer inschakelen op platform"
   },
   "Moderation": {
     "title": "Review Moderatie",

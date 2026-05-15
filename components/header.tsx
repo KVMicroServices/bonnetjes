@@ -60,7 +60,7 @@ export function Header() {
                     {t("moderation")}
                   </Link>
                   <Link
-                    href="/admin/reviews"
+                    href="/admin/platforms"
                     className="flex items-center gap-2 rounded-lg bg-yellow-50 px-4 py-2 text-sm font-medium text-yellow-700 transition-colors hover:bg-yellow-100"
                   >
                     <Star className="h-4 w-4" />
@@ -148,7 +148,7 @@ export function Header() {
                         {t("moderation")}
                       </Link>
                       <Link
-                        href="/admin/reviews"
+                        href="/admin/platforms"
                         className="flex items-center gap-2 rounded-lg bg-yellow-50 px-4 py-3 text-sm font-medium text-yellow-700"
                         onClick={() => setMobileMenuOpen(false)}
                       >

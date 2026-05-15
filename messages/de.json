@@ -102,7 +102,14 @@
     "failedToArchive": "Belege konnten nicht archiviert werden",
     "syncNow": "Jetzt synchronisieren",
     "syncTriggered": "Sync gestartet",
-    "syncTriggeredDescription": "Belegsynchronisierung wurde gestartet"
+    "syncTriggeredDescription": "Belegsynchronisierung wurde gestartet",
+    "reviewToggled": "Bewertung aktualisiert",
+    "reviewDisabled": "Bewertung wurde auf der Plattform deaktiviert",
+    "reviewEnabled": "Bewertung wurde auf der Plattform wieder aktiviert",
+    "reviewToggleFailed": "Bewertung umschalten fehlgeschlagen",
+    "reviewToggleFailedDescription": "Bewertungsstatus konnte nicht aktualisiert werden",
+    "disableReview": "Bewertung auf Plattform deaktivieren",
+    "enableReview": "Bewertung auf Plattform wieder aktivieren"
   },
   "Archive": {
     "backToDashboard": "Zurück zum Dashboard",
@@ -175,7 +182,14 @@
     "secondaryAnalysis": "Zweite Analyse",
     "syncNow": "Jetzt synchronisieren",
     "syncTriggered": "Sync gestartet",
-    "syncTriggeredDescription": "Belegsynchronisierung wurde gestartet"
+    "syncTriggeredDescription": "Belegsynchronisierung wurde gestartet",
+    "reviewToggled": "Bewertung aktualisiert",
+    "reviewDisabled": "Bewertung wurde auf der Plattform deaktiviert",
+    "reviewEnabled": "Bewertung wurde auf der Plattform wieder aktiviert",
+    "reviewToggleFailed": "Bewertung umschalten fehlgeschlagen",
+    "reviewToggleFailedDescription": "Bewertungsstatus konnte nicht aktualisiert werden",
+    "disableReview": "Bewertung auf Plattform deaktivieren",
+    "enableReview": "Bewertung auf Plattform wieder aktivieren"
   },
   "Moderation": {
     "title": "Review-Moderation",

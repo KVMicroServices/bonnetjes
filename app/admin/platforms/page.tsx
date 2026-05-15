@@ -19,7 +19,6 @@ import {
   Flag,
   MessageSquare,
   Clock,
-  Power,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
@@ -114,12 +113,10 @@ function ReviewCard({
   review,
   location,
   onModerate,
-  onToggleActive,
 }: {
   review: Review;
   location: Location;
   onModerate: (reviewId: string, action: "abuse" | "changerequest") => void;
-  onToggleActive: (reviewId: string, currentlyActive: boolean) => void;
 }) {
   const t = useTranslations("Reviews");
   const rating = review.rating ?? review.totalScore ?? 0;
@@ -133,19 +130,11 @@ function ReviewCard({
   const status = review.status;
   const reviewId = review.id ?? review.reviewId ?? "";
   const [moderating, setModerating] = useState<string | null>(null);
-  const [toggling, setToggling] = useState(false);
-  const isActive = status !== "DISABLED";
 
   const handleModerate = async (action: "abuse" | "changerequest") => {
     setModerating(action);
     await onModerate(reviewId, action);
     setModerating(null);
-  };
-
-  const handleToggleActive = async () => {
-    setToggling(true);
-    await onToggleActive(reviewId, isActive);
-    setToggling(false);
   };
 
   return (
@@ -181,7 +170,6 @@ function ReviewCard({
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
               status === "PENDING" ? "bg-yellow-100 text-yellow-700" :
               status === "REJECTED" ? "bg-red-100 text-red-700" :
-              status === "DISABLED" ? "bg-gray-200 text-gray-600" :
               "bg-gray-100 text-gray-600"
             }`}>
               {status}
@@ -197,7 +185,7 @@ function ReviewCard({
         <div className="mt-3 flex items-center gap-2 border-t pt-3">
           <button
             onClick={() => handleModerate("changerequest")}
-            disabled={!!moderating || toggling}
+            disabled={!!moderating}
             className="flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
             title="Verzoek reviewer om beoordeling aan te passen"
           >
@@ -206,25 +194,12 @@ function ReviewCard({
           </button>
           <button
             onClick={() => handleModerate("abuse")}
-            disabled={!!moderating || toggling}
+            disabled={!!moderating}
             className="flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
             title="Rapporteer als nep/misbruik"
           >
             {moderating === "abuse" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Flag className="h-3 w-3" />}
             {t("report")}
-          </button>
-          <button
-            onClick={handleToggleActive}
-            disabled={!!moderating || toggling}
-            className={`ml-auto flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 ${
-              isActive
-                ? "border-orange-200 text-orange-600 hover:bg-orange-50"
-                : "border-green-200 text-green-600 hover:bg-green-50"
-            }`}
-            title={isActive ? t("disableReview") : t("enableReview")}
-          >
-            {toggling ? <Loader2 className="h-3 w-3 animate-spin" /> : <Power className="h-3 w-3" />}
-            {isActive ? t("disable") : t("enable")}
           </button>
         </div>
       )}
@@ -399,40 +374,6 @@ export default function ReviewsPage() {
       if (!res.ok) throw new Error();
       // Optimistically remove the review from the list after moderation
       setReviews(prev => prev.filter(r => (r.id ?? r.reviewId) !== reviewId));
-    } catch {
-      // silent fail — user can retry
-    }
-  }, []);
-
-  const toggleReviewActive = useCallback(async (
-    reviewId: string,
-    currentlyActive: boolean,
-    location: Location
-  ) => {
-    const action = currentlyActive ? "disable-manual" : "enable-manual";
-    const DEFAULT_TENANT_ID = 99;
-    try {
-      const res = await fetch("/api/admin/reviews/disable", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action,
-          reviewId,
-          locationId: location.locationId,
-          tenantId: DEFAULT_TENANT_ID,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        // Update the review status in the local list
-        setReviews(prev => prev.map(r => {
-          const id = r.id ?? r.reviewId ?? "";
-          if (id === reviewId) {
-            return { ...r, status: currentlyActive ? "DISABLED" : "PUBLISHED" };
-          }
-          return r;
-        }));
-      }
     } catch {
       // silent fail — user can retry
     }
@@ -669,9 +610,6 @@ export default function ReviewsPage() {
                           location={selectedLocation}
                           onModerate={(reviewId, action) =>
                             moderateReview(reviewId, action, selectedLocation)
-                          }
-                          onToggleActive={(reviewId, currentlyActive) =>
-                            toggleReviewActive(reviewId, currentlyActive, selectedLocation)
                           }
                         />
                       ))}

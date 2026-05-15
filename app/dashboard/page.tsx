@@ -30,7 +30,8 @@ import {
   CheckSquare,
   Square,
   Check,
-  CloudDownload
+  CloudDownload,
+  Power
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -103,6 +104,8 @@ export default function DashboardPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [archiving, setArchiving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [disablingReviewId, setDisablingReviewId] = useState<string | null>(null);
+  const [reviewDisabledReceipts, setReviewDisabledReceipts] = useState<Set<string>>(new Set());
 
   const isAdmin = (session?.user as any)?.role === "admin";
 
@@ -416,6 +419,50 @@ export default function DashboardPage() {
       // silent fail
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleToggleReview = async (receiptId: string) => {
+    setDisablingReviewId(receiptId);
+    const isCurrentlyDisabled = reviewDisabledReceipts.has(receiptId);
+    const action = isCurrentlyDisabled ? "enable" : "disable";
+
+    try {
+      const response = await fetch("/api/admin/reviews/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, receiptId }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setReviewDisabledReceipts(prev => {
+          const updated = new Set(prev);
+          if (isCurrentlyDisabled) {
+            updated.delete(receiptId);
+          } else {
+            updated.add(receiptId);
+          }
+          return updated;
+        });
+        toast({
+          title: t("reviewToggled"),
+          description: isCurrentlyDisabled ? t("reviewEnabled") : t("reviewDisabled")
+        });
+      } else {
+        toast({
+          title: t("reviewToggleFailed"),
+          description: data.error || t("reviewToggleFailedDescription"),
+          variant: "destructive"
+        });
+      }
+    } catch {
+      toast({
+        title: t("reviewToggleFailed"),
+        description: t("reviewToggleFailedDescription"),
+        variant: "destructive"
+      });
+    } finally {
+      setDisablingReviewId(null);
     }
   };
 
@@ -804,6 +851,25 @@ export default function DashboardPage() {
                             title={t("emailTemplate")}
                           >
                             <Mail className="h-4 w-4" />
+                          </button>
+                        )}
+                        {/* Disable/Enable review for rejected/flagged (admin only) */}
+                        {isAdmin && (receipt.verificationStatus === "rejected" || receipt.verificationStatus === "flagged") && (
+                          <button
+                            onClick={() => handleToggleReview(receipt.id)}
+                            disabled={disablingReviewId === receipt.id}
+                            className={`rounded-lg p-2 disabled:opacity-50 ${
+                              reviewDisabledReceipts.has(receipt.id)
+                                ? "text-green-600 hover:bg-green-50"
+                                : "text-orange-600 hover:bg-orange-50"
+                            }`}
+                            title={reviewDisabledReceipts.has(receipt.id) ? t("enableReview") : t("disableReview")}
+                          >
+                            {disablingReviewId === receipt.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Power className="h-4 w-4" />
+                            )}
                           </button>
                         )}
                         <button

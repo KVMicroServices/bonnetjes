@@ -102,7 +102,14 @@
     "failedToArchive": "Kon nie kwitansies argiveer nie",
     "syncNow": "Sinkroniseer nou",
     "syncTriggered": "Sync begin",
-    "syncTriggeredDescription": "Kwitansie-sinkronisasie is begin"
+    "syncTriggeredDescription": "Kwitansie-sinkronisasie is begin",
+    "reviewToggled": "Resensie opgedateer",
+    "reviewDisabled": "Resensie is gedeaktiveer op die platform",
+    "reviewEnabled": "Resensie is weer geaktiveer op die platform",
+    "reviewToggleFailed": "Resensie wissel misluk",
+    "reviewToggleFailedDescription": "Kon nie resensiestatus opdateer nie",
+    "disableReview": "Deaktiveer resensie op platform",
+    "enableReview": "Heraktiveer resensie op platform"
   },
   "Archive": {
     "backToDashboard": "Terug na Dashboard",
@@ -175,7 +182,14 @@
     "secondaryAnalysis": "Sekondêre analise",
     "syncNow": "Sinkroniseer nou",
     "syncTriggered": "Sync begin",
-    "syncTriggeredDescription": "Kwitansie-sinkronisasie is begin"
+    "syncTriggeredDescription": "Kwitansie-sinkronisasie is begin",
+    "reviewToggled": "Resensie opgedateer",
+    "reviewDisabled": "Resensie is gedeaktiveer op die platform",
+    "reviewEnabled": "Resensie is weer geaktiveer op die platform",
+    "reviewToggleFailed": "Resensie wissel misluk",
+    "reviewToggleFailedDescription": "Kon nie resensiestatus opdateer nie",
+    "disableReview": "Deaktiveer resensie op platform",
+    "enableReview": "Heraktiveer resensie op platform"
   },
   "Moderation": {
     "title": "Resensie Moderering",

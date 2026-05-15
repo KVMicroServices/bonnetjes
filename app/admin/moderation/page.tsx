@@ -337,7 +337,7 @@ export default function ModerationQueuePage() {
               {t("refresh")}
             </button>
             <button
-              onClick={() => router.push("/admin/reviews")}
+              onClick={() => router.push("/admin/platforms")}
               className="flex items-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-black shadow-lg shadow-black/10 transition-all"
             >
               <ExternalLink className="h-4 w-4" />

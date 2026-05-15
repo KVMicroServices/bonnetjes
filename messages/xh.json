@@ -102,7 +102,14 @@
     "failedToArchive": "Ayikwazanga ukufaka iirisithi kwi-akhayifu",
     "syncNow": "Lungisa ngoku",
     "syncTriggered": "Sync iqalile",
-    "syncTriggeredDescription": "Ulungiso lwerisithi luqalile"
+    "syncTriggeredDescription": "Ulungiso lwerisithi luqalile",
+    "reviewToggled": "Uphononongo luvuselelwe",
+    "reviewDisabled": "Uphononongo lucinyiwe kwi-platform",
+    "reviewEnabled": "Uphononongo luvuliwe kwakhona kwi-platform",
+    "reviewToggleFailed": "Ukutshintsha uphononongo kwehlulekile",
+    "reviewToggleFailedDescription": "Ayikwazanga ukuvuselela isimo sophononongo",
+    "disableReview": "Cima uphononongo kwi-platform",
+    "enableReview": "Vula uphononongo kwi-platform"
   },
   "Archive": {
     "backToDashboard": "Buyela kwiDeshibhodi",
@@ -175,7 +182,14 @@
     "secondaryAnalysis": "Uhlalutyo lwesibini",
     "syncNow": "Lungisa ngoku",
     "syncTriggered": "Sync iqalile",
-    "syncTriggeredDescription": "Ulungiso lwerisithi luqalile"
+    "syncTriggeredDescription": "Ulungiso lwerisithi luqalile",
+    "reviewToggled": "Uphononongo luvuselelwe",
+    "reviewDisabled": "Uphononongo lucinyiwe kwi-platform",
+    "reviewEnabled": "Uphononongo luvuliwe kwakhona kwi-platform",
+    "reviewToggleFailed": "Ukutshintsha uphononongo kwehlulekile",
+    "reviewToggleFailedDescription": "Ayikwazanga ukuvuselela isimo sophononongo",
+    "disableReview": "Cima uphononongo kwi-platform",
+    "enableReview": "Vula uphononongo kwi-platform"
   },
   "Moderation": {
     "title": "Ukulawula uphononongo",

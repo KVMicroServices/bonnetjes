@@ -102,7 +102,14 @@
     "failedToArchive": "Yehlulekile ukufaka amarisidi ku-akhayifu",
     "syncNow": "Vumelanisa manje",
     "syncTriggered": "Sync iqalile",
-    "syncTriggeredDescription": "Ukuvumelanisa kwamarisidi kuqalile"
+    "syncTriggeredDescription": "Ukuvumelanisa kwamarisidi kuqalile",
+    "reviewToggled": "Isibuyekezo sivuselelwe",
+    "reviewDisabled": "Isibuyekezo sicishiwe ku-platform",
+    "reviewEnabled": "Isibuyekezo sivuliwe kabusha ku-platform",
+    "reviewToggleFailed": "Ukushintsha isibuyekezo kwehlulekile",
+    "reviewToggleFailedDescription": "Ayikwazanga ukuvuselela isimo sesibuyekezo",
+    "disableReview": "Cisha isibuyekezo ku-platform",
+    "enableReview": "Vula isibuyekezo ku-platform"
   },
   "Archive": {
     "backToDashboard": "Buyela kuDeshibhodi",
@@ -175,7 +182,14 @@
     "secondaryAnalysis": "Ukuhlaziywa kwesibili",
     "syncNow": "Vumelanisa manje",
     "syncTriggered": "Sync iqalile",
-    "syncTriggeredDescription": "Ukuvumelanisa kwamarisidi kuqalile"
+    "syncTriggeredDescription": "Ukuvumelanisa kwamarisidi kuqalile",
+    "reviewToggled": "Isibuyekezo sivuselelwe",
+    "reviewDisabled": "Isibuyekezo sicishiwe ku-platform",
+    "reviewEnabled": "Isibuyekezo sivuliwe kabusha ku-platform",
+    "reviewToggleFailed": "Ukushintsha isibuyekezo kwehlulekile",
+    "reviewToggleFailedDescription": "Ayikwazanga ukuvuselela isimo sesibuyekezo",
+    "disableReview": "Cisha isibuyekezo ku-platform",
+    "enableReview": "Vula isibuyekezo ku-platform"
   },
   "Moderation": {
     "title": "Ukulawula ukubuyekezwa",

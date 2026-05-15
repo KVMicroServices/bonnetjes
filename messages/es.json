@@ -102,7 +102,14 @@
     "failedToArchive": "No se pudieron archivar los recibos",
     "syncNow": "Sincronizar ahora",
     "syncTriggered": "Sync iniciada",
-    "syncTriggeredDescription": "La sincronización de recibos ha sido iniciada"
+    "syncTriggeredDescription": "La sincronización de recibos ha sido iniciada",
+    "reviewToggled": "Reseña actualizada",
+    "reviewDisabled": "La reseña ha sido desactivada en la plataforma",
+    "reviewEnabled": "La reseña ha sido reactivada en la plataforma",
+    "reviewToggleFailed": "Error al cambiar reseña",
+    "reviewToggleFailedDescription": "No se pudo actualizar el estado de la reseña",
+    "disableReview": "Desactivar reseña en la plataforma",
+    "enableReview": "Reactivar reseña en la plataforma"
   },
   "Archive": {
     "backToDashboard": "Volver al panel",
@@ -175,7 +182,14 @@
     "secondaryAnalysis": "Análisis secundario",
     "syncNow": "Sincronizar ahora",
     "syncTriggered": "Sync iniciada",
-    "syncTriggeredDescription": "La sincronización de recibos ha sido iniciada"
+    "syncTriggeredDescription": "La sincronización de recibos ha sido iniciada",
+    "reviewToggled": "Reseña actualizada",
+    "reviewDisabled": "La reseña ha sido desactivada en la plataforma",
+    "reviewEnabled": "La reseña ha sido reactivada en la plataforma",
+    "reviewToggleFailed": "Error al cambiar reseña",
+    "reviewToggleFailedDescription": "No se pudo actualizar el estado de la reseña",
+    "disableReview": "Desactivar reseña en la plataforma",
+    "enableReview": "Reactivar reseña en la plataforma"
   },
   "Moderation": {
     "title": "Moderación de reseñas",

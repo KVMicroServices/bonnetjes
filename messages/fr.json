@@ -102,7 +102,14 @@
     "failedToArchive": "Impossible d'archiver les reçus",
     "syncNow": "Synchroniser maintenant",
     "syncTriggered": "Sync lancée",
-    "syncTriggeredDescription": "La synchronisation des reçus a été lancée"
+    "syncTriggeredDescription": "La synchronisation des reçus a été lancée",
+    "reviewToggled": "Avis mis à jour",
+    "reviewDisabled": "L'avis a été désactivé sur la plateforme",
+    "reviewEnabled": "L'avis a été réactivé sur la plateforme",
+    "reviewToggleFailed": "Échec du basculement",
+    "reviewToggleFailedDescription": "Impossible de mettre à jour le statut de l'avis",
+    "disableReview": "Désactiver l'avis sur la plateforme",
+    "enableReview": "Réactiver l'avis sur la plateforme"
   },
   "Archive": {
     "backToDashboard": "Retour au tableau de bord",
@@ -175,7 +182,14 @@
     "secondaryAnalysis": "Analyse secondaire",
     "syncNow": "Synchroniser maintenant",
     "syncTriggered": "Sync lancée",
-    "syncTriggeredDescription": "La synchronisation des reçus a été lancée"
+    "syncTriggeredDescription": "La synchronisation des reçus a été lancée",
+    "reviewToggled": "Avis mis à jour",
+    "reviewDisabled": "L'avis a été désactivé sur la plateforme",
+    "reviewEnabled": "L'avis a été réactivé sur la plateforme",
+    "reviewToggleFailed": "Échec du basculement",
+    "reviewToggleFailedDescription": "Impossible de mettre à jour le statut de l'avis",
+    "disableReview": "Désactiver l'avis sur la plateforme",
+    "enableReview": "Réactiver l'avis sur la plateforme"
   },
   "Moderation": {
     "title": "Modération des avis",

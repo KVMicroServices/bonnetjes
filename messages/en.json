@@ -102,7 +102,14 @@
     "failedToArchive": "Failed to archive receipts",
     "syncNow": "Sync Now",
     "syncTriggered": "Sync Started",
-    "syncTriggeredDescription": "Receipt sync has been triggered"
+    "syncTriggeredDescription": "Receipt sync has been triggered",
+    "reviewToggled": "Review Updated",
+    "reviewDisabled": "Review has been disabled on the platform",
+    "reviewEnabled": "Review has been re-enabled on the platform",
+    "reviewToggleFailed": "Review Toggle Failed",
+    "reviewToggleFailedDescription": "Could not update review status",
+    "disableReview": "Disable review on platform",
+    "enableReview": "Re-enable review on platform"
   },
   "Archive": {
     "backToDashboard": "Back to Dashboard",
@@ -175,7 +182,14 @@
     "secondaryAnalysis": "Secondary Analysis",
     "syncNow": "Sync Now",
     "syncTriggered": "Sync Started",
-    "syncTriggeredDescription": "Receipt sync has been triggered"
+    "syncTriggeredDescription": "Receipt sync has been triggered",
+    "reviewToggled": "Review Updated",
+    "reviewDisabled": "Review has been disabled on the platform",
+    "reviewEnabled": "Review has been re-enabled on the platform",
+    "reviewToggleFailed": "Review Toggle Failed",
+    "reviewToggleFailedDescription": "Could not update review status",
+    "disableReview": "Disable review on platform",
+    "enableReview": "Re-enable review on platform"
   },
   "Moderation": {
     "title": "Review Moderation",
