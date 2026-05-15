@@ -171,6 +171,7 @@
     "failureReason": "Isizathu sokugatywa",
     "secondaryAnalysis": "Uhlalutyo lwesibini"
   },
+  "Moderation": {
     "title": "Ukulawula uphononongo",
     "pendingReviews": "Uphononongo oluyi-{count} olulindileyo kuwo onke amaqonga",
     "buildingQueue": "Umgca uyakhiwa...",

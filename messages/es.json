@@ -171,6 +171,7 @@
     "failureReason": "Motivo del rechazo",
     "secondaryAnalysis": "Análisis secundario"
   },
+  "Moderation": {
     "title": "Moderación de reseñas",
     "pendingReviews": "{count} reseñas pendientes en todas las plataformas",
     "buildingQueue": "Construyendo cola...",

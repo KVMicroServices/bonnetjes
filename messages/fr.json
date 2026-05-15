@@ -171,6 +171,7 @@
     "failureReason": "Raison du rejet",
     "secondaryAnalysis": "Analyse secondaire"
   },
+  "Moderation": {
     "title": "Modération des avis",
     "pendingReviews": "{count} avis en attente sur toutes les plateformes",
     "buildingQueue": "Construction de la file d'attente...",

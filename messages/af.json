@@ -171,6 +171,7 @@
     "failureReason": "Rede vir afwysing",
     "secondaryAnalysis": "Sekondêre analise"
   },
+  "Moderation": {
     "title": "Resensie Moderering",
     "pendingReviews": "{count} hangende resensies platformwyd",
     "buildingQueue": "Wagry word opgebou...",

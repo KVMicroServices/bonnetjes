@@ -171,6 +171,7 @@
     "failureReason": "Isizathu sokugatshwa",
     "secondaryAnalysis": "Ukuhlaziywa kwesibili"
   },
+  "Moderation": {
     "title": "Ukulawula ukubuyekezwa",
     "pendingReviews": "Ukubuyekezwa okungu-{count} okulindile kuwo wonke amapulatifomu",
     "buildingQueue": "Umugqa uyakhiwa...",

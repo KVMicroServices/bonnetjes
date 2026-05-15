@@ -171,6 +171,7 @@
     "failureReason": "Ablehnungsgrund",
     "secondaryAnalysis": "Zweite Analyse"
   },
+  "Moderation": {
     "title": "Review-Moderation",
     "pendingReviews": "{count} ausstehende Bewertungen plattformweit",
     "buildingQueue": "Warteschlange wird aufgebaut...",
