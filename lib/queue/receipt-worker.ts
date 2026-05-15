@@ -12,6 +12,28 @@ import {
 } from "@/lib/fraud-detection";
 import { logger } from "@/lib/logger";
 
+// ─── KV-Sync Storage Routing ─────────────────────────────────────────────────
+
+const KV_SYNC_PATH_PREFIX = "kv-sync:";
+
+async function getFileAsBufferWithKvRouting(cloudStoragePath: string): Promise<Buffer> {
+  if (!cloudStoragePath.startsWith(KV_SYNC_PATH_PREFIX)) {
+    return getFileAsBuffer(cloudStoragePath);
+  }
+
+  const { loadSyncConfiguration } = await import("@/lib/receipt-sync/config");
+  const { KvS3Client } = await import("@/lib/receipt-sync/kv-s3-client");
+
+  const configuration = loadSyncConfiguration();
+  if (!configuration || configuration.kvReceiptS3BucketName.length === 0) {
+    throw new Error("KV S3 bucket not configured, cannot fetch kv-sync receipt");
+  }
+
+  const s3Key = cloudStoragePath.substring(KV_SYNC_PATH_PREFIX.length);
+  const kvS3Client = new KvS3Client(configuration);
+  return kvS3Client.getReceiptContent(s3Key);
+}
+
 // ─── Worker Configuration ────────────────────────────────────────────────────
 
 const DEFAULT_CONCURRENCY = 3;
@@ -56,7 +78,7 @@ async function processReceiptJob(job: Job<ReceiptProcessingJobData>): Promise<vo
     const ocrResult = await processReceiptOcr(
       {
         database: prisma,
-        storage: { getFileAsBuffer },
+        storage: { getFileAsBuffer: getFileAsBufferWithKvRouting },
         fraudDetection: { detectSuspiciousPatterns, calculateFraudRiskScore },
       },
       receiptId

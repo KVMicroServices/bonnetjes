@@ -80,6 +80,9 @@ describe("authenticateKiyohAdmin", () => {
     process.env.KIYOH_ADMIN_USERNAME = "testuser";
     process.env.KIYOH_ADMIN_PASSWORD = "testpass";
     process.env.KIYOH_ADMIN_TOTP = "JBSWY3DPEHPK3PXP";
+    process.env.KIYOH_ADMIN_TENANT = "99";
+    process.env.KIYOH_AUTH_BASE_URL = "https://www.klantenvertellen.nl/v1/authentication";
+    process.env.KIYOH_CONTEXT_URL = "https://www.klantenvertellen.nl/v1/common/context";
     const { invalidateKiyohTokenCache } = await import("@/lib/review-disable/kiyoh-auth-client");
     invalidateKiyohTokenCache();
   });
@@ -151,6 +154,9 @@ describe("disableReviewByReceiptId", () => {
     process.env.KIYOH_ADMIN_USERNAME = "testuser";
     process.env.KIYOH_ADMIN_PASSWORD = "testpass";
     process.env.KIYOH_ADMIN_TOTP = "JBSWY3DPEHPK3PXP";
+    process.env.KIYOH_AUTH_BASE_URL = "https://www.klantenvertellen.nl/v1/authentication";
+    process.env.KIYOH_CONTEXT_URL = "https://www.klantenvertellen.nl/v1/common/context";
+    process.env.KIYOH_REVIEW_API_BASE_URL = "https://www.klantenvertellen.nl/v1/review";
     const { invalidateKiyohTokenCache } = await import("@/lib/review-disable/kiyoh-auth-client");
     invalidateKiyohTokenCache();
   });
@@ -208,6 +214,9 @@ describe("enableReviewByReceiptId", () => {
     process.env.KIYOH_ADMIN_USERNAME = "testuser";
     process.env.KIYOH_ADMIN_PASSWORD = "testpass";
     process.env.KIYOH_ADMIN_TOTP = "JBSWY3DPEHPK3PXP";
+    process.env.KIYOH_AUTH_BASE_URL = "https://www.klantenvertellen.nl/v1/authentication";
+    process.env.KIYOH_CONTEXT_URL = "https://www.klantenvertellen.nl/v1/common/context";
+    process.env.KIYOH_REVIEW_API_BASE_URL = "https://www.klantenvertellen.nl/v1/review";
     const { invalidateKiyohTokenCache } = await import("@/lib/review-disable/kiyoh-auth-client");
     invalidateKiyohTokenCache();
   });
@@ -246,6 +255,9 @@ describe("disableReviewManual", () => {
     process.env.KIYOH_ADMIN_USERNAME = "testuser";
     process.env.KIYOH_ADMIN_PASSWORD = "testpass";
     process.env.KIYOH_ADMIN_TOTP = "JBSWY3DPEHPK3PXP";
+    process.env.KIYOH_AUTH_BASE_URL = "https://www.klantenvertellen.nl/v1/authentication";
+    process.env.KIYOH_CONTEXT_URL = "https://www.klantenvertellen.nl/v1/common/context";
+    process.env.KIYOH_REVIEW_API_BASE_URL = "https://www.klantenvertellen.nl/v1/review";
     const { invalidateKiyohTokenCache } = await import("@/lib/review-disable/kiyoh-auth-client");
     invalidateKiyohTokenCache();
   });

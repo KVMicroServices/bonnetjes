@@ -1,5 +1,11 @@
 # Changes
 
+## [054] Fix OCR processing for KV-synced receipts and test env isolation
+
+**What**: Receipt worker now routes `kv-sync:` paths to KvS3Client instead of the default R2 bucket, fixing OCR/fraud detection for auto-verified synced receipts. Also fixed review-disable tests leaking host env vars.
+**Why**: Synced receipts were failing OCR because `getFileAsBuffer` fetched from R2 where they don't exist. Tests failed because they didn't isolate URL env vars from the host.
+**Files**: `lib/queue/receipt-worker.ts`, `tests/services/review-disable-service.test.ts`
+
 ## [053] Add Sync Now button and review disable/enable toggle
 
 **What**: Added a "Sync Now" button on the dashboard (admin-only) and admin pages to trigger an immediate S3 receipt sync tick, a disable/enable toggle button on each review card, and moved the ManualDisableForm from the reviews page to the admin page.
