@@ -202,3 +202,21 @@ export async function disableReviewManual(
 
   return result;
 }
+
+/**
+ * Enable review by direct reviewId/locationId/tenantId (no receipt link needed).
+ */
+export async function enableReviewManual(
+  reviewId: string,
+  locationId: string,
+  tenantId: number
+): Promise<DisableByReviewIdResult> {
+  const result = await setReviewActiveStatus(
+    reviewId,
+    locationId,
+    tenantId,
+    true
+  );
+
+  return result;
+}

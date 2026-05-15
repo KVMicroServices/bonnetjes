@@ -99,7 +99,10 @@
     "failedToLoad": "Kon nie kwitansie-voorskou laai nie",
     "failedToUpdate": "Kon nie kwitansie-status opdateer nie",
     "failedToReprocess": "Kon nie kwitansie herverwerk nie",
-    "failedToArchive": "Kon nie kwitansies argiveer nie"
+    "failedToArchive": "Kon nie kwitansies argiveer nie",
+    "syncNow": "Sinkroniseer nou",
+    "syncTriggered": "Sync begin",
+    "syncTriggeredDescription": "Kwitansie-sinkronisasie is begin"
   },
   "Archive": {
     "backToDashboard": "Terug na Dashboard",
@@ -169,7 +172,10 @@
     "copied": "Gekopieer!",
     "copiedDescription": "E-pos sjabloon na knipbord gekopieer",
     "failureReason": "Rede vir afwysing",
-    "secondaryAnalysis": "Sekondêre analise"
+    "secondaryAnalysis": "Sekondêre analise",
+    "syncNow": "Sinkroniseer nou",
+    "syncTriggered": "Sync begin",
+    "syncTriggeredDescription": "Kwitansie-sinkronisasie is begin"
   },
   "Moderation": {
     "title": "Resensie Moderering",
@@ -252,7 +258,12 @@
     "loadMore": "Laai meer",
     "changeRequest": "Wysigingsversoek",
     "report": "Rapporteer",
-    "fetchFailed": "Ophaal misluk"
+    "fetchFailed": "Ophaal misluk",
+    "syncNow": "Sinkroniseer nou",
+    "disable": "Deaktiveer",
+    "enable": "Aktiveer",
+    "disableReview": "Deaktiveer hierdie resensie op die platform",
+    "enableReview": "Aktiveer hierdie resensie op die platform"
   },
   "ReviewDisable": {
     "title": "Deaktiveer resensie handmatig",

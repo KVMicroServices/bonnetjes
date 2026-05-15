@@ -99,7 +99,10 @@
     "failedToLoad": "No se pudo cargar la vista previa del recibo",
     "failedToUpdate": "No se pudo actualizar el estado del recibo",
     "failedToReprocess": "No se pudo reprocesar el recibo",
-    "failedToArchive": "No se pudieron archivar los recibos"
+    "failedToArchive": "No se pudieron archivar los recibos",
+    "syncNow": "Sincronizar ahora",
+    "syncTriggered": "Sync iniciada",
+    "syncTriggeredDescription": "La sincronización de recibos ha sido iniciada"
   },
   "Archive": {
     "backToDashboard": "Volver al panel",
@@ -169,7 +172,10 @@
     "copied": "¡Copiado!",
     "copiedDescription": "Plantilla de correo copiada al portapapeles",
     "failureReason": "Motivo del rechazo",
-    "secondaryAnalysis": "Análisis secundario"
+    "secondaryAnalysis": "Análisis secundario",
+    "syncNow": "Sincronizar ahora",
+    "syncTriggered": "Sync iniciada",
+    "syncTriggeredDescription": "La sincronización de recibos ha sido iniciada"
   },
   "Moderation": {
     "title": "Moderación de reseñas",
@@ -252,7 +258,12 @@
     "loadMore": "Cargar más",
     "changeRequest": "Solicitud de cambio",
     "report": "Reportar",
-    "fetchFailed": "Error al cargar"
+    "fetchFailed": "Error al cargar",
+    "syncNow": "Sincronizar ahora",
+    "disable": "Desactivar",
+    "enable": "Activar",
+    "disableReview": "Desactivar esta reseña en la plataforma",
+    "enableReview": "Activar esta reseña en la plataforma"
   },
   "ReviewDisable": {
     "title": "Desactivar reseña manualmente",

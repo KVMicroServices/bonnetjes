@@ -29,7 +29,10 @@ import {
   ChevronRight,
   ThumbsUp,
   ThumbsDown,
-  Mail
+  Mail,
+  CloudDownload,
+  Ban,
+  ChevronDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -107,6 +110,138 @@ interface ReceiptData {
   user: { id: string; name: string | null; email: string };
 }
 
+function ManualDisableForm() {
+  const [isOpen, setIsOpen] = useState(false);
+  const td = useTranslations("ReviewDisable");
+  const [reviewId, setReviewId] = useState("");
+  const [locationId, setLocationId] = useState("");
+  const [tenantId, setTenantId] = useState("99");
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setResult(null);
+
+    try {
+      const response = await fetch("/api/admin/reviews/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "disable-manual",
+          reviewId: reviewId.trim(),
+          locationId: locationId.trim(),
+          tenantId: Number(tenantId),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setResult({ success: true, message: td("successMessage") });
+        setReviewId("");
+        setLocationId("");
+        setTenantId("99");
+      } else {
+        setResult({ success: false, message: data.error || td("errorMessage") });
+      }
+    } catch {
+      setResult({ success: false, message: td("networkError") });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isFormValid = reviewId.trim().length > 0 && locationId.trim().length > 0 && tenantId.trim().length > 0;
+
+  return (
+    <div className="mb-6 rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between px-5 py-4 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Ban className="h-4 w-4 text-red-500" />
+          <span className="text-sm font-semibold text-gray-900">{td("title")}</span>
+        </div>
+        {isOpen ? (
+          <ChevronDown className="h-4 w-4 text-gray-500" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-gray-500" />
+        )}
+      </button>
+
+      {isOpen && (
+        <form onSubmit={handleSubmit} className="border-t px-5 pb-5 pt-4">
+          <p className="mb-4 text-xs text-gray-500">
+            {td("description")}
+          </p>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <label htmlFor="manual-review-id" className="mb-1 block text-xs font-medium text-gray-700">
+                {td("reviewIdLabel")}
+              </label>
+              <input
+                id="manual-review-id"
+                type="text"
+                value={reviewId}
+                onChange={(event) => setReviewId(event.target.value)}
+                placeholder={td("reviewIdPlaceholder")}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+              />
+            </div>
+            <div>
+              <label htmlFor="manual-location-id" className="mb-1 block text-xs font-medium text-gray-700">
+                {td("locationIdLabel")}
+              </label>
+              <input
+                id="manual-location-id"
+                type="text"
+                value={locationId}
+                onChange={(event) => setLocationId(event.target.value)}
+                placeholder={td("locationIdPlaceholder")}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+              />
+            </div>
+            <div>
+              <label htmlFor="manual-tenant-id" className="mb-1 block text-xs font-medium text-gray-700">
+                {td("tenantIdLabel")}
+              </label>
+              <input
+                id="manual-tenant-id"
+                type="text"
+                value={tenantId}
+                onChange={(event) => setTenantId(event.target.value)}
+                placeholder="98"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={submitting || !isFormValid}
+              className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+              {td("submitButton")}
+            </button>
+
+            {result && (
+              <span className={`text-sm ${result.success ? "text-green-600" : "text-red-600"}`}>
+                {result.message}
+              </span>
+            )}
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
@@ -124,6 +259,7 @@ export default function AdminPage() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [updatingUser, setUpdatingUser] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const isAdmin = (session?.user as any)?.role === "admin";
 
@@ -133,6 +269,21 @@ export default function AdminPage() {
       title: t("copied"),
       description: t("copiedDescription")
     });
+  };
+
+  const triggerSync = async () => {
+    setSyncing(true);
+    try {
+      await fetch("/api/admin/receipt-sync/trigger", { method: "POST" });
+      toast({
+        title: t("syncTriggered"),
+        description: t("syncTriggeredDescription")
+      });
+    } catch {
+      // silent fail
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const fetchData = useCallback(async () => {
@@ -348,14 +499,24 @@ export default function AdminPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8 flex items-center gap-3">
-          <div className="rounded-xl bg-kv-green/10 p-3">
-            <Shield className="h-6 w-6 text-kv-green" />
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-kv-green/10 p-3">
+              <Shield className="h-6 w-6 text-kv-green" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
+              <p className="text-gray-600">{t("subtitle")}</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
-            <p className="text-gray-600">{t("subtitle")}</p>
-          </div>
+          <button
+            onClick={triggerSync}
+            disabled={syncing}
+            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            <CloudDownload className={`h-4 w-4 ${syncing ? "animate-pulse" : ""}`} />
+            {t("syncNow")}
+          </button>
         </div>
 
         {/* Stats Overview */}
@@ -435,6 +596,9 @@ export default function AdminPage() {
             </div>
           </motion.div>
         </div>
+
+        {/* Manual disable form */}
+        <ManualDisableForm />
 
         {/* Tabs */}
         <div className="mb-6 flex gap-2 flex-wrap">

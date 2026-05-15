@@ -29,7 +29,8 @@ import {
   Archive,
   CheckSquare,
   Square,
-  Check
+  Check,
+  CloudDownload
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -101,6 +102,7 @@ export default function DashboardPage() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [archiving, setArchiving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const isAdmin = (session?.user as any)?.role === "admin";
 
@@ -402,6 +404,21 @@ export default function DashboardPage() {
     });
   };
 
+  const triggerSync = async () => {
+    setSyncing(true);
+    try {
+      await fetch("/api/admin/receipt-sync/trigger", { method: "POST" });
+      toast({
+        title: t("syncTriggered"),
+        description: t("syncTriggeredDescription")
+      });
+    } catch {
+      // silent fail
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const navigateReceipt = (direction: "prev" | "next") => {
     if (!selectedReceipt) return;
     const currentIndex = filteredReceipts.findIndex(r => r.id === selectedReceipt.id);
@@ -487,11 +504,23 @@ export default function DashboardPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Welcome */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t("welcome", { name: session?.user?.name ?? "User" })}
-          </h1>
-          <p className="text-gray-600">{t("subtitle")}</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {t("welcome", { name: session?.user?.name ?? "User" })}
+            </h1>
+            <p className="text-gray-600">{t("subtitle")}</p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={triggerSync}
+              disabled={syncing}
+              className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              <CloudDownload className={`h-4 w-4 ${syncing ? "animate-pulse" : ""}`} />
+              {t("syncNow")}
+            </button>
+          )}
         </div>
 
 

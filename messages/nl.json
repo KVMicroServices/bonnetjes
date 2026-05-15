@@ -99,7 +99,10 @@
     "failedToLoad": "Kon bonvoorbeeld niet laden",
     "failedToUpdate": "Kon bonstatus niet bijwerken",
     "failedToReprocess": "Kon bon niet opnieuw verwerken",
-    "failedToArchive": "Kon bonnen niet archiveren"
+    "failedToArchive": "Kon bonnen niet archiveren",
+    "syncNow": "Sync nu",
+    "syncTriggered": "Sync gestart",
+    "syncTriggeredDescription": "Bon-synchronisatie is gestart"
   },
   "Archive": {
     "backToDashboard": "Terug naar Dashboard",
@@ -169,7 +172,10 @@
     "copied": "Gekopieerd!",
     "copiedDescription": "E-mailsjabloon gekopieerd naar klembord",
     "failureReason": "Reden van afwijzing",
-    "secondaryAnalysis": "Tweede analyse"
+    "secondaryAnalysis": "Tweede analyse",
+    "syncNow": "Sync nu",
+    "syncTriggered": "Sync gestart",
+    "syncTriggeredDescription": "Bon-synchronisatie is gestart"
   },
   "Moderation": {
     "title": "Review Moderatie",
@@ -252,7 +258,12 @@
     "loadMore": "Meer laden",
     "changeRequest": "Wijzigingsverzoek",
     "report": "Rapporteer",
-    "fetchFailed": "Ophalen mislukt"
+    "fetchFailed": "Ophalen mislukt",
+    "syncNow": "Sync nu",
+    "disable": "Uitschakelen",
+    "enable": "Inschakelen",
+    "disableReview": "Review uitschakelen op het platform",
+    "enableReview": "Review inschakelen op het platform"
   },
   "ReviewDisable": {
     "title": "Handmatig review uitschakelen",

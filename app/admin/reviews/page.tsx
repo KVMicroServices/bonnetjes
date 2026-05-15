@@ -19,9 +19,7 @@ import {
   Flag,
   MessageSquare,
   Clock,
-  ChevronDown,
-  ChevronRight,
-  Ban,
+  Power,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
@@ -115,11 +113,13 @@ function SourceBadge({ source }: { source: "kiyoh" | "kv" }) {
 function ReviewCard({
   review,
   location,
-  onModerate
+  onModerate,
+  onToggleActive,
 }: {
   review: Review;
   location: Location;
   onModerate: (reviewId: string, action: "abuse" | "changerequest") => void;
+  onToggleActive: (reviewId: string, currentlyActive: boolean) => void;
 }) {
   const t = useTranslations("Reviews");
   const rating = review.rating ?? review.totalScore ?? 0;
@@ -133,11 +133,19 @@ function ReviewCard({
   const status = review.status;
   const reviewId = review.id ?? review.reviewId ?? "";
   const [moderating, setModerating] = useState<string | null>(null);
+  const [toggling, setToggling] = useState(false);
+  const isActive = status !== "DISABLED";
 
   const handleModerate = async (action: "abuse" | "changerequest") => {
     setModerating(action);
     await onModerate(reviewId, action);
     setModerating(null);
+  };
+
+  const handleToggleActive = async () => {
+    setToggling(true);
+    await onToggleActive(reviewId, isActive);
+    setToggling(false);
   };
 
   return (
@@ -173,6 +181,7 @@ function ReviewCard({
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
               status === "PENDING" ? "bg-yellow-100 text-yellow-700" :
               status === "REJECTED" ? "bg-red-100 text-red-700" :
+              status === "DISABLED" ? "bg-gray-200 text-gray-600" :
               "bg-gray-100 text-gray-600"
             }`}>
               {status}
@@ -188,7 +197,7 @@ function ReviewCard({
         <div className="mt-3 flex items-center gap-2 border-t pt-3">
           <button
             onClick={() => handleModerate("changerequest")}
-            disabled={!!moderating}
+            disabled={!!moderating || toggling}
             className="flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
             title="Verzoek reviewer om beoordeling aan te passen"
           >
@@ -197,12 +206,25 @@ function ReviewCard({
           </button>
           <button
             onClick={() => handleModerate("abuse")}
-            disabled={!!moderating}
+            disabled={!!moderating || toggling}
             className="flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
             title="Rapporteer als nep/misbruik"
           >
             {moderating === "abuse" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Flag className="h-3 w-3" />}
             {t("report")}
+          </button>
+          <button
+            onClick={handleToggleActive}
+            disabled={!!moderating || toggling}
+            className={`ml-auto flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 ${
+              isActive
+                ? "border-orange-200 text-orange-600 hover:bg-orange-50"
+                : "border-green-200 text-green-600 hover:bg-green-50"
+            }`}
+            title={isActive ? t("disableReview") : t("enableReview")}
+          >
+            {toggling ? <Loader2 className="h-3 w-3 animate-spin" /> : <Power className="h-3 w-3" />}
+            {isActive ? t("disable") : t("enable")}
           </button>
         </div>
       )}
@@ -308,138 +330,6 @@ function LocationCard({ location, onSelect }: { location: Location; onSelect: ()
   );
 }
 
-function ManualDisableForm() {
-  const [isOpen, setIsOpen] = useState(false);
-  const td = useTranslations("ReviewDisable");
-  const [reviewId, setReviewId] = useState("");
-  const [locationId, setLocationId] = useState("");
-  const [tenantId, setTenantId] = useState("99");
-  const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setResult(null);
-
-    try {
-      const response = await fetch("/api/admin/reviews/disable", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "disable-manual",
-          reviewId: reviewId.trim(),
-          locationId: locationId.trim(),
-          tenantId: Number(tenantId),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setResult({ success: true, message: td("successMessage") });
-        setReviewId("");
-        setLocationId("");
-        setTenantId("99");
-      } else {
-        setResult({ success: false, message: data.error || td("errorMessage") });
-      }
-    } catch {
-      setResult({ success: false, message: td("networkError") });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const isFormValid = reviewId.trim().length > 0 && locationId.trim().length > 0 && tenantId.trim().length > 0;
-
-  return (
-    <div className="mb-6 rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between px-5 py-4 text-left"
-      >
-        <div className="flex items-center gap-2">
-          <Ban className="h-4 w-4 text-red-500" />
-          <span className="text-sm font-semibold text-gray-900">{td("title")}</span>
-        </div>
-        {isOpen ? (
-          <ChevronDown className="h-4 w-4 text-gray-500" />
-        ) : (
-          <ChevronRight className="h-4 w-4 text-gray-500" />
-        )}
-      </button>
-
-      {isOpen && (
-        <form onSubmit={handleSubmit} className="border-t px-5 pb-5 pt-4">
-          <p className="mb-4 text-xs text-gray-500">
-            {td("description")}
-          </p>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div>
-              <label htmlFor="manual-review-id" className="mb-1 block text-xs font-medium text-gray-700">
-                {td("reviewIdLabel")}
-              </label>
-              <input
-                id="manual-review-id"
-                type="text"
-                value={reviewId}
-                onChange={(event) => setReviewId(event.target.value)}
-                placeholder={td("reviewIdPlaceholder")}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
-              />
-            </div>
-            <div>
-              <label htmlFor="manual-location-id" className="mb-1 block text-xs font-medium text-gray-700">
-                {td("locationIdLabel")}
-              </label>
-              <input
-                id="manual-location-id"
-                type="text"
-                value={locationId}
-                onChange={(event) => setLocationId(event.target.value)}
-                placeholder={td("locationIdPlaceholder")}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
-              />
-            </div>
-            <div>
-              <label htmlFor="manual-tenant-id" className="mb-1 block text-xs font-medium text-gray-700">
-                {td("tenantIdLabel")}
-              </label>
-              <input
-                id="manual-tenant-id"
-                type="text"
-                value={tenantId}
-                onChange={(event) => setTenantId(event.target.value)}
-                placeholder="98"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={submitting || !isFormValid}
-              className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-            >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
-              {td("submitButton")}
-            </button>
-
-            {result && (
-              <span className={`text-sm ${result.success ? "text-green-600" : "text-red-600"}`}>
-                {result.message}
-              </span>
-            )}
-          </div>
-        </form>
-      )}
-    </div>
-  );
-}
-
 export default function ReviewsPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
@@ -514,6 +404,40 @@ export default function ReviewsPage() {
     }
   }, []);
 
+  const toggleReviewActive = useCallback(async (
+    reviewId: string,
+    currentlyActive: boolean,
+    location: Location
+  ) => {
+    const action = currentlyActive ? "disable-manual" : "enable-manual";
+    const DEFAULT_TENANT_ID = 99;
+    try {
+      const res = await fetch("/api/admin/reviews/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          reviewId,
+          locationId: location.locationId,
+          tenantId: DEFAULT_TENANT_ID,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Update the review status in the local list
+        setReviews(prev => prev.map(r => {
+          const id = r.id ?? r.reviewId ?? "";
+          if (id === reviewId) {
+            return { ...r, status: currentlyActive ? "DISABLED" : "PUBLISHED" };
+          }
+          return r;
+        }));
+      }
+    } catch {
+      // silent fail — user can retry
+    }
+  }, []);
+
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
     else if (status === "authenticated") {
@@ -581,9 +505,6 @@ export default function ReviewsPage() {
             {t("refresh")}
           </button>
         </div>
-
-        {/* Manual disable form */}
-        <ManualDisableForm />
 
         {/* Summary stats */}
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -748,6 +669,9 @@ export default function ReviewsPage() {
                           location={selectedLocation}
                           onModerate={(reviewId, action) =>
                             moderateReview(reviewId, action, selectedLocation)
+                          }
+                          onToggleActive={(reviewId, currentlyActive) =>
+                            toggleReviewActive(reviewId, currentlyActive, selectedLocation)
                           }
                         />
                       ))}

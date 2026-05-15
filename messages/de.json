@@ -99,7 +99,10 @@
     "failedToLoad": "Belegvorschau konnte nicht geladen werden",
     "failedToUpdate": "Belegstatus konnte nicht aktualisiert werden",
     "failedToReprocess": "Beleg konnte nicht erneut verarbeitet werden",
-    "failedToArchive": "Belege konnten nicht archiviert werden"
+    "failedToArchive": "Belege konnten nicht archiviert werden",
+    "syncNow": "Jetzt synchronisieren",
+    "syncTriggered": "Sync gestartet",
+    "syncTriggeredDescription": "Belegsynchronisierung wurde gestartet"
   },
   "Archive": {
     "backToDashboard": "Zurück zum Dashboard",
@@ -169,7 +172,10 @@
     "copied": "Kopiert!",
     "copiedDescription": "E-Mail-Vorlage in Zwischenablage kopiert",
     "failureReason": "Ablehnungsgrund",
-    "secondaryAnalysis": "Zweite Analyse"
+    "secondaryAnalysis": "Zweite Analyse",
+    "syncNow": "Jetzt synchronisieren",
+    "syncTriggered": "Sync gestartet",
+    "syncTriggeredDescription": "Belegsynchronisierung wurde gestartet"
   },
   "Moderation": {
     "title": "Review-Moderation",
@@ -252,7 +258,12 @@
     "loadMore": "Mehr laden",
     "changeRequest": "Änderungsanfrage",
     "report": "Melden",
-    "fetchFailed": "Abruf fehlgeschlagen"
+    "fetchFailed": "Abruf fehlgeschlagen",
+    "syncNow": "Jetzt synchronisieren",
+    "disable": "Deaktivieren",
+    "enable": "Aktivieren",
+    "disableReview": "Bewertung auf der Plattform deaktivieren",
+    "enableReview": "Bewertung auf der Plattform aktivieren"
   },
   "ReviewDisable": {
     "title": "Bewertung manuell deaktivieren",

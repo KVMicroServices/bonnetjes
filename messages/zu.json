@@ -99,7 +99,10 @@
     "failedToLoad": "Yehlulekile ukulayisha ukubuka kuqala kwerisidi",
     "failedToUpdate": "Yehlulekile ukubuyekeza isimo serisidi",
     "failedToReprocess": "Yehlulekile ukucubungula irisidi kabusha",
-    "failedToArchive": "Yehlulekile ukufaka amarisidi ku-akhayifu"
+    "failedToArchive": "Yehlulekile ukufaka amarisidi ku-akhayifu",
+    "syncNow": "Vumelanisa manje",
+    "syncTriggered": "Sync iqalile",
+    "syncTriggeredDescription": "Ukuvumelanisa kwamarisidi kuqalile"
   },
   "Archive": {
     "backToDashboard": "Buyela kuDeshibhodi",
@@ -169,7 +172,10 @@
     "copied": "Ikopishiwe!",
     "copiedDescription": "Isifanekiso se-imeyili sikopishwe kuklipbhodi",
     "failureReason": "Isizathu sokugatshwa",
-    "secondaryAnalysis": "Ukuhlaziywa kwesibili"
+    "secondaryAnalysis": "Ukuhlaziywa kwesibili",
+    "syncNow": "Vumelanisa manje",
+    "syncTriggered": "Sync iqalile",
+    "syncTriggeredDescription": "Ukuvumelanisa kwamarisidi kuqalile"
   },
   "Moderation": {
     "title": "Ukulawula ukubuyekezwa",
@@ -252,7 +258,12 @@
     "loadMore": "Layisha okwengeziwe",
     "changeRequest": "Isicelo soshintsho",
     "report": "Bika",
-    "fetchFailed": "Ukulanda kwehlulekile"
+    "fetchFailed": "Ukulanda kwehlulekile",
+    "syncNow": "Vumelanisa manje",
+    "disable": "Khubaza",
+    "enable": "Vumela",
+    "disableReview": "Khubaza lesi sibuyekezo ku-platform",
+    "enableReview": "Vumela lesi sibuyekezo ku-platform"
   },
   "ReviewDisable": {
     "title": "Khubaza ukubuyekezwa ngesandla",

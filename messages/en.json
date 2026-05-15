@@ -99,7 +99,10 @@
     "failedToLoad": "Failed to load receipt preview",
     "failedToUpdate": "Failed to update receipt status",
     "failedToReprocess": "Failed to reprocess receipt",
-    "failedToArchive": "Failed to archive receipts"
+    "failedToArchive": "Failed to archive receipts",
+    "syncNow": "Sync Now",
+    "syncTriggered": "Sync Started",
+    "syncTriggeredDescription": "Receipt sync has been triggered"
   },
   "Archive": {
     "backToDashboard": "Back to Dashboard",
@@ -169,7 +172,10 @@
     "copied": "Copied!",
     "copiedDescription": "Email template copied to clipboard",
     "failureReason": "Failure Reason",
-    "secondaryAnalysis": "Secondary Analysis"
+    "secondaryAnalysis": "Secondary Analysis",
+    "syncNow": "Sync Now",
+    "syncTriggered": "Sync Started",
+    "syncTriggeredDescription": "Receipt sync has been triggered"
   },
   "Moderation": {
     "title": "Review Moderation",
@@ -252,7 +258,12 @@
     "loadMore": "Load more",
     "changeRequest": "Change request",
     "report": "Report",
-    "fetchFailed": "Fetch failed"
+    "fetchFailed": "Fetch failed",
+    "syncNow": "Sync Now",
+    "disable": "Disable",
+    "enable": "Enable",
+    "disableReview": "Disable this review on the platform",
+    "enableReview": "Enable this review on the platform"
   },
   "ReviewDisable": {
     "title": "Manually disable review",

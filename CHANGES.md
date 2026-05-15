@@ -1,5 +1,16 @@
 # Changes
 
+## [053] Add Sync Now button and review disable/enable toggle
+
+**What**: Added a "Sync Now" button on the dashboard (admin-only) and admin pages to trigger an immediate S3 receipt sync tick, a disable/enable toggle button on each review card, and moved the ManualDisableForm from the reviews page to the admin page.
+**Decisions**:
+- Sync Now button placed on dashboard (admin-only) and admin page, not the reviews page
+- ManualDisableForm moved to admin page (before tabs) since it's an admin tool, not a reviews-browsing feature
+- New API route `/api/admin/receipt-sync/trigger` calls `executeTick()` directly without resetting watermark
+- Added `enable-manual` action to the existing disable route for symmetry with `disable-manual`
+- Review card toggle uses the same `setReviewActiveStatus` logic as the queue-based disable
+**Files**: `app/admin/page.tsx`, `app/dashboard/page.tsx`, `app/admin/reviews/page.tsx`, `app/api/admin/receipt-sync/trigger/route.ts`, `app/api/admin/reviews/disable/route.ts`, `lib/review-disable/review-disable-service.ts`, `messages/*.json`
+
 ## [052] Fix code review findings from 26.05.15-cleanup-sprint
 
 **What**: Resolved all 15 standards violations, 4 localization issues, and 3 stability issues from the cleanup sprint code review.

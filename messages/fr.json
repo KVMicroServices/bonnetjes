@@ -99,7 +99,10 @@
     "failedToLoad": "Impossible de charger l'aperçu du reçu",
     "failedToUpdate": "Impossible de mettre à jour le statut du reçu",
     "failedToReprocess": "Impossible de retraiter le reçu",
-    "failedToArchive": "Impossible d'archiver les reçus"
+    "failedToArchive": "Impossible d'archiver les reçus",
+    "syncNow": "Synchroniser maintenant",
+    "syncTriggered": "Sync lancée",
+    "syncTriggeredDescription": "La synchronisation des reçus a été lancée"
   },
   "Archive": {
     "backToDashboard": "Retour au tableau de bord",
@@ -169,7 +172,10 @@
     "copied": "Copié !",
     "copiedDescription": "Modèle d'e-mail copié dans le presse-papiers",
     "failureReason": "Raison du rejet",
-    "secondaryAnalysis": "Analyse secondaire"
+    "secondaryAnalysis": "Analyse secondaire",
+    "syncNow": "Synchroniser maintenant",
+    "syncTriggered": "Sync lancée",
+    "syncTriggeredDescription": "La synchronisation des reçus a été lancée"
   },
   "Moderation": {
     "title": "Modération des avis",
@@ -252,7 +258,12 @@
     "loadMore": "Charger plus",
     "changeRequest": "Demande de modification",
     "report": "Signaler",
-    "fetchFailed": "Échec du chargement"
+    "fetchFailed": "Échec du chargement",
+    "syncNow": "Synchroniser maintenant",
+    "disable": "Désactiver",
+    "enable": "Activer",
+    "disableReview": "Désactiver cet avis sur la plateforme",
+    "enableReview": "Activer cet avis sur la plateforme"
   },
   "ReviewDisable": {
     "title": "Désactiver manuellement un avis",

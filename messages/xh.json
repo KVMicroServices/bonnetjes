@@ -99,7 +99,10 @@
     "failedToLoad": "Ayikwazanga ukulayisha imboniso yerisithi",
     "failedToUpdate": "Ayikwazanga ukuvuselela isimo serisithi",
     "failedToReprocess": "Ayikwazanga ukucubungula irisithi kwakhona",
-    "failedToArchive": "Ayikwazanga ukufaka iirisithi kwi-akhayifu"
+    "failedToArchive": "Ayikwazanga ukufaka iirisithi kwi-akhayifu",
+    "syncNow": "Lungisa ngoku",
+    "syncTriggered": "Sync iqalile",
+    "syncTriggeredDescription": "Ulungiso lwerisithi luqalile"
   },
   "Archive": {
     "backToDashboard": "Buyela kwiDeshibhodi",
@@ -169,7 +172,10 @@
     "copied": "Ikopishiwe!",
     "copiedDescription": "Isifanekiso se-imeyili sikopishwe kwiklipbhodi",
     "failureReason": "Isizathu sokugatywa",
-    "secondaryAnalysis": "Uhlalutyo lwesibini"
+    "secondaryAnalysis": "Uhlalutyo lwesibini",
+    "syncNow": "Lungisa ngoku",
+    "syncTriggered": "Sync iqalile",
+    "syncTriggeredDescription": "Ulungiso lwerisithi luqalile"
   },
   "Moderation": {
     "title": "Ukulawula uphononongo",
@@ -252,7 +258,12 @@
     "loadMore": "Layisha okungakumbi",
     "changeRequest": "Isicelo sotshintsho",
     "report": "Xela",
-    "fetchFailed": "Ukulanda akuphumelelanga"
+    "fetchFailed": "Ukulanda akuphumelelanga",
+    "syncNow": "Lungisa ngoku",
+    "disable": "Cima",
+    "enable": "Vula",
+    "disableReview": "Cima olu phononongo kwi-platform",
+    "enableReview": "Vula olu phononongo kwi-platform"
   },
   "ReviewDisable": {
     "title": "Cima uphononongo ngesandla",

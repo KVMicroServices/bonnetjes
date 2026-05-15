@@ -9,6 +9,7 @@ import {
   disableReviewByReceiptId,
   enableReviewByReceiptId,
   disableReviewManual,
+  enableReviewManual,
 } from "@/lib/review-disable/review-disable-service";
 
 const disableByReceiptSchema = z.object({
@@ -28,10 +29,18 @@ const disableManualSchema = z.object({
   tenantId: z.number().int().positive(),
 });
 
+const enableManualSchema = z.object({
+  action: z.literal("enable-manual"),
+  reviewId: z.string().min(1),
+  locationId: z.string().min(1),
+  tenantId: z.number().int().positive(),
+});
+
 const requestSchema = z.discriminatedUnion("action", [
   disableByReceiptSchema,
   enableByReceiptSchema,
   disableManualSchema,
+  enableManualSchema,
 ]);
 
 export async function POST(request: Request) {
@@ -81,6 +90,15 @@ export async function POST(request: Request) {
     if (data.action === "disable-manual") {
       const result = await disableReviewManual(data.reviewId, data.locationId, data.tenantId);
       logger.info({ result, reviewId: data.reviewId }, "disableReviewManual result");
+      if (!result.success) {
+        return NextResponse.json({ success: false, error: result.error }, { status: 500 });
+      }
+      return NextResponse.json({ success: true });
+    }
+
+    if (data.action === "enable-manual") {
+      const result = await enableReviewManual(data.reviewId, data.locationId, data.tenantId);
+      logger.info({ result, reviewId: data.reviewId }, "enableReviewManual result");
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 500 });
       }
