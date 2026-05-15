@@ -1,5 +1,15 @@
 # Changes
 
+## [051] Use gpt-5.4-mini for secondary analysis with improved prompt
+
+**What**: Secondary analysis now uses a separate, configurable model (`SECONDARY_AI_MODEL_NAME`, defaults to `gpt-5.4-mini`) and an improved prompt that includes the full primary extraction data and instructs the model to independently review the image rather than just rubber-stamp the rejection.
+**Why**: Mini is more capable than nano for nuanced judgment calls; the old prompt only passed confidence/readable/failure reason, missing the extracted fields that provide context for the review.
+**Decisions**:
+- New env var `SECONDARY_AI_MODEL_NAME` (defaults to `gpt-5.4-mini`)
+- Prompt now includes extracted shop name, date, and amount from primary analysis
+- Prompt instructs the model to look at the image independently, not blindly trust primary
+**Files**: `lib/services/ocr-service.ts`, `.env.example`
+
 ## [050] Remove manual upload UI and Google Drive import
 
 **What**: Removed the upload button, Google Drive import button, and their modals from the dashboard. Deleted the Drive service, API routes, component, and tests. Kept the upload API endpoint and component file for future dispute system use.

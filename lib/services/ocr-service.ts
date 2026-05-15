@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 
 const DEFAULT_AI_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_AI_MODEL = "gpt-5.4-nano";
+const DEFAULT_SECONDARY_AI_MODEL = "gpt-5.4-mini";
 const MAX_TOKENS = 2000;
 const HIGH_CONFIDENCE_THRESHOLD = 70;
 const LOW_CONFIDENCE_THRESHOLD = 30;
@@ -42,21 +43,27 @@ Respond with raw JSON only. All text in your response must be in English.`;
 
 const SECONDARY_ANALYSIS_PROMPT = `You are a receipt verification quality assurance expert. ALWAYS respond in English.
 
-A receipt was analyzed and REJECTED by the primary analysis. Your job is to review the rejection reasoning and either confirm it or provide additional nuance.
+A receipt was analyzed and REJECTED by the primary OCR model. Your job is to independently review the receipt image and the primary model's reasoning, then either confirm the rejection or overturn it with justification.
 
 Primary analysis result:
+- Extracted shop name: {shopName}
+- Extracted date: {date}
+- Extracted amount: {amount}
 - Confidence: {confidence}
 - Readable: {readable}
 - Failure reason: {failureReason}
 - Reasoning: {reasoning}
 
-Review the receipt image again and determine:
-1. Is the initial rejection valid? If yes, respond with "Initial analysis valid"
-2. If the rejection seems borderline or there are nuances worth noting, explain briefly what additional context might be relevant (e.g., partial data that could still be useful, specific areas that are unclear, etc.)
+Instructions:
+1. Look at the receipt image yourself. Do NOT blindly trust the primary analysis.
+2. Consider whether the failure reason is justified given what you can see.
+3. If the rejection is clearly correct, respond with "Initial analysis valid".
+4. If you disagree with the rejection or see information the primary model missed, explain what you found and why the rejection may be wrong.
+5. If the receipt is borderline (partially readable, some fields visible but not all), note which fields you can confirm and which are genuinely unreadable.
 
 Respond with JSON in this exact format:
 {
-  "secondaryVerdict": "string - either 'Initial analysis valid' or a brief explanation of nuances (1-3 sentences, always in English)"
+  "secondaryVerdict": "string - either 'Initial analysis valid' or a detailed explanation of your findings (2-4 sentences, always in English)"
 }
 
 Respond with raw JSON only. All text must be in English.`;
@@ -386,6 +393,9 @@ export async function runSecondaryAnalysis(
   config: OcrApiConfig
 ): Promise<string> {
   const filledPrompt = SECONDARY_ANALYSIS_PROMPT
+    .replace("{shopName}", ocrResult.extractedShopName || "null")
+    .replace("{date}", ocrResult.extractedDate ? ocrResult.extractedDate.toISOString().split("T")[0] : "null")
+    .replace("{amount}", ocrResult.extractedAmount !== null ? String(ocrResult.extractedAmount) : "null")
     .replace("{confidence}", String(ocrResult.confidence))
     .replace("{readable}", String(ocrResult.receiptReadable))
     .replace("{failureReason}", failureReason)
@@ -402,8 +412,10 @@ export async function runSecondaryAnalysis(
     }
   ];
 
+  const secondaryModel = process.env.SECONDARY_AI_MODEL_NAME || DEFAULT_SECONDARY_AI_MODEL;
+
   const requestBody = {
-    model: config.model,
+    model: secondaryModel,
     messages: secondaryMessages,
     max_completion_tokens: MAX_TOKENS,
     response_format: { type: "json_object" },
