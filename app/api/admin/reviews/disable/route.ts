@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 import {
   disableReviewByReceiptId,
   enableReviewByReceiptId,
@@ -57,8 +58,11 @@ export async function POST(request: Request) {
 
     const data = parseResult.data;
 
+    logger.info({ action: data.action, data }, "Disable route handling action");
+
     if (data.action === "disable") {
       const result = await disableReviewByReceiptId(data.receiptId);
+      logger.info({ result, receiptId: data.receiptId }, "disableReviewByReceiptId result");
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 404 });
       }
@@ -67,6 +71,7 @@ export async function POST(request: Request) {
 
     if (data.action === "enable") {
       const result = await enableReviewByReceiptId(data.receiptId);
+      logger.info({ result, receiptId: data.receiptId }, "enableReviewByReceiptId result");
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 404 });
       }
@@ -75,6 +80,7 @@ export async function POST(request: Request) {
 
     if (data.action === "disable-manual") {
       const result = await disableReviewManual(data.reviewId, data.locationId, data.tenantId);
+      logger.info({ result, reviewId: data.reviewId }, "disableReviewManual result");
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 500 });
       }
@@ -84,6 +90,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Unknown action" }, { status: 400 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
+    const stack = error instanceof Error ? error.stack : undefined;
+    logger.error({ error: message, stack }, "Disable route caught unhandled error");
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

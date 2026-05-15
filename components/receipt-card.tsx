@@ -18,6 +18,7 @@ import {
   FileText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 interface ReceiptData {
   id: string;
@@ -28,6 +29,8 @@ interface ReceiptData {
   verificationStatus: string;
   ocrConfidence: number | null;
   ocrReasoning: string | null;
+  failureReason: string | null;
+  secondaryAnalysis: string | null;
   fraudRiskScore: number | null;
   isDuplicate: boolean;
   createdAt: string;
@@ -41,6 +44,7 @@ interface ReceiptCardProps {
 
 export function ReceiptCard({ receipt, onRefresh }: ReceiptCardProps) {
   const { toast } = useToast();
+  const t = useTranslations("ReceiptCard");
   const [downloading, setDownloading] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
 
@@ -237,6 +241,16 @@ export function ReceiptCard({ receipt, onRefresh }: ReceiptCardProps) {
           {receipt.ocrReasoning && receipt.ocrReasoning.includes("older than 6 months") && (
             <div className="mt-2 text-xs text-red-600 font-medium">
               ⚠️ Receipt is older than 6 months
+            </div>
+          )}
+          {receipt.failureReason && (
+            <div className="mt-2 text-xs text-red-600 font-medium">
+              ⚠️ {t(`failure_${receipt.failureReason}`)}
+            </div>
+          )}
+          {receipt.secondaryAnalysis && receipt.secondaryAnalysis !== "Initial analysis valid" && (
+            <div className="mt-1 text-xs text-amber-700">
+              {receipt.secondaryAnalysis}
             </div>
           )}
         </div>

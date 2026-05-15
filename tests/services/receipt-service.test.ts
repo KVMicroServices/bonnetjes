@@ -102,6 +102,7 @@ describe("listReceipts", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.receipts).toHaveLength(2);
+      expect(result.hasMore).toBe(false);
     }
     expect(dependencies.database.receipt.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: {} })
@@ -116,6 +117,7 @@ describe("listReceipts", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.receipts).toHaveLength(1);
+      expect(result.hasMore).toBe(false);
     }
     expect(dependencies.database.receipt.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { userId: USER_ID } })

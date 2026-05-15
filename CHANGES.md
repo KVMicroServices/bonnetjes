@@ -1,5 +1,167 @@
 # Changes
 
+## [052] Fix code review findings from 26.05.15-cleanup-sprint
+
+**What**: Resolved all 15 standards violations, 4 localization issues, and 3 stability issues from the cleanup sprint code review.
+**Decisions**:
+- Ternaries replaced with if-else blocks across 8 files
+- Magic numbers extracted to named constants in queue configs
+- Chained `??` in moderation page replaced with explicit if-null checks
+- `as any` cast replaced with proper Prisma type assertion
+- Added `ReceiptCard` translation namespace with failure reason labels in all 8 languages
+- Wrapped `request.json()` and external `JSON.parse()` calls in try-catch
+- Added REDIS_URL startup warning in queue worker
+**Files**: `lib/services/receipt-service.ts`, `lib/queue/receipt-worker.ts`, `lib/queue/review-disable-worker.ts`, `lib/queue/receipt-queue.ts`, `lib/queue/review-disable-queue.ts`, `lib/receipt-sync/receipt-creator.ts`, `lib/review-disable/kiyoh-auth-client.ts`, `lib/services/ocr-service.ts`, `app/api/receipts/route.ts`, `app/admin/moderation/page.tsx`, `app/api/locale/route.ts`, `scripts/queue-worker.ts`, `components/admin-receipt-card.tsx`, `components/receipt-card.tsx`, `app/admin/page.tsx`, `messages/*.json`
+
+## [051] Use gpt-5.4-mini for secondary analysis with improved prompt
+
+**What**: Secondary analysis now uses a separate, configurable model (`SECONDARY_AI_MODEL_NAME`, defaults to `gpt-5.4-mini`) and an improved prompt that includes the full primary extraction data and instructs the model to independently review the image rather than just rubber-stamp the rejection.
+**Why**: Mini is more capable than nano for nuanced judgment calls; the old prompt only passed confidence/readable/failure reason, missing the extracted fields that provide context for the review.
+**Decisions**:
+- New env var `SECONDARY_AI_MODEL_NAME` (defaults to `gpt-5.4-mini`)
+- Prompt now includes extracted shop name, date, and amount from primary analysis
+- Prompt instructs the model to look at the image independently, not blindly trust primary
+**Files**: `lib/services/ocr-service.ts`, `.env.example`
+
+## [050] Remove manual upload UI and Google Drive import
+
+**What**: Removed the upload button, Google Drive import button, and their modals from the dashboard. Deleted the Drive service, API routes, component, and tests. Kept the upload API endpoint and component file for future dispute system use.
+**Decisions**:
+- Upload endpoint (`/api/upload/presigned`) and `receipt-upload.tsx` component preserved for future dispute uploads
+- Drive API routes, service, component, and all related tests deleted
+
+## [049] Add review disable queue with audit logging
+
+**What**: After OCR rejects a receipt and secondary analysis confirms the rejection, a review-disable job is enqueued on a dedicated BullMQ queue (concurrency 1) that disables the review on Kiyoh/KV with exponential backoff retries, logging every attempt to a `ReviewDisableAudit` table.
+**Why**: Fire-and-forget disable had no visibility or retry. Separate queue prevents slow Kiyoh API calls from blocking OCR processing, while sequential processing (concurrency 1) avoids hammering the platform.
+**Decisions**:
+- Separate `review-disable` BullMQ queue with concurrency 1
+- `ReviewDisableAudit` table tracks receiptId, reviewId, locationId, tenantId, status, attempts, errors
+- Only triggers when `RECEIPT_AUTO_DISABLE_ENABLED=true` AND secondary analysis contains "Initial analysis valid"
+- Uses existing `MAX_RETRY_ATTEMPTS` env var for max attempts (default 5)
+- Base backoff delay 10s with exponential growth
+**Files**: `prisma/schema.prisma`, `prisma/migrations/20260601000002_add_review_disable_audit/migration.sql`, `lib/queue/review-disable-queue.ts`, `lib/queue/review-disable-worker.ts`, `lib/queue/receipt-worker.ts`, `lib/queue/index.ts`, `scripts/queue-worker.ts`
+
+## [048] Add context token exchange step to Kiyoh auth flow
+
+**What**: After login (with or without OTP), the auth client now calls `GET /v1/common/context?hash=<loginHash>` to exchange the portal session hash for the real API bearer token.
+**Why**: Kiyoh's login hash is a portal session id, not a valid bearer. The portal exchanges it via the context endpoint before making review API calls. Our code was sending the raw login hash, causing 401 `invalid_token` on every review disable/enable call.
+**Decisions**:
+- New env var `KIYOH_CONTEXT_URL` (defaults to KlantenVertellen for backwards compat)
+- Removed unused `error.cause` accesses that broke `tsc --noEmit`
+**Files**: `lib/review-disable/kiyoh-auth-client.ts`, `tests/services/review-disable-service.test.ts`, `.env`, `.env.example`
+
+## [047] Make review disable platform URLs configurable via env vars
+
+**What**: The auth and review-active URLs in the review disable module are now configurable instead of hardcoded to klantenvertellen.nl.
+**Why**: Allows switching between Kiyoh and KlantenVertellen (or other platform instances) without code changes.
+**Decisions**:
+- Three new env vars: `KIYOH_AUTH_BASE_URL`, `KIYOH_REVIEW_API_BASE_URL`, `KIYOH_TENANT_ID`
+- All default to the existing KlantenVertellen values for backwards compatibility
+- Tenant ID parsed at call time (not module load) so env can be changed without restart in tests
+**Files**: `lib/review-disable/kiyoh-auth-client.ts`, `lib/review-disable/review-disable-service.ts`, `.env.example`
+
+## [046] Add BullMQ message queue for async receipt OCR processing
+
+**What**: Receipt OCR and fraud re-scoring now runs asynchronously via a BullMQ worker backed by Redis, instead of blocking the HTTP response or running fire-and-forget.
+**Why**: Synchronous OCR blocked uploads for seconds; fire-and-forget in Drive import had no retry or visibility. Queue gives retries (3 attempts, exponential backoff), concurrency control, and job tracking.
+**Decisions**:
+- Redis 7 Alpine in its own docker-compose container
+- BullMQ with ioredis — lightweight, Node-native, no extra protocol
+- Added `processingStatus` field to Receipt (idle/queued/processing/completed/failed) for client polling
+- Separate `queue-worker` container in docker-compose runs the worker process
+- Drive import's 200-line inline `triggerOCR` removed — now enqueues like regular uploads
+- Receipt-sync module (`RECEIPT_AUTO_VERIFY_ENABLED=true`) now enqueues for real OCR processing instead of blindly marking as "verified"
+- Synced receipts with auto-verify OFF get `processingStatus: "idle"` (not queued, awaiting manual trigger)
+- Worker reuses existing `processReceiptOcr` from ocr-service (no logic duplication)
+**Files**: `lib/queue/connection.ts`, `lib/queue/receipt-queue.ts`, `lib/queue/receipt-worker.ts`, `lib/queue/index.ts`, `scripts/queue-worker.ts`, `docker-compose.yml`, `prisma/schema.prisma`, `prisma/migrations/20260515000000_add_processing_status_and_queue/migration.sql`, `app/api/receipts/route.ts`, `app/api/drive/import/route.ts`, `lib/services/receipt-service.ts`, `lib/receipt-sync/receipt-creator.ts`, `.env.example`, `package.json`
+
+## [045] Add failure reasons, secondary analysis, and English-only to OCR judging
+
+**What**: Enhanced the AI receipt verification system with structured failure reason codes, a secondary AI analysis pass on rejections, and enforced English-only responses.
+**Why**: Failure reasons were implicit in the confidence/readable flags — now they're explicit and consistent. Secondary analysis catches borderline rejections and adds nuance.
+**Decisions**:
+- Failure reasons are string enum-like values stored in DB (not a Prisma enum) for flexibility: NOT_A_RECEIPT, IMAGE_UNCLEAR, INSUFFICIENT_INFO, DUPLICATE_RECEIPT, RECEIPT_TOO_OLD, SUSPECTED_FRAUD, UNREADABLE_TEXT, MISSING_KEY_FIELDS
+- Secondary analysis only runs on rejections to avoid unnecessary API calls
+- System-level failure reasons (DUPLICATE_RECEIPT, RECEIPT_TOO_OLD, SUSPECTED_FRAUD) are set by code logic, not the AI
+- English enforced via prompt instruction regardless of receipt language
+- Both the streaming OCR endpoint and the batch `processReceiptOcr` function updated
+- Admin card shows failure reason + secondary analysis in expanded view; user card shows inline under confidence bar
+**Files**: `lib/services/ocr-service.ts`, `prisma/schema.prisma`, `prisma/migrations/20260601000001_add_failure_reason_and_secondary_analysis/migration.sql`, `app/api/receipts/[id]/ocr/route.ts`, `components/receipt-card.tsx`, `components/admin-receipt-card.tsx`, `tests/services/ocr-service.test.ts`
+
+## [044] Cap AI analysis reasoning via prompt instruction
+
+**What**: Added `OCR_REASONING_MAX_TOKENS` env var (default 150) that instructs the OCR model to keep its reasoning field under that token count.
+**Files**: `lib/services/ocr-service.ts`, `.env.example`
+
+## [043] Fix UI not updating after receipt reprocessing
+
+**What**: Dashboard `handleReprocess` now reads the SSE stream from the OCR endpoint and waits for the `"completed"` event before refreshing data.
+**Why**: The OCR endpoint returns a streaming response; the old code checked `response.ok` (which is true immediately on stream open) and called `fetchReceipts()` before processing finished, so the DB still had stale data.
+
+## [042] Fix Kiyoh TOTP generation and add token caching
+
+**What**: Fixed `Secret.fromBase32()` usage in TOTP generation (was passing raw string, producing wrong OTP codes) and added in-memory bearer token caching with 25-minute TTL to avoid re-authenticating on every API call.
+**Why**: Every OTP code was invalid because the otpauth library treated the base32 secret as a raw UTF-8 string. Each failed OTP counted as a failed login attempt on Kiyoh's side, triggering account lockout even on a single disable attempt.
+**Decisions**:
+- 25-minute cache TTL (conservative, avoids expired token on actual API calls)
+- Service retries once on 401 from the review-active endpoint (invalidates cache, re-authenticates, retries)
+- Removed logging of request bodies that contained credentials and OTP codes
+**Files**: `lib/review-disable/kiyoh-auth-client.ts`, `lib/review-disable/review-disable-service.ts`, `tests/services/review-disable-service.test.ts`
+
+## [041] Add i18n infrastructure with next-intl and language selector
+
+**What**: Installed next-intl, set up cookie-based locale persistence, added a language selector dropdown in the header, created full translation files for all 8 languages, and wired up `useTranslations()` in all page components.
+**Decisions**:
+- Cookie-based locale persistence (`NEXT_LOCALE`) set directly on the client — no async API call needed for switching
+- `window.location.reload()` after cookie set to ensure clean server re-render (no flash)
+- Removed Accept-Language detection to avoid flash between detected locale and cookie locale
+- Default locale is `nl` (Dutch) since the primary audience is Dutch
+- Split `lib/i18n.ts` (server-only) from `lib/i18n-config.ts` (shared constants) to avoid `next/headers` import in client components
+- Removed Pino transport worker (was causing crashes in Next.js dev mode webpack bundling)
+**Files**: `lib/i18n.ts`, `lib/i18n-config.ts`, `next.config.js`, `app/layout.tsx`, `app/api/locale/route.ts`, `components/language-selector.tsx`, `components/header.tsx`, `app/login/page.tsx`, `app/signup/page.tsx`, `app/dashboard/page.tsx`, `app/archive/page.tsx`, `app/admin/page.tsx`, `app/admin/moderation/page.tsx`, `app/admin/reviews/page.tsx`, `app/admin/settings/automation/page.tsx`, `lib/logger.ts`, `messages/*.json`
+
+## [040] Move admin nav tabs from dashboard into header
+
+**What**: Removed the tab-style admin buttons (Review Moderatie, Review Platforms, Admin Panel) from the dashboard page and added Moderation/Platforms links to the header nav. Renamed header "Reviews" button to "Platforms". Removed the "Review Platforms (Full)" tab from the admin page since it's now accessible via the header.
+**Files**: `app/dashboard/page.tsx`, `components/header.tsx`, `app/admin/page.tsx`
+
+## [039] Remove dead Review Queue tab from dashboard
+
+**What**: Removed the non-functional "Review Queue" tab button and its associated state/data-fetching from the dashboard page.
+**Why**: The tab set `activeTab` to `"queue"` but no UI rendered for that state, leaving users with a blank screen.
+
+## [038] Fix admin page crash from paginated receipts response
+
+**What**: Admin page called `.filter()` on the raw API response object instead of extracting the `receipts` array from the pagination envelope introduced in [035].
+**Why**: Change [035] wrapped the `/api/receipts` response in `{ receipts, nextCursor, hasMore }` but the admin page fetch was never updated.
+
+## [037] Use POLL_INTERVAL_SECONDS env var for dashboard auto-refresh
+
+**What**: Dashboard pending-receipt polling now uses the server-configured `POLL_INTERVAL_SECONDS` instead of a hardcoded 5-second interval.
+**Decisions**:
+- Poll interval is included in the `/api/receipts` JSON response so the client component can read it without `NEXT_PUBLIC_` prefix
+- Falls back to 300s (5 min) if env var is missing or invalid
+**Files**: `app/api/receipts/route.ts`, `app/dashboard/page.tsx`
+
+## [036] Add app-dev container for local development with hot reload
+
+**What**: Added `app-dev` service to docker-compose that bind-mounts source code and runs `npm run dev` for live reload on file changes.
+**Decisions**:
+- Reuses the `dependencies` Dockerfile stage (has node_modules installed, no build step)
+- Anonymous volume for `/app/node_modules` prevents host overwriting container deps
+- `WATCHPACK_POLLING=true` ensures file-change detection works across Docker filesystem boundaries
+- Runs `prisma generate` before dev server to ensure client is up to date
+
+## [035] Add infinite scroll pagination to receipt list
+
+**What**: Dashboard receipt list now loads 15 receipts at a time with cursor-based pagination and infinite scroll
+**Decisions**:
+- Cursor-based pagination using Prisma's `cursor` + `skip: 1` pattern for stable ordering
+- IntersectionObserver on a sentinel div at the bottom of the table triggers loading more
+- API response changed from flat array to `{ receipts, nextCursor, hasMore }` envelope
+**Files**: `app/api/receipts/route.ts`, `lib/services/receipt-service.ts`, `app/dashboard/page.tsx`, `tests/routes/receipts.test.ts`, `tests/services/receipt-service.test.ts`
+
 ## [034] Fix OCR for KV-synced receipts and GPT-5.4 nano compatibility
 
 **What**: Fixed OCR processing for receipts synced from KV (stored in separate S3 bucket), switched `max_tokens` to `max_completion_tokens` for GPT-5.4 nano, added error body logging to LLM API calls, fixed Kiyoh auth URL and tenantId.

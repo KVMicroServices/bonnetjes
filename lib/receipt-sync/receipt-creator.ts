@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { enqueueReceiptProcessing } from "@/lib/queue";
 import type { ReviewDto } from "./types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -22,11 +23,9 @@ export async function createReceiptFromSync(params: {
   const originalFilename = params.s3Key;
   const fileType = inferFileType(params.s3Key);
 
-  let verificationStatus: string;
+  let processingStatus = "idle";
   if (params.receiptAutoVerifyEnabled) {
-    verificationStatus = "verified";
-  } else {
-    verificationStatus = "pending";
+    processingStatus = "queued";
   }
 
   const receipt = await prisma.receipt.create({
@@ -36,15 +35,25 @@ export async function createReceiptFromSync(params: {
       originalFilename,
       fileType,
       fileSize: params.fileSize,
-      verificationStatus,
+      verificationStatus: "pending",
+      processingStatus,
       extractedShopName: params.review.shopName || null,
       extractedDate: parseReviewDate(params.review.reviewDate),
       extractedAmount: params.review.amount || null,
     },
   });
 
+  // When auto-verify is enabled, enqueue for OCR + fraud detection processing
+  if (params.receiptAutoVerifyEnabled) {
+    await enqueueReceiptProcessing(receipt.id, systemUserId);
+    logger.info(
+      { receiptId: receipt.id, reviewId: params.review.reviewId },
+      "Enqueued synced receipt for OCR processing"
+    );
+  }
+
   logger.info(
-    { receiptId: receipt.id, reviewId: params.review.reviewId, verificationStatus },
+    { receiptId: receipt.id, reviewId: params.review.reviewId, autoVerify: params.receiptAutoVerifyEnabled },
     "Created receipt record from KV sync"
   );
 

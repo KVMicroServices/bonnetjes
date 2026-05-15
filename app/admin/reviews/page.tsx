@@ -24,6 +24,7 @@ import {
   Ban,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
 
 interface Location {
   locationId: string;
@@ -120,6 +121,7 @@ function ReviewCard({
   location: Location;
   onModerate: (reviewId: string, action: "abuse" | "changerequest") => void;
 }) {
+  const t = useTranslations("Reviews");
   const rating = review.rating ?? review.totalScore ?? 0;
   // Kiyoh API: reviewContent is array of content lines; find the opinion text
   const content = review.content ?? review.comment ??
@@ -191,7 +193,7 @@ function ReviewCard({
             title="Verzoek reviewer om beoordeling aan te passen"
           >
             {moderating === "changerequest" ? <Loader2 className="h-3 w-3 animate-spin" /> : <MessageSquare className="h-3 w-3" />}
-            Wijzigingsverzoek
+            {t("changeRequest")}
           </button>
           <button
             onClick={() => handleModerate("abuse")}
@@ -200,7 +202,7 @@ function ReviewCard({
             title="Rapporteer als nep/misbruik"
           >
             {moderating === "abuse" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Flag className="h-3 w-3" />}
-            Rapporteer
+            {t("report")}
           </button>
         </div>
       )}
@@ -210,6 +212,7 @@ function ReviewCard({
 
 function LocationCard({ location, onSelect }: { location: Location; onSelect: () => void }) {
   const total = location.numberReviews;
+  const t = useTranslations("Reviews");
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -222,7 +225,7 @@ function LocationCard({ location, onSelect }: { location: Location; onSelect: ()
           <div className="flex items-center gap-2 flex-wrap">
             <SourceBadge source={location.source} />
             {!location.locationActive && (
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">Inactief</span>
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{t("inactive")}</span>
             )}
           </div>
           <h3 className="mt-1.5 text-base font-semibold text-gray-900 truncate">{location.locationName}</h3>
@@ -249,16 +252,16 @@ function LocationCard({ location, onSelect }: { location: Location; onSelect: ()
       {/* Stats row */}
       <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-gray-50 px-3 py-2.5">
         <div className="text-center">
-          <p className="text-xs text-gray-500">Reviews</p>
+          <p className="text-xs text-gray-500">{t("reviews")}</p>
           <p className="text-sm font-bold text-gray-800">{location.numberReviews.toLocaleString()}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-gray-500">Aanbevolen</p>
+          <p className="text-xs text-gray-500">{t("recommended")}</p>
           <p className="text-sm font-bold text-green-600">{location.percentageRecommendation}%</p>
         </div>
         <div className="text-center">
           <p className="text-xs text-gray-500">
-            {(location.numberReviewsPending ?? 0) > 0 ? "In behandeling" : "Categorie"}
+            {(location.numberReviewsPending ?? 0) > 0 ? t("pending") : t("category")}
           </p>
           {(location.numberReviewsPending ?? 0) > 0 ? (
             <p className="text-sm font-bold text-yellow-600 flex items-center justify-center gap-1">
@@ -292,13 +295,13 @@ function LocationCard({ location, onSelect }: { location: Location; onSelect: ()
           className="flex items-center gap-1 text-xs text-gray-500 hover:text-kv-green"
         >
           <ExternalLink className="h-3 w-3" />
-          Bekijk reviews
+          {t("viewReviews")}
         </a>
         <button
           className="flex items-center gap-1 rounded-lg bg-kv-green/10 px-3 py-1.5 text-xs font-medium text-kv-green hover:bg-kv-green/20 transition-colors"
           onClick={onSelect}
         >
-          Reviews laden →
+          {t("loadReviews")}
         </button>
       </div>
     </motion.div>
@@ -307,6 +310,7 @@ function LocationCard({ location, onSelect }: { location: Location; onSelect: ()
 
 function ManualDisableForm() {
   const [isOpen, setIsOpen] = useState(false);
+  const td = useTranslations("ReviewDisable");
   const [reviewId, setReviewId] = useState("");
   const [locationId, setLocationId] = useState("");
   const [tenantId, setTenantId] = useState("99");
@@ -333,15 +337,15 @@ function ManualDisableForm() {
       const data = await response.json();
 
       if (data.success) {
-        setResult({ success: true, message: "Review succesvol uitgeschakeld" });
+        setResult({ success: true, message: td("successMessage") });
         setReviewId("");
         setLocationId("");
         setTenantId("99");
       } else {
-        setResult({ success: false, message: data.error || "Uitschakelen mislukt" });
+        setResult({ success: false, message: data.error || td("errorMessage") });
       }
     } catch {
-      setResult({ success: false, message: "Netwerkfout bij uitschakelen" });
+      setResult({ success: false, message: td("networkError") });
     } finally {
       setSubmitting(false);
     }
@@ -357,7 +361,7 @@ function ManualDisableForm() {
       >
         <div className="flex items-center gap-2">
           <Ban className="h-4 w-4 text-red-500" />
-          <span className="text-sm font-semibold text-gray-900">Handmatig review uitschakelen</span>
+          <span className="text-sm font-semibold text-gray-900">{td("title")}</span>
         </div>
         {isOpen ? (
           <ChevronDown className="h-4 w-4 text-gray-500" />
@@ -369,39 +373,39 @@ function ManualDisableForm() {
       {isOpen && (
         <form onSubmit={handleSubmit} className="border-t px-5 pb-5 pt-4">
           <p className="mb-4 text-xs text-gray-500">
-            Schakel een review uit op KlantenVertellen door het review ID, locatie ID en tenant ID in te voeren.
+            {td("description")}
           </p>
 
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
               <label htmlFor="manual-review-id" className="mb-1 block text-xs font-medium text-gray-700">
-                Review ID
+                {td("reviewIdLabel")}
               </label>
               <input
                 id="manual-review-id"
                 type="text"
                 value={reviewId}
                 onChange={(event) => setReviewId(event.target.value)}
-                placeholder="UUID van de review"
+                placeholder={td("reviewIdPlaceholder")}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
               />
             </div>
             <div>
               <label htmlFor="manual-location-id" className="mb-1 block text-xs font-medium text-gray-700">
-                Locatie ID
+                {td("locationIdLabel")}
               </label>
               <input
                 id="manual-location-id"
                 type="text"
                 value={locationId}
                 onChange={(event) => setLocationId(event.target.value)}
-                placeholder="bijv. 1080211"
+                placeholder={td("locationIdPlaceholder")}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
               />
             </div>
             <div>
               <label htmlFor="manual-tenant-id" className="mb-1 block text-xs font-medium text-gray-700">
-                Tenant ID
+                {td("tenantIdLabel")}
               </label>
               <input
                 id="manual-tenant-id"
@@ -421,7 +425,7 @@ function ManualDisableForm() {
               className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
-              Review uitschakelen
+              {td("submitButton")}
             </button>
 
             {result && (
@@ -439,6 +443,7 @@ function ManualDisableForm() {
 export default function ReviewsPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
+  const t = useTranslations("Reviews");
 
   const [locations, setLocations] = useState<{ kiyoh: Location[]; kv: Location[] }>({ kiyoh: [], kv: [] });
   const [loading, setLoading] = useState(true);
@@ -461,7 +466,7 @@ export default function ReviewsPage() {
       setLocations({ kiyoh: data.kiyoh || [], kv: data.kv || [] });
       setErrors(data.errors || { kiyoh: null, kv: null });
     } catch {
-      setErrors({ kiyoh: "Ophalen mislukt", kv: "Ophalen mislukt" });
+      setErrors({ kiyoh: t("fetchFailed"), kv: t("fetchFailed") });
     } finally {
       setLoading(false);
     }
@@ -564,8 +569,8 @@ export default function ReviewsPage() {
         {/* Page header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Review Platforms</h1>
-            <p className="text-sm text-gray-500">Kiyoh & KlantenVertellen locatiedata</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
+            <p className="text-sm text-gray-500">{t("subtitle")}</p>
           </div>
           <button
             onClick={fetchLocations}
@@ -573,7 +578,7 @@ export default function ReviewsPage() {
             className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Vernieuwen
+            {t("refresh")}
           </button>
         </div>
 
@@ -583,10 +588,10 @@ export default function ReviewsPage() {
         {/* Summary stats */}
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { label: "Kiyoh locaties", value: locations.kiyoh.length, color: "text-blue-600", bg: "bg-blue-50" },
-            { label: "KV locaties", value: locations.kv.length, color: "text-purple-600", bg: "bg-purple-50" },
-            { label: "Gem. beoordeling", value: avgRating, color: "text-green-600", bg: "bg-green-50" },
-            { label: "Totaal reviews", value: totalReviews.toLocaleString(), color: "text-gray-800", bg: "bg-gray-100" }
+            { label: t("kiyohLocations"), value: locations.kiyoh.length, color: "text-blue-600", bg: "bg-blue-50" },
+            { label: t("kvLocations"), value: locations.kv.length, color: "text-purple-600", bg: "bg-purple-50" },
+            { label: t("averageRating"), value: avgRating, color: "text-green-600", bg: "bg-green-50" },
+            { label: t("totalReviews"), value: totalReviews.toLocaleString(), color: "text-gray-800", bg: "bg-gray-100" }
           ].map((s) => (
             <div key={s.label} className={`rounded-xl ${s.bg} p-4`}>
               <p className="text-xs text-gray-500">{s.label}</p>
@@ -617,7 +622,7 @@ export default function ReviewsPage() {
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex rounded-xl border border-gray-200 bg-white p-1">
             {([
-              { key: "all", label: `Alle (${allLocations.length})` },
+              { key: "all", label: `${t("all")} (${allLocations.length})` },
               { key: "kiyoh", label: `Kiyoh (${locations.kiyoh.length})` },
               { key: "kv", label: `KV (${locations.kv.length})` }
             ] as { key: Tab; label: string }[]).map((t) => (
@@ -636,7 +641,7 @@ export default function ReviewsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Sorteren:</span>
+            <span className="text-xs text-gray-500">{t("sortBy")}</span>
             {(["rating", "reviews", "name"] as const).map((s) => (
               <button
                 key={s}
@@ -645,7 +650,7 @@ export default function ReviewsPage() {
                   sortBy === s ? "bg-gray-800 text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                 }`}
               >
-                {s === "rating" ? "Beoordeling" : s === "reviews" ? "Aantal" : "Naam"}
+                {s === "rating" ? t("sortRating") : s === "reviews" ? t("sortReviews") : t("sortName")}
               </button>
             ))}
           </div>
@@ -655,7 +660,7 @@ export default function ReviewsPage() {
         {displayedLocations.length === 0 && !loading ? (
           <div className="rounded-2xl bg-white py-16 text-center shadow-sm">
             <Users className="mx-auto mb-3 h-12 w-12 text-gray-300" />
-            <p className="text-gray-500">Geen locaties gevonden</p>
+            <p className="text-gray-500">{t("noLocations")}</p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -712,14 +717,14 @@ export default function ReviewsPage() {
                 {loadingReviews ? (
                   <div className="flex flex-col items-center justify-center py-16">
                     <Loader2 className="h-8 w-8 animate-spin text-kv-green" />
-                    <p className="mt-2 text-sm text-gray-500">Reviews laden...</p>
+                    <p className="mt-2 text-sm text-gray-500">{t("loadingReviews")}</p>
                   </div>
                 ) : reviews.length === 0 ? (
                   <div className="rounded-xl bg-gray-50 py-12 text-center">
                     <Star className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-                    <p className="text-gray-500">Geen reviews beschikbaar</p>
+                    <p className="text-gray-500">{t("noReviews")}</p>
                     <p className="mt-1 text-xs text-gray-400">
-                      Reviews API endpoint niet beschikbaar voor dit platform
+                      {t("noReviewsDescription")}
                     </p>
                     <a
                       href={selectedLocation.viewReviewUrl}
@@ -728,13 +733,13 @@ export default function ReviewsPage() {
                       className="mt-4 inline-flex items-center gap-1 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white hover:bg-kv-green/90"
                     >
                       <ExternalLink className="h-4 w-4" />
-                      Open op {selectedLocation.source === "kiyoh" ? "Kiyoh" : "KlantenVertellen"}
+                      {t("openOn", { platform: selectedLocation.source === "kiyoh" ? "Kiyoh" : "KlantenVertellen" })}
                     </a>
                   </div>
                 ) : (
                     <div className="space-y-3">
                       <p className="text-xs text-gray-500">
-                        {reviews.length} van {totalLocationReviews} reviews geladen
+                        {t("reviewsLoaded", { loaded: reviews.length, total: totalLocationReviews })}
                       </p>
                       {reviews.map((review, i) => (
                         <ReviewCard
@@ -756,7 +761,7 @@ export default function ReviewsPage() {
                           {loadingReviews ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            "Meer laden"
+                            t("loadMore")
                           )}
                         </button>
                       )}

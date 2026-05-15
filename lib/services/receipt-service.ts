@@ -25,7 +25,7 @@ export interface CreateReceiptInput {
 // ─── Result Types ────────────────────────────────────────────────────────────
 
 export type ListReceiptsResult =
-  | { success: true; receipts: ReadonlyArray<ReceiptWithUser> }
+  | { success: true; receipts: ReadonlyArray<ReceiptWithUser>; nextCursor: string | null; hasMore: boolean }
   | { success: false; error: string };
 
 export type GetReceiptResult =
@@ -77,6 +77,8 @@ interface ReceiptWithUser {
   ocrReasoning: string | null;
   receiptReadable: boolean | null;
   verificationStatus: string;
+  failureReason: string | null;
+  secondaryAnalysis: string | null;
   imageHash: string | null;
   isDuplicate: boolean;
   duplicateOfId: string | null;
@@ -193,11 +195,16 @@ const KV_PRESIGNED_URL_EXPIRY_SECONDS = 3600;
 export async function listReceipts(
   dependencies: ReceiptServiceDependencies,
   userId: string,
-  isAdmin: boolean
+  isAdmin: boolean,
+  options?: { cursor?: string; limit?: number }
 ): Promise<ListReceiptsResult> {
-  const whereClause = isAdmin ? {} : { userId };
+  let whereClause = {};
+  if (!isAdmin) {
+    whereClause = { userId };
+  }
+  const limit = options?.limit ?? 15;
 
-  const receipts = await dependencies.database.receipt.findMany({
+  const findOptions: Record<string, unknown> = {
     where: whereClause,
     include: {
       user: {
@@ -205,9 +212,31 @@ export async function listReceipts(
       },
     },
     orderBy: { createdAt: "desc" },
-  });
+    take: limit + 1,
+  };
 
-  return { success: true, receipts };
+  if (options?.cursor) {
+    findOptions.cursor = { id: options.cursor };
+    findOptions.skip = 1;
+  }
+
+  const receipts = await dependencies.database.receipt.findMany(
+    findOptions as Parameters<typeof dependencies.database.receipt.findMany>[0]
+  ) as unknown as ReceiptWithUser[];
+
+  const hasMore = receipts.length > limit;
+
+  let resultReceipts = receipts;
+  if (hasMore) {
+    resultReceipts = receipts.slice(0, limit);
+  }
+
+  let nextCursor: string | null = null;
+  if (hasMore) {
+    nextCursor = resultReceipts[resultReceipts.length - 1].id;
+  }
+
+  return { success: true, receipts: resultReceipts, nextCursor, hasMore };
 }
 
 /** Retrieve a single receipt with access control. */
@@ -265,10 +294,25 @@ export async function createReceipt(
     fraudDetection
   );
 
-  const isPublic = input.isPublic === true ? true : false;
-  const originalFilename = input.originalFilename ? input.originalFilename : "receipt";
-  const fileType = input.fileType ? input.fileType : "image";
-  const fileSize = input.fileSize ? input.fileSize : 0;
+  let isPublic = false;
+  if (input.isPublic === true) {
+    isPublic = true;
+  }
+
+  let originalFilename = "receipt";
+  if (input.originalFilename) {
+    originalFilename = input.originalFilename;
+  }
+
+  let fileType = "image";
+  if (input.fileType) {
+    fileType = input.fileType;
+  }
+
+  let fileSize = 0;
+  if (input.fileSize) {
+    fileSize = input.fileSize;
+  }
 
   const receipt = await dependencies.database.receipt.create({
     data: {
@@ -279,6 +323,7 @@ export async function createReceipt(
       fileType,
       fileSize,
       verificationStatus: "pending",
+      processingStatus: "queued",
       imageHash: fraudAnalysis.imageHash,
       isDuplicate: fraudAnalysis.isDuplicate,
       duplicateOfId: fraudAnalysis.duplicateOfId,

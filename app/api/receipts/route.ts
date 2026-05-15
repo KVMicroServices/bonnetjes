@@ -13,6 +13,7 @@ import {
   calculateFraudRiskScore
 } from "@/lib/fraud-detection";
 import { listReceipts, createReceipt } from "@/lib/services/receipt-service";
+import { enqueueReceiptProcessing } from "@/lib/queue";
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,10 +25,19 @@ export async function GET(request: NextRequest) {
     const userId = (session.user as any).id;
     const isAdmin = (session.user as any).role === "admin";
 
+    const searchParams = request.nextUrl.searchParams;
+    const cursor = searchParams.get("cursor") || undefined;
+    const limitParam = searchParams.get("limit");
+    let limit = 15;
+    if (limitParam) {
+      limit = parseInt(limitParam, 10);
+    }
+
     const result = await listReceipts(
       { database: prisma, storage: { getFileUrl, getFileAsBuffer } },
       userId,
-      isAdmin
+      isAdmin,
+      { cursor, limit }
     );
 
     if (!result.success) {
@@ -37,7 +47,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(result.receipts);
+    const DEFAULT_POLL_INTERVAL_SECONDS = 300;
+    const pollIntervalSecondsRaw = parseInt(process.env.POLL_INTERVAL_SECONDS || "", 10);
+    let pollIntervalSeconds = DEFAULT_POLL_INTERVAL_SECONDS;
+    if (Number.isFinite(pollIntervalSecondsRaw)) {
+      pollIntervalSeconds = pollIntervalSecondsRaw;
+    }
+
+    return NextResponse.json({
+      receipts: result.receipts,
+      nextCursor: result.nextCursor,
+      hasMore: result.hasMore,
+      pollIntervalSeconds,
+    });
   } catch (error) {
     console.error("Get receipts error:", error);
     return NextResponse.json(
@@ -76,6 +98,9 @@ export async function POST(request: NextRequest) {
         { status: result.statusCode }
       );
     }
+
+    // Enqueue async OCR + fraud re-scoring
+    await enqueueReceiptProcessing(result.receipt.id, userId);
 
     return NextResponse.json(result.receipt, { status: 201 });
   } catch (error) {

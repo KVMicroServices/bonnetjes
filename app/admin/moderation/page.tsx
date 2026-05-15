@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 interface ModerationReview {
   // Normalized fields (set by backend)
@@ -84,6 +85,7 @@ export default function ModerationQueuePage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("Moderation");
 
   const [reviews, setReviews] = useState<ModerationReview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,10 +129,10 @@ export default function ModerationQueuePage() {
           setLastUpdated(new Date(data.timestamp).toLocaleTimeString());
         }
       } else {
-        toast({ title: "Fout", description: "Kon moderatiewachtrij niet laden", variant: "destructive" });
+        toast({ title: t("loadFailed"), description: t("loadFailedDescription"), variant: "destructive" });
       }
     } catch {
-      toast({ title: "Fout", description: "Netwerkfout", variant: "destructive" });
+      toast({ title: t("loadFailed"), description: t("networkError"), variant: "destructive" });
     } finally {
       setLoading(false);
       setLoadingAll(false);
@@ -144,14 +146,15 @@ export default function ModerationQueuePage() {
   }, [status, isAdmin, router, fetchModeration]);
 
   // ID extraction – tries every known field, including backend-normalized _id
-  const getReviewId = (r: ModerationReview): string =>
-    r._id ??
-    r.reviewId ??
-    r.id ??
-    r.feedbackId ??
-    r.hashCode ??
-    r.externalId ??
-    "";
+  const getReviewId = (r: ModerationReview): string => {
+    if (r._id) return r._id;
+    if (r.reviewId) return r.reviewId;
+    if (r.id) return r.id;
+    if (r.feedbackId) return r.feedbackId;
+    if (r.hashCode) return r.hashCode;
+    if (r.externalId) return r.externalId;
+    return "";
+  };
 
   const toggleDebug = (id: string) => {
     setShowDebug(prev => ({ ...prev, [id]: !prev[id] }));
@@ -163,8 +166,8 @@ export default function ModerationQueuePage() {
   ) => {
     if (action === "approve") {
       toast({
-        title: "Niet ondersteund",
-        description: "Goedkeuren via de API is niet mogelijk voor jouw account. Gebruik het Kiyoh dashboard.",
+        title: t("notSupported"),
+        description: t("notSupportedDescription"),
         variant: "destructive"
       });
       return;
@@ -172,7 +175,7 @@ export default function ModerationQueuePage() {
 
     const reviewId = getReviewId(review);
     if (!reviewId) {
-      toast({ title: "Fout", description: "Geen review ID gevonden", variant: "destructive" });
+      toast({ title: t("loadFailed"), description: t("noReviewId"), variant: "destructive" });
       return;
     }
     setModeratingId(reviewId);
@@ -191,18 +194,18 @@ export default function ModerationQueuePage() {
 
       const data = await res.json();
       if (res.ok) {
-        toast({ title: "Succes", description: `Actie '${action}' succesvol uitgevoerd` });
+        toast({ title: t("actionSuccess"), description: t("actionSuccessDescription", { action }) });
         setReviews(prev => prev.filter(r => getReviewId(r) !== reviewId));
       } else {
         toast({
-          title: "Actie mislukt",
-          description: data.error || "De API weigerde het verzoek",
+          title: t("actionFailed"),
+          description: data.error || t("actionFailedDescription"),
           variant: "destructive"
         });
         console.error("Moderation action failed:", data);
       }
     } catch {
-      toast({ title: "Fout", description: "Netwerkfout bij uitvoeren actie", variant: "destructive" });
+      toast({ title: t("loadFailed"), description: t("networkErrorAction"), variant: "destructive" });
     } finally {
       setModeratingId(null);
     }
@@ -215,13 +218,13 @@ export default function ModerationQueuePage() {
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <Loader2 className="mx-auto mb-3 h-10 w-10 animate-spin text-kv-green" />
-            <p className="text-gray-600 font-medium font-outfit">Wachtrij aan het opbouwen...</p>
+            <p className="text-gray-600 font-medium font-outfit">{t("buildingQueue")}</p>
             <p className="mt-2 text-sm text-gray-400">
-              We controleren alle locaties op pending reviews.
+              {t("buildingQueueDescription")}
             </p>
             <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400">
               <Shield className="h-3 w-3" />
-              <span>Caching system actief om rate-limiting te voorkomen</span>
+              <span>{t("cachingActive")}</span>
             </div>
           </div>
         </div>
@@ -233,7 +236,7 @@ export default function ModerationQueuePage() {
 
   const filtered = filter === "all" ? reviews : reviews.filter(r => r.source === filter);
 
-  const getAuthor = (r: ModerationReview) => r.reviewAuthor ?? r.name ?? "Anoniem";
+  const getAuthor = (r: ModerationReview) => r.reviewAuthor ?? r.name ?? t("anonymous");
 
   // Content extraction – uses backend-normalized _content first
   const getContent = (r: ModerationReview): string => {
@@ -275,7 +278,7 @@ export default function ModerationQueuePage() {
           <div className="mb-6 rounded-xl bg-red-50 border border-red-100 p-4 flex gap-3 text-red-800">
             <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-semibold">Configuratiefout</p>
+              <p className="font-semibold">{t("configError")}</p>
               <p className="opacity-90">{configError}</p>
             </div>
           </div>
@@ -286,12 +289,12 @@ export default function ModerationQueuePage() {
           <div className="mb-6 rounded-xl bg-blue-50 border border-blue-100 p-4 flex gap-3 text-blue-800">
             <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-semibold">Systeem Status</p>
+              <p className="font-semibold">{t("systemStatus")}</p>
               <p className="opacity-90">
                 {loadedAll
-                  ? `Alle ${locationCount} locaties zijn gecontroleerd op pending reviews.`
-                  : `Wachtrij opgebouwd uit ${locationCount} locaties. ${locationsChecked} locaties met pending reviews zijn gecontroleerd.`}
-                {fromCache && <span className="ml-1 font-bold">(uit cache)</span>}
+                  ? t("allLocationsChecked", { count: locationCount })
+                  : t("queueBuilt", { count: locationCount, checked: locationsChecked })}
+                {fromCache && <span className="ml-1 font-bold">{t("fromCache")}</span>}
               </p>
             </div>
           </div>
@@ -304,9 +307,9 @@ export default function ModerationQueuePage() {
               <Shield className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Review Moderatie</h1>
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{t("title")}</h1>
               <p className="text-gray-500 font-medium">
-                {total} wachtende reviews platformbreed
+                {t("pendingReviews", { count: total })}
               </p>
             </div>
           </div>
@@ -322,7 +325,7 @@ export default function ModerationQueuePage() {
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <Globe className="h-4 w-4" />
               }
-              Alle Locaties
+              {t("allLocations")}
             </button>
 
             <button
@@ -331,14 +334,14 @@ export default function ModerationQueuePage() {
               className="group flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-50"
             >
               <RefreshCw className={`h-4 w-4 transition-transform group-hover:rotate-180 ${loading ? "animate-spin" : ""}`} />
-              Vernieuwen
+              {t("refresh")}
             </button>
             <button
               onClick={() => router.push("/admin/reviews")}
               className="flex items-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-black shadow-lg shadow-black/10 transition-all"
             >
               <ExternalLink className="h-4 w-4" />
-              Naar Platforms
+              {t("toPlatforms")}
             </button>
           </div>
         </div>
@@ -346,7 +349,7 @@ export default function ModerationQueuePage() {
         {/* Stats Grid */}
         <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Totaal Wachtrij</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">{t("totalQueue")}</p>
             <p className="text-3xl font-black text-gray-900">{total}</p>
           </div>
           <div className="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
@@ -358,9 +361,9 @@ export default function ModerationQueuePage() {
             <p className="text-3xl font-black text-purple-600">{reviews.filter(r => r.source === "kv").length}</p>
           </div>
           <div className="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
-            <p className="text-xs font-bold uppercase tracking-wider text-kv-green mb-1">Locaties</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-kv-green mb-1">{t("locations")}</p>
             <p className="text-3xl font-black text-kv-green">{locationCount}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">{locationsChecked} gecontroleerd</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{locationsChecked} {t("checked")}</p>
           </div>
         </div>
 
@@ -378,13 +381,13 @@ export default function ModerationQueuePage() {
                     : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                {f === "all" ? `Alles (${reviews.length})` : f === "kiyoh" ? `Kiyoh (${reviews.filter(r => r.source === "kiyoh").length})` : `KV (${reviews.filter(r => r.source === "kv").length})`}
+                {f === "all" ? `${t("all")} (${reviews.length})` : f === "kiyoh" ? `Kiyoh (${reviews.filter(r => r.source === "kiyoh").length})` : `KV (${reviews.filter(r => r.source === "kv").length})`}
               </button>
             ))}
           </div>
           <div className="text-xs text-gray-400 font-medium">
-            Wachtrij laatst ververst: {lastUpdated}
-            {fromCache && <span className="ml-1 text-amber-500">(cache)</span>}
+            {t("queueLastRefreshed", { time: lastUpdated })}
+            {fromCache && <span className="ml-1 text-amber-500">{t("cache")}</span>}
           </div>
         </div>
 
@@ -394,9 +397,9 @@ export default function ModerationQueuePage() {
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-green-50">
               <CheckCircle className="h-10 w-10 text-green-500" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900">Alles bijgewerkt!</h3>
+            <h3 className="text-xl font-bold text-gray-900">{t("allCaughtUp")}</h3>
             <p className="mt-2 text-gray-500 max-w-md mx-auto">
-              Er zijn momenteel geen reviews die moderatie vereisen in de geselecteerde platforms.
+              {t("allCaughtUpDescription")}
             </p>
             {!loadedAll && (
               <button
@@ -405,7 +408,7 @@ export default function ModerationQueuePage() {
                 className="mt-6 mx-auto flex items-center gap-2 rounded-xl bg-purple-600 px-6 py-3 text-sm font-bold text-white hover:bg-purple-700 transition-all"
               >
                 {loadingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
-                Controleer ook locaties zonder pending-teller
+                {t("checkLocationsWithoutPending")}
               </button>
             )}
           </div>
@@ -459,7 +462,7 @@ export default function ModerationQueuePage() {
                         {attachment && (
                           <span className="inline-flex items-center gap-1 rounded-xl bg-green-50 border border-green-100 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-green-600">
                             <ImageIcon className="h-3 w-3" />
-                            Bijlage
+                            {t("attachment")}
                           </span>
                         )}
                       </div>
@@ -486,7 +489,7 @@ export default function ModerationQueuePage() {
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleDebug(rid); }}
                         className={`p-2 rounded-xl transition-colors ${isDebug ? 'bg-gray-900 text-white' : 'text-gray-400 hover:bg-gray-100'}`}
-                        title="Toon raw data (debug)"
+                        title={t("showRawData")}
                       >
                         <Code className="h-5 w-5" />
                       </button>
@@ -525,13 +528,13 @@ export default function ModerationQueuePage() {
                           <div className="mb-6 flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3">
                             <Hash className="h-4 w-4 text-gray-400 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">Review ID</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5">{t("reviewId")}</p>
                               {rid ? (
                                 <p className="text-sm font-mono text-gray-700 break-all">{rid}</p>
                               ) : (
                                 <p className="text-sm font-medium text-red-500 flex items-center gap-1">
                                   <AlertTriangle className="h-4 w-4" />
-                                  Geen ID gevonden — gebruik debug view om de raw data te inspecteren
+                                  {t("noIdFound")}
                                 </p>
                               )}
                             </div>
@@ -554,7 +557,7 @@ export default function ModerationQueuePage() {
                           <div className="grid gap-8 lg:grid-cols-2">
                             {/* Review Content Column */}
                             <div>
-                              <p className="mb-4 text-xs font-black uppercase tracking-widest text-gray-400">Review Inhoud</p>
+                              <p className="mb-4 text-xs font-black uppercase tracking-widest text-gray-400">{t("reviewContent")}</p>
                               {content ? (
                                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
                                   <p className="text-lg leading-relaxed text-gray-800 font-medium italic">"{content}"</p>
@@ -563,8 +566,8 @@ export default function ModerationQueuePage() {
                                 <div className="rounded-2xl bg-orange-50 border border-orange-100 p-5 flex items-center gap-3 text-orange-800">
                                   <AlertTriangle className="h-6 w-6 flex-shrink-0" />
                                   <div>
-                                    <p className="font-bold">Geen tekst gevonden</p>
-                                    <p className="text-sm opacity-80">De reviewer heeft alleen een score gegeven of de tekst velden zijn onbekend. Gebruik 'Code' icoon om raw data te inspecteren.</p>
+                                    <p className="font-bold">{t("noTextFound")}</p>
+                                    <p className="text-sm opacity-80">{t("noTextFoundDescription")}</p>
                                   </div>
                                 </div>
                               )}
@@ -572,7 +575,7 @@ export default function ModerationQueuePage() {
                               {/* Question Details (Kiyoh) */}
                               {(review.reviewContent ?? []).length > 0 && (
                                 <div className="mt-6 space-y-3">
-                                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Gedetailleerde Scores</p>
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{t("detailedScores")}</p>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {review.reviewContent?.map((c, i) => (
                                       <div key={i} className="rounded-xl border border-gray-100 p-3 bg-white hover:border-gray-200 transition-colors">
@@ -590,7 +593,7 @@ export default function ModerationQueuePage() {
 
                             {/* Evidence Column */}
                             <div>
-                              <p className="mb-4 text-xs font-black uppercase tracking-widest text-gray-400">Bewijs van aankoop</p>
+                              <p className="mb-4 text-xs font-black uppercase tracking-widest text-gray-400">{t("proofOfPurchase")}</p>
                               {attachment ? (
                                 <div className="space-y-4">
                                   <div className="relative group overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-inner">
@@ -606,7 +609,7 @@ export default function ModerationQueuePage() {
                                     ) : (
                                       <div className="flex flex-col items-center justify-center p-12 text-center">
                                         <FileText className="h-16 w-16 text-gray-300 mb-3" />
-                                        <p className="text-sm font-bold text-gray-500">Document Bijlage (PDF/Doc)</p>
+                                        <p className="text-sm font-bold text-gray-500">{t("documentAttachment")}</p>
                                       </div>
                                     )}
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
@@ -617,7 +620,7 @@ export default function ModerationQueuePage() {
                                       className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-4 py-3 text-sm font-bold text-white hover:bg-black transition-all shadow-md active:scale-95"
                                     >
                                       <ImageIcon className="h-4 w-4" />
-                                      Bekijk Volledig
+                                      {t("viewFull")}
                                     </button>
                                     <a
                                       href={attachment}
@@ -634,8 +637,8 @@ export default function ModerationQueuePage() {
                                   <div className="rounded-full bg-gray-50 p-4 mb-4">
                                     <ImageIcon className="h-8 w-8 text-gray-300" />
                                   </div>
-                                  <p className="font-bold text-gray-900">Geen bijlage</p>
-                                  <p className="text-xs text-gray-400 mt-1 max-w-[200px]">De reviewer heeft geen bewijs van aankoop toegevoegd aan deze review.</p>
+                                  <p className="font-bold text-gray-900">{t("noProof")}</p>
+                                  <p className="text-xs text-gray-400 mt-1 max-w-[200px]">{t("noProofDescription")}</p>
                                 </div>
                               )}
                             </div>
@@ -655,7 +658,7 @@ export default function ModerationQueuePage() {
                                 className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95 disabled:opacity-50"
                               >
                                 <MessageSquare className="h-4 w-4 text-kv-green" />
-                                Wijzigingsverzoek
+                                {t("changeRequest")}
                               </button>
                               <button
                                 onClick={() => handleModerate(review, "abuse")}
@@ -666,7 +669,7 @@ export default function ModerationQueuePage() {
                                   ? <Loader2 className="h-4 w-4 animate-spin" />
                                   : <Flag className="h-4 w-4" />
                                 }
-                                Meld als Misbruik
+                                {t("abuse")}
                               </button>
                               <button
                                 onClick={() => handleModerate(review, "approve")}

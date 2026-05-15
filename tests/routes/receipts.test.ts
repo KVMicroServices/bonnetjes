@@ -33,6 +33,12 @@ vi.mock("@/lib/fraud-detection", () => ({
   calculateFraudRiskScore: (...args: unknown[]) => mockCalculateFraudRiskScore(...args),
 }));
 
+// Mock queue module
+const mockEnqueueReceiptProcessing = vi.fn().mockResolvedValue("job-id-123");
+vi.mock("@/lib/queue", () => ({
+  enqueueReceiptProcessing: (...args: unknown[]) => mockEnqueueReceiptProcessing(...args),
+}));
+
 // ─── Imports (after mocks) ─────────────────────────────────────────────────────
 
 import { GET as getReceipts, POST as createReceipt } from "@/app/api/receipts/route";
@@ -144,8 +150,9 @@ describe("GET /api/receipts", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toHaveLength(1);
-    expect(body[0].id).toBe("receipt-001");
+    expect(body.receipts).toHaveLength(1);
+    expect(body.receipts[0].id).toBe("receipt-001");
+    expect(body.hasMore).toBe(false);
 
     expect(mockPrisma.receipt.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -165,7 +172,8 @@ describe("GET /api/receipts", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toHaveLength(2);
+    expect(body.receipts).toHaveLength(2);
+    expect(body.hasMore).toBe(false);
 
     expect(mockPrisma.receipt.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

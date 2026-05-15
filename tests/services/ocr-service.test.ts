@@ -40,7 +40,7 @@ function createMockOcrApiConfig(overrides?: Partial<OcrApiConfig>): OcrApiConfig
   return {
     baseUrl: "https://api.test.com/v1",
     apiKey: "test-api-key",
-    model: "gpt-4o-mini",
+    model: "gpt-5.4-nano",
     streaming: false,
     ...overrides,
   };
@@ -73,6 +73,8 @@ const SAMPLE_RECEIPT = {
   ocrConfidence: null,
   ocrReasoning: null,
   receiptReadable: null,
+  failureReason: null,
+  secondaryAnalysis: null,
   isArchived: false,
   archivedAt: null,
   createdAt: new Date("2024-01-15T10:00:00Z"),
@@ -87,6 +89,7 @@ const VALID_OCR_JSON = JSON.stringify({
   receiptReadable: true,
   confidence: 85,
   reasoning: "Clear receipt with visible shop name and date",
+  failureReason: null,
 });
 
 // ─── Tests: buildOcrMessages ───────────────────────────────────────────────────
@@ -152,6 +155,7 @@ describe("parseOcrResult", () => {
     expect(result.receiptReadable).toBe(true);
     expect(result.confidence).toBe(85);
     expect(result.reasoning).toBe("Clear receipt with visible shop name and date");
+    expect(result.failureReason).toBeNull();
   });
 
   it("coerces date string to Date object", () => {
@@ -217,6 +221,7 @@ describe("determineVerificationStatus", () => {
     receiptReadable: true,
     confidence: 85,
     reasoning: "Clear receipt",
+    failureReason: null,
   };
 
   it("returns verified for high confidence, readable, with shop and date", () => {
@@ -227,6 +232,7 @@ describe("determineVerificationStatus", () => {
     );
 
     expect(decision.status).toBe("verified");
+    expect(decision.failureReason).toBeNull();
     expect(decision.isDateTooOld).toBe(false);
   });
 
@@ -241,6 +247,7 @@ describe("determineVerificationStatus", () => {
     );
 
     expect(decision.status).toBe("rejected");
+    expect(decision.failureReason).toBe("RECEIPT_TOO_OLD");
     expect(decision.isDateTooOld).toBe(true);
     expect(decision.dateValidationMessage).toContain("older than 6 months");
   });
@@ -254,18 +261,14 @@ describe("determineVerificationStatus", () => {
     const decision = determineVerificationStatus(lowConfidenceResult, false, recentDate);
 
     expect(decision.status).toBe("rejected");
+    expect(decision.failureReason).toBe("IMAGE_UNCLEAR");
   });
 
-  it("returns rejected for duplicate receipt with medium confidence", () => {
-    const mediumResult: ParsedOcrResult = {
-      ...highConfidenceReadableResult,
-      confidence: 50,
-      extractedShopName: null,
-    };
-
-    const decision = determineVerificationStatus(mediumResult, true, recentDate);
+  it("returns rejected for duplicate receipt", () => {
+    const decision = determineVerificationStatus(highConfidenceReadableResult, true, recentDate);
 
     expect(decision.status).toBe("rejected");
+    expect(decision.failureReason).toBe("DUPLICATE_RECEIPT");
   });
 
   it("returns pending for medium confidence", () => {
@@ -363,7 +366,7 @@ describe("processReceiptOcr", () => {
     originalEnv = { ...process.env };
     process.env.AI_API_KEY = "test-key";
     process.env.AI_API_BASE_URL = "https://api.test.com/v1";
-    process.env.AI_MODEL_NAME = "gpt-4o-mini";
+    process.env.AI_MODEL_NAME = "gpt-5.4-nano";
   });
 
   afterEach(() => {

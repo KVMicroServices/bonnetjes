@@ -23,6 +23,7 @@ import {
   FileText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 interface ReceiptData {
   id: string;
@@ -33,6 +34,8 @@ interface ReceiptData {
   verificationStatus: string;
   ocrConfidence: number | null;
   ocrReasoning: string | null;
+  failureReason: string | null;
+  secondaryAnalysis: string | null;
   fraudRiskScore: number | null;
   isDuplicate: boolean;
   manipulationScore: number | null;
@@ -56,6 +59,7 @@ export function AdminReceiptCard({
   onRefresh
 }: AdminReceiptCardProps) {
   const { toast } = useToast();
+  const t = useTranslations("ReceiptCard");
   const [expanded, setExpanded] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -153,6 +157,21 @@ export function AdminReceiptCard({
 
   const manipulationFlags = parseJsonArray(receipt?.manipulationFlags);
   const suspiciousPatterns = parseJsonArray(receipt?.suspiciousPatterns);
+
+  const formatFailureReason = (reason: string | null): string => {
+    if (!reason) return "";
+    const labels: Record<string, string> = {
+      NOT_A_RECEIPT: t("failureNotAReceipt"),
+      IMAGE_UNCLEAR: t("failureImageUnclear"),
+      INSUFFICIENT_INFO: t("failureInsufficientInfo"),
+      DUPLICATE_RECEIPT: t("failureDuplicateReceipt"),
+      RECEIPT_TOO_OLD: t("failureReceiptTooOld"),
+      SUSPECTED_FRAUD: t("failureSuspectedFraud"),
+      UNREADABLE_TEXT: t("failureUnreadableText"),
+      MISSING_KEY_FIELDS: t("failureMissingKeyFields"),
+    };
+    return labels[reason] || reason;
+  };
 
   // Check if receipt is older than 6 months
   const isDateTooOld = receipt?.ocrReasoning?.includes("older than 6 months");
@@ -307,6 +326,24 @@ export function AdminReceiptCard({
                   <div className="rounded-lg bg-blue-50 p-3">
                     <p className="text-xs font-medium text-blue-700">AI Analysis</p>
                     <p className="text-sm text-blue-900">{receipt.ocrReasoning}</p>
+                  </div>
+                )}
+
+                {/* Failure Reason */}
+                {receipt?.failureReason && (
+                  <div className="rounded-lg bg-red-50 p-3">
+                    <p className="text-xs font-medium text-red-700">{t("failureReason")}</p>
+                    <p className="text-sm font-medium text-red-900">
+                      {formatFailureReason(receipt.failureReason)}
+                    </p>
+                  </div>
+                )}
+
+                {/* Secondary Analysis */}
+                {receipt?.secondaryAnalysis && (
+                  <div className="rounded-lg bg-amber-50 p-3">
+                    <p className="text-xs font-medium text-amber-700">{t("secondaryAnalysis")}</p>
+                    <p className="text-sm text-amber-900">{receipt.secondaryAnalysis}</p>
                   </div>
                 )}
               </div>

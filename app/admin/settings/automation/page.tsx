@@ -10,6 +10,7 @@ import {
   AlertCircle, Loader2, Shield, Camera
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -313,6 +314,7 @@ export default function AutomationPage() {
 
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loading, setLoading] = useState(true);
+  const t = useTranslations("Automation");
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
   const [editingSteps, setEditingSteps] = useState<WorkflowStep[]>([]);
   const [editingName, setEditingName] = useState("");
@@ -409,7 +411,7 @@ export default function AutomationPage() {
   };
 
   const deleteWorkflow = async (id: string) => {
-    if (!confirm("Weet je zeker dat je dit workflow wilt verwijderen?")) return;
+    if (!confirm(t("deleteConfirm"))) return;
     await fetch(`/api/admin/automation/workflows/${id}`, { method: "DELETE" });
     await fetchWorkflows();
   };
@@ -457,9 +459,9 @@ export default function AutomationPage() {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Automation Workflows</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
             <p className="text-sm text-gray-500">
-              Train de agent door stap-voor-stap workflows op te nemen. De agent volgt exact de stappen die jij instelt.
+              {t("subtitle")}
             </p>
           </div>
           <button
@@ -467,7 +469,7 @@ export default function AutomationPage() {
             className="flex items-center gap-2 rounded-xl bg-kv-green px-4 py-2 text-sm font-medium text-white hover:bg-kv-green/90"
           >
             <Plus className="h-4 w-4" />
-            Nieuw Workflow
+            {t("newWorkflow")}
           </button>
         </div>
 
@@ -475,9 +477,7 @@ export default function AutomationPage() {
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
           <Shield className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
           <div className="text-sm text-blue-700">
-            <strong>Deterministic & Veilig:</strong> De agent voert alleen de exacte CSS selectors uit die jij hier definieert.
-            Gebruik <strong>Dry Run</strong> om te testen zonder dat er iets op Kiyoh/KV wordt aangepast.
-            Gebruik <code className="rounded bg-blue-100 px-1 font-mono text-xs">{`{{reviewId}}`}</code> als placeholder voor runtime variabelen.
+            <strong>{t("safetyNotice")}</strong>
           </div>
         </div>
 
@@ -487,10 +487,10 @@ export default function AutomationPage() {
             {workflows.length === 0 && !loading && (
               <div className="rounded-2xl bg-white py-16 text-center shadow-sm">
                 <Zap className="mx-auto mb-3 h-12 w-12 text-gray-300" />
-                <p className="font-medium text-gray-500">Geen workflows</p>
-                <p className="mt-1 text-sm text-gray-400">Maak je eerste workflow aan om te beginnen</p>
+                <p className="font-medium text-gray-500">{t("noWorkflows")}</p>
+                <p className="mt-1 text-sm text-gray-400">{t("noWorkflowsDescription")}</p>
                 <button onClick={startNew} className="mt-4 rounded-xl bg-kv-green px-4 py-2 text-sm font-medium text-white hover:bg-kv-green/90">
-                  Eerste Workflow
+                  {t("firstWorkflow")}
                 </button>
               </div>
             )}
@@ -512,13 +512,13 @@ export default function AutomationPage() {
                           {w.platform === "kiyoh" ? "Kiyoh" : "KlantenVertellen"}
                         </span>
                         {!w.isActive && (
-                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">Inactief</span>
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{t("inactive")}</span>
                         )}
                         <h3 className="font-semibold text-gray-900">{w.name}</h3>
                       </div>
                       {w.description && <p className="mt-0.5 text-sm text-gray-500">{w.description}</p>}
                       <div className="mt-2 flex items-center gap-3 text-xs text-gray-400">
-                        <span>{w.steps.length} stappen</span>
+                        <span>{w.steps.length} {t("steps")}</span>
                         {vars.length > 0 && (
                           <span className="flex items-center gap-1">
                             <Zap className="h-3 w-3" />
@@ -536,7 +536,7 @@ export default function AutomationPage() {
                               <input
                                 value={testVariables[v] ?? ""}
                                 onChange={e => setTestVariables(prev => ({ ...prev, [v]: e.target.value }))}
-                                placeholder={`Voer ${v} in...`}
+                                placeholder={t("enterVariable", { name: v })}
                                 className="w-32 bg-transparent text-xs text-gray-700 placeholder:text-gray-400 focus:outline-none"
                               />
                             </div>
@@ -553,7 +553,7 @@ export default function AutomationPage() {
                         title="Dry run: valideer stappen zonder echte acties"
                       >
                         <Eye className="h-3.5 w-3.5" />
-                        Dry Run
+                        {t("dryRun")}
                       </button>
                       <button
                         onClick={() => runWorkflow(w, false)}
@@ -562,7 +562,7 @@ export default function AutomationPage() {
                         title="Voer workflow echt uit"
                       >
                         {executing === w.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                        Uitvoeren
+                        {t("execute")}
                       </button>
                       <button onClick={() => editWorkflow(w)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-700">
                         <Edit3 className="h-4 w-4" />
@@ -584,7 +584,7 @@ export default function AutomationPage() {
             {/* Editor header */}
             <div className="flex items-center justify-between border-b px-6 py-4">
               <h2 className="font-semibold text-gray-900">
-                {selectedWorkflow ? "Workflow Bewerken" : "Nieuw Workflow Trainen"}
+                {selectedWorkflow ? t("editWorkflow") : t("trainNewWorkflow")}
               </h2>
               <button onClick={() => setIsCreating(false)} className="text-gray-400 hover:text-gray-700">
                 <X className="h-5 w-5" />
@@ -595,7 +595,7 @@ export default function AutomationPage() {
               {/* Metadata */}
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Naam</label>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">{t("name")}</label>
                   <input
                     value={editingName}
                     onChange={e => setEditingName(e.target.value)}
@@ -603,7 +603,7 @@ export default function AutomationPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Platform</label>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">{t("platform")}</label>
                   <select
                     value={editingPlatform}
                     onChange={e => setEditingPlatform(e.target.value as "kiyoh" | "kv")}
@@ -614,7 +614,7 @@ export default function AutomationPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Omschrijving</label>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">{t("description")}</label>
                   <input
                     value={editingDesc}
                     onChange={e => setEditingDesc(e.target.value)}
@@ -626,19 +626,15 @@ export default function AutomationPage() {
 
               {/* Variables legend */}
               <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-700">
-                <strong>Runtime Variabelen:</strong> Gebruik{" "}
-                <code className="rounded bg-amber-100 px-1 font-mono">{`{{username}}`}</code> en{" "}
-                <code className="rounded bg-amber-100 px-1 font-mono">{`{{password}}`}</code> voor inloggegevens (automatisch gevuld vanuit railwayomgeving). 
-                Gebruik{" "}
-                <code className="rounded bg-amber-100 px-1 font-mono">{`{{reviewId}}`}</code> voor het review-ID dat je invult bij het uitvoeren.
+                {t("variablesNotice")}
               </div>
 
               {/* Step list */}
               <div>
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-700">Stappen ({editingSteps.length})</p>
+                  <p className="text-sm font-medium text-gray-700">{t("stepsCount", { count: editingSteps.length })}</p>
                   <button onClick={addStep} className="flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">
-                    <Plus className="h-3.5 w-3.5" /> Stap toevoegen
+                    <Plus className="h-3.5 w-3.5" /> {t("addStep")}
                   </button>
                 </div>
                 <div className="space-y-2">
