@@ -2,6 +2,7 @@ import { Worker, Job } from "bullmq";
 import { getRedisConnection } from "./connection";
 import { RECEIPT_PROCESSING_QUEUE } from "./receipt-queue";
 import type { ReceiptProcessingJobData } from "./receipt-queue";
+import { enqueueReviewDisable } from "./review-disable-queue";
 import { prisma } from "@/lib/db";
 import { getFileAsBuffer } from "@/lib/s3";
 import { processReceiptOcr } from "@/lib/services/ocr-service";
@@ -77,6 +78,14 @@ async function processReceiptJob(job: Job<ReceiptProcessingJobData>): Promise<vo
       data: { processingStatus: "completed" },
     });
 
+    // Auto-disable: if rejected and secondary analysis confirms, enqueue disable job
+    if (ocrResult.verificationStatus === "rejected") {
+      const autoDisableEnabled = process.env.RECEIPT_AUTO_DISABLE_ENABLED === "true";
+      if (autoDisableEnabled) {
+        await enqueueReviewDisableIfConfirmed(receiptId);
+      }
+    }
+
     logger.info(
       { receiptId, verificationStatus: ocrResult.verificationStatus },
       "Receipt processing completed"
@@ -88,6 +97,71 @@ async function processReceiptJob(job: Job<ReceiptProcessingJobData>): Promise<vo
     });
     throw error;
   }
+}
+
+// ─── Auto-Disable Helper ─────────────────────────────────────────────────────
+
+const SECONDARY_ANALYSIS_CONFIRMED = "Initial analysis valid";
+
+/**
+ * Checks if a rejected receipt has confirmed secondary analysis and a linked
+ * ReceiptSyncState. If so, creates an audit record and enqueues the disable job.
+ */
+async function enqueueReviewDisableIfConfirmed(receiptId: string): Promise<void> {
+  const receipt = await prisma.receipt.findUnique({
+    where: { id: receiptId },
+    select: { secondaryAnalysis: true },
+  });
+
+  if (!receipt) {
+    return;
+  }
+
+  const isConfirmed = receipt.secondaryAnalysis
+    && receipt.secondaryAnalysis.includes(SECONDARY_ANALYSIS_CONFIRMED);
+
+  if (!isConfirmed) {
+    logger.info(
+      { receiptId },
+      "Secondary analysis did not confirm rejection, skipping auto-disable"
+    );
+    return;
+  }
+
+  const syncState = await prisma.receiptSyncState.findFirst({
+    where: { receiptId },
+  });
+
+  if (!syncState) {
+    logger.info(
+      { receiptId },
+      "No ReceiptSyncState linked to receipt, skipping auto-disable"
+    );
+    return;
+  }
+
+  // Create audit record
+  await prisma.reviewDisableAudit.create({
+    data: {
+      receiptId,
+      reviewId: syncState.reviewId,
+      locationId: syncState.locationId,
+      tenantId: syncState.tenantId,
+      status: "pending",
+    },
+  });
+
+  await enqueueReviewDisable({
+    receiptId,
+    reviewId: syncState.reviewId,
+    locationId: syncState.locationId,
+    tenantId: syncState.tenantId,
+  });
+
+  logger.info(
+    { receiptId, reviewId: syncState.reviewId, locationId: syncState.locationId },
+    "Enqueued review disable after confirmed rejection"
+  );
 }
 
 // ─── Worker Lifecycle ────────────────────────────────────────────────────────

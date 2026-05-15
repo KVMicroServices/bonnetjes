@@ -155,3 +155,20 @@ model ReceiptSyncTick {
 
   @@index([tenantId, completedAt])
 }
+
+model ReviewDisableAudit {
+  id          String    @id @default(cuid())
+  receiptId   String
+  reviewId    String
+  locationId  String
+  tenantId    Int
+  status      String    @default("pending") // pending, success, failed
+  attempts    Int       @default(0)
+  lastError   String?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([receiptId])
+  @@index([reviewId])
+  @@index([status])
+}

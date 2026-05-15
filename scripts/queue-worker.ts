@@ -7,17 +7,20 @@
  */
 
 import { startReceiptWorker, stopReceiptWorker } from "@/lib/queue/receipt-worker";
+import { startReviewDisableWorker, stopReviewDisableWorker } from "@/lib/queue/review-disable-worker";
 import { closeRedisConnection } from "@/lib/queue/connection";
 import { logger } from "@/lib/logger";
 
 logger.info("Starting queue worker process...");
 
 startReceiptWorker();
+startReviewDisableWorker();
 
 async function shutdown(signal: string): Promise<void> {
-  logger.info({ signal }, "Shutdown signal received, closing worker...");
+  logger.info({ signal }, "Shutdown signal received, closing workers...");
 
   await stopReceiptWorker();
+  await stopReviewDisableWorker();
   await closeRedisConnection();
 
   logger.info("Worker shutdown complete");

@@ -1,5 +1,17 @@
 # Changes
 
+## [049] Add review disable queue with audit logging
+
+**What**: After OCR rejects a receipt and secondary analysis confirms the rejection, a review-disable job is enqueued on a dedicated BullMQ queue (concurrency 1) that disables the review on Kiyoh/KV with exponential backoff retries, logging every attempt to a `ReviewDisableAudit` table.
+**Why**: Fire-and-forget disable had no visibility or retry. Separate queue prevents slow Kiyoh API calls from blocking OCR processing, while sequential processing (concurrency 1) avoids hammering the platform.
+**Decisions**:
+- Separate `review-disable` BullMQ queue with concurrency 1
+- `ReviewDisableAudit` table tracks receiptId, reviewId, locationId, tenantId, status, attempts, errors
+- Only triggers when `RECEIPT_AUTO_DISABLE_ENABLED=true` AND secondary analysis contains "Initial analysis valid"
+- Uses existing `MAX_RETRY_ATTEMPTS` env var for max attempts (default 5)
+- Base backoff delay 10s with exponential growth
+**Files**: `prisma/schema.prisma`, `prisma/migrations/20260601000002_add_review_disable_audit/migration.sql`, `lib/queue/review-disable-queue.ts`, `lib/queue/review-disable-worker.ts`, `lib/queue/receipt-worker.ts`, `lib/queue/index.ts`, `scripts/queue-worker.ts`
+
 ## [048] Add context token exchange step to Kiyoh auth flow
 
 **What**: After login (with or without OTP), the auth client now calls `GET /v1/common/context?hash=<loginHash>` to exchange the portal session hash for the real API bearer token.
