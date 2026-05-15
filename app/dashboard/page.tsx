@@ -4,11 +4,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Header } from "@/components/header";
-import { ReceiptUpload } from "@/components/receipt-upload";
-import { GoogleDriveImport } from "@/components/google-drive-import";
 import {
   Receipt,
-  Plus,
   Filter,
   Loader2,
   CheckCircle,
@@ -29,11 +26,9 @@ import {
   ThumbsUp,
   ThumbsDown,
   Mail,
-  FolderOpen,
   Archive,
   CheckSquare,
   Square,
-  User,
   Check
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -97,8 +92,6 @@ export default function DashboardPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
-  const [showUpload, setShowUpload] = useState(false);
-  const [showDriveImport, setShowDriveImport] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -450,11 +443,6 @@ export default function DashboardPage() {
   
   const archivedCount = (receipts ?? []).filter(r => r?.isArchived).length;
 
-  const handleUploadComplete = () => {
-    setShowUpload(false);
-    fetchReceipts();
-  };
-
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
     try {
@@ -550,47 +538,7 @@ export default function DashboardPage() {
               <option value="rejected">{t("filterRejected")}</option>
             </select>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowDriveImport(true)}
-              className="flex items-center gap-2 rounded-lg border border-kv-green px-4 py-2 font-medium text-kv-green transition-colors hover:bg-kv-green/10"
-            >
-              <FolderOpen className="h-5 w-5" />
-              {t("googleDrive")}
-            </button>
-            <button
-              onClick={() => setShowUpload(true)}
-              className="flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 font-medium text-white transition-colors hover:bg-kv-green/90"
-            >
-              <Plus className="h-5 w-5" />
-              {t("upload")}
-            </button>
-          </div>
         </div>
-
-        {/* Upload Modal */}
-        <AnimatePresence>
-          {showUpload && (
-            <ReceiptUpload
-              onClose={() => setShowUpload(false)}
-              onComplete={handleUploadComplete}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Google Drive Import Modal */}
-        <AnimatePresence>
-          {showDriveImport && (
-            <GoogleDriveImport
-              onClose={() => setShowDriveImport(false)}
-              onComplete={() => {
-                setShowDriveImport(false);
-                fetchReceipts();
-              }}
-            />
-          )}
-        </AnimatePresence>
 
         {/* Archive Selection Bar */}
         {selectedIds.size > 0 && (
@@ -639,13 +587,6 @@ export default function DashboardPage() {
             <p className="mb-4 text-gray-600">
               {t("noReceiptsDescription")}
             </p>
-            <button
-              onClick={() => setShowUpload(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 font-medium text-white transition-colors hover:bg-kv-green/90"
-            >
-              <Plus className="h-5 w-5" />
-              {t("uploadReceipt")}
-            </button>
           </motion.div>
         ) : (
           <div className="overflow-hidden rounded-xl bg-white shadow-sm">

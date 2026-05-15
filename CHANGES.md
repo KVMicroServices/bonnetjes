@@ -1,5 +1,12 @@
 # Changes
 
+## [050] Remove manual upload UI and Google Drive import
+
+**What**: Removed the upload button, Google Drive import button, and their modals from the dashboard. Deleted the Drive service, API routes, component, and tests. Kept the upload API endpoint and component file for future dispute system use.
+**Decisions**:
+- Upload endpoint (`/api/upload/presigned`) and `receipt-upload.tsx` component preserved for future dispute uploads
+- Drive API routes, service, component, and all related tests deleted
+
 ## [049] Add review disable queue with audit logging
 
 **What**: After OCR rejects a receipt and secondary analysis confirms the rejection, a review-disable job is enqueued on a dedicated BullMQ queue (concurrency 1) that disables the review on Kiyoh/KV with exponential backoff retries, logging every attempt to a `ReviewDisableAudit` table.
