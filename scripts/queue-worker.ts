@@ -32,7 +32,7 @@ startReviewDisableWorker();
 // ─── Health Check Server ─────────────────────────────────────────────────────
 
 const healthServer = http.createServer((request, response) => {
-  if (request.url === "/health" && request.method === "GET") {
+  if (request.url === "/api/health" && request.method === "GET") {
     response.writeHead(200, { "Content-Type": "application/json" });
     response.end(JSON.stringify({ status: "ok", service: "queue-worker" }));
     return;
