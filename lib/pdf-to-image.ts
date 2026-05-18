@@ -1,3 +1,6 @@
+import path from "node:path";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 import { createCanvas } from "@napi-rs/canvas";
 import { logger } from "@/lib/logger";
 
@@ -5,6 +8,15 @@ import { logger } from "@/lib/logger";
 
 const DEFAULT_SCALE = 2.0;
 const MAX_PAGES_TO_CONVERT = 3;
+
+const requireFromHere = createRequire(import.meta.url);
+const PDFJS_PACKAGE_ROOT = path.dirname(
+  requireFromHere.resolve("pdfjs-dist/package.json")
+);
+const STANDARD_FONT_DATA_URL =
+  pathToFileURL(path.join(PDFJS_PACKAGE_ROOT, "standard_fonts") + path.sep).href;
+const CMAP_URL =
+  pathToFileURL(path.join(PDFJS_PACKAGE_ROOT, "cmaps") + path.sep).href;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -40,8 +52,11 @@ export async function convertPdfToImages(
 
     const loadingTask = pdfjsLib.getDocument({
       data: new Uint8Array(pdfBuffer),
-      useSystemFonts: true,
-      disableFontFace: true
+      useSystemFonts: false,
+      disableFontFace: true,
+      standardFontDataUrl: STANDARD_FONT_DATA_URL,
+      cMapUrl: CMAP_URL,
+      cMapPacked: true
     });
 
     const pdfDocument = await loadingTask.promise;
