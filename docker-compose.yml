@@ -92,6 +92,27 @@ services:
       redis:
         condition: service_healthy
 
+  queue-worker-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dependencies
+    command: sh -c "npx prisma generate && npx tsx scripts/queue-worker.ts"
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://bonnetjes:bonnetjes@database:5432/bonnetjes
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:

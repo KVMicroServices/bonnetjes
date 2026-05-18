@@ -1,5 +1,11 @@
 # Changes
 
+## [055] Add health endpoint to queue worker and queue-worker-dev service
+
+**What**: Added an HTTP health check server to the queue worker process (GET `/health` on port 3001) and a `queue-worker-dev` service to docker-compose.
+**Why**: Railway requires an HTTP health check to confirm the service is alive. Dev mode had no worker running so enqueued jobs were never processed.
+**Files**: `scripts/queue-worker.ts`, `docker-compose.yml`, `.env.example`
+
 ## [054] Fix OCR processing for KV-synced receipts and test env isolation
 
 **What**: Receipt worker now routes `kv-sync:` paths to KvS3Client instead of the default R2 bucket, fixing OCR/fraud detection for auto-verified synced receipts. Also fixed review-disable tests leaking host env vars.
