@@ -89,8 +89,15 @@ function validateSmtpConfig(): EmailResult | null {
 }
 
 function getAppUrl(): string {
-  const appUrl = process.env[APP_URL_VAR] || "";
-  return appUrl.replace(/\/$/, "");
+  const rawAppUrl = process.env[APP_URL_VAR] || "";
+  const trimmed = rawAppUrl.trim().replace(/\/$/, "");
+  if (trimmed.length === 0) {
+    return "";
+  }
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
 }
 
 function buildDisputeUrl(params: {

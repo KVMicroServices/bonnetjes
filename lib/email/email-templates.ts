@@ -118,16 +118,6 @@ function renderMainCard(data: DisableEmailData): string {
     "line-height:1.5",
   ].join(";");
 
-  const ctaButtonStyle = [
-    `background-color:${PRIMARY_BUTTON_COLOR}`,
-    "color:#ffffff",
-    "padding:12px 24px",
-    "border-radius:30px",
-    "font-weight:bold",
-    "text-decoration:none",
-    "display:inline-block",
-  ].join(";");
-
   return `
     <td style="${cardStyle}">
       <h1 style="font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;color:${TEXT_COLOR};margin:0;">
@@ -156,11 +146,13 @@ function renderMainCard(data: DisableEmailData): string {
       <p style="text-align:center;font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;font-size:16px;line-height:1.6;color:${TEXT_COLOR};margin:15px 0;">
         ${escapeHtml(translations.disputePrompt)}
       </p>
-      <div style="margin-top:20px;">
-        <a href="${data.disputeUrl}" target="_blank" style="${ctaButtonStyle}">
-          ${escapeHtml(translations.disputeButtonText)}
-        </a>
-      </div>
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:20px auto 0 auto;">
+        <tr>
+          <td align="center" style="border-radius:30px;background-color:${PRIMARY_BUTTON_COLOR};">
+            <a href="${escapeHtml(data.disputeUrl)}" target="_blank" style="display:inline-block;padding:12px 24px;font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;font-size:16px;color:#ffffff;text-decoration:none;border-radius:30px;font-weight:bold;">${escapeHtml(translations.disputeButtonText)}</a>
+          </td>
+        </tr>
+      </table>
     </td>`;
 }
 

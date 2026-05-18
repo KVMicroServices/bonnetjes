@@ -430,6 +430,28 @@ describe("sendReviewDisableEmail - transport behavior", () => {
     expect(sentArgs.html).toContain("marketing@kiyoh.co.za");
   });
 
+  it("prepends https:// when APP_URL has no scheme so the dispute link is clickable", async () => {
+    process.env.APP_URL = "localhost:3000";
+    mockSendMail.mockResolvedValueOnce({ messageId: "msg-004" });
+
+    const { sendReviewDisableEmail } = await import("@/lib/email/email-service");
+    await sendReviewDisableEmail(VALID_PARAMS);
+
+    const sentArgs = mockSendMail.mock.calls[0][0];
+    expect(sentArgs.html).toContain('href="https://localhost:3000/dispute?token=');
+  });
+
+  it("preserves http:// when APP_URL already has a scheme", async () => {
+    process.env.APP_URL = "http://localhost:3000";
+    mockSendMail.mockResolvedValueOnce({ messageId: "msg-005" });
+
+    const { sendReviewDisableEmail } = await import("@/lib/email/email-service");
+    await sendReviewDisableEmail(VALID_PARAMS);
+
+    const sentArgs = mockSendMail.mock.calls[0][0];
+    expect(sentArgs.html).toContain('href="http://localhost:3000/dispute?token=');
+  });
+
   it("returns failure result when transport throws an error", async () => {
     mockSendMail.mockRejectedValueOnce(new Error("Connection refused"));
 
