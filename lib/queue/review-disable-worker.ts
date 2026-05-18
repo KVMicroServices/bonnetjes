@@ -74,11 +74,11 @@ async function sendDisableNotificationEmail(
   tenantId: number
 ): Promise<void> {
   try {
-    const emailResolution = await resolveReviewerEmail(reviewId, tenantId);
+    const emailResolution = await resolveReviewerEmail(reviewId, locationId, tenantId);
 
     if (!emailResolution.success || !emailResolution.email) {
       logger.warn(
-        { receiptId, reviewId, error: emailResolution.error },
+        { receiptId, reviewId, locationId, error: emailResolution.error },
         "Could not resolve reviewer email, skipping notification"
       );
       return;

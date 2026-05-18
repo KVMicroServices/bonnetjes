@@ -20,40 +20,38 @@ vi.mock("@/lib/review-disable/kiyoh-auth-client", () => ({
 // ─── Test Fixtures ─────────────────────────────────────────────────────────────
 
 const SAMPLE_REVIEW_ID = "review-uuid-abc-123";
-const SAMPLE_TENANT_ID = 98;
+const SAMPLE_LOCATION_ID = "1080211";
+const SAMPLE_TENANT_ID_KIYOH = 98;
+const SAMPLE_TENANT_ID_KV = 99;
 const SAMPLE_BEARER_TOKEN = "test-bearer-token-value";
 
-const REVIEW_RESPONSE_WITH_EMAIL = {
-  reviews: [
-    {
-      email: "reviewer@example.com",
-      reviewId: SAMPLE_REVIEW_ID,
-      rating: 8,
-    },
-  ],
-};
+const REVIEW_RESPONSE_WITH_EMAIL = [
+  {
+    email: "reviewer@example.com",
+    reviewId: SAMPLE_REVIEW_ID,
+    locationId: SAMPLE_LOCATION_ID,
+    tenantId: SAMPLE_TENANT_ID_KIYOH,
+    rating: 10,
+  },
+];
 
-const REVIEW_RESPONSE_EMPTY = {
-  reviews: [],
-};
+const REVIEW_RESPONSE_EMPTY: unknown[] = [];
 
-const REVIEW_RESPONSE_MISSING_EMAIL = {
-  reviews: [
-    {
-      reviewId: SAMPLE_REVIEW_ID,
-      rating: 5,
-    },
-  ],
-};
+const REVIEW_RESPONSE_MISSING_EMAIL = [
+  {
+    reviewId: SAMPLE_REVIEW_ID,
+    locationId: SAMPLE_LOCATION_ID,
+    rating: 5,
+  },
+];
 
-const REVIEW_RESPONSE_BLANK_EMAIL = {
-  reviews: [
-    {
-      email: "   ",
-      reviewId: SAMPLE_REVIEW_ID,
-    },
-  ],
-};
+const REVIEW_RESPONSE_BLANK_EMAIL = [
+  {
+    email: "   ",
+    reviewId: SAMPLE_REVIEW_ID,
+    locationId: SAMPLE_LOCATION_ID,
+  },
+];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -71,7 +69,7 @@ function mockSuccessfulAuth(authMock: ReturnType<typeof vi.fn>) {
 describe("resolveReviewerEmail - success path", () => {
   beforeEach(async () => {
     vi.resetModules();
-    process.env.KIYOH_REVIEW_LIST_URL = "https://www.klantenvertellen.nl/v1/review";
+    delete process.env.KIYOH_REVIEW_LIST_URL;
     const authMock = await getAuthMock();
     mockSuccessfulAuth(authMock);
   });
@@ -82,25 +80,65 @@ describe("resolveReviewerEmail - success path", () => {
     fetchMock.mockResolvedValueOnce(createJsonResponse(REVIEW_RESPONSE_WITH_EMAIL));
 
     const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
-    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_TENANT_ID);
+    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH);
 
     expect(result.success).toBe(true);
     expect(result.email).toBe("reviewer@example.com");
   });
 
-  it("calls the correct URL with reviewId and tenantId parameters", async () => {
+  it("calls the correct URL with reviewId, locationId, and tenantId parameters", async () => {
     const authMock = await getAuthMock();
     mockSuccessfulAuth(authMock);
     fetchMock.mockResolvedValueOnce(createJsonResponse(REVIEW_RESPONSE_WITH_EMAIL));
 
     const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
-    await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_TENANT_ID);
+    await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH);
 
     const fetchCall = fetchMock.mock.calls[0];
     const requestUrl = fetchCall[0] as string;
     expect(requestUrl).toContain("reviewId=review-uuid-abc-123");
+    expect(requestUrl).toContain("locationId=1080211");
     expect(requestUrl).toContain("tenantId=98");
-    expect(requestUrl).toContain("limit=1");
+  });
+
+  it("uses kiyoh.com base URL for tenant 98", async () => {
+    const authMock = await getAuthMock();
+    mockSuccessfulAuth(authMock);
+    fetchMock.mockResolvedValueOnce(createJsonResponse(REVIEW_RESPONSE_WITH_EMAIL));
+
+    const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
+    await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH);
+
+    const fetchCall = fetchMock.mock.calls[0];
+    const requestUrl = fetchCall[0] as string;
+    expect(requestUrl).toContain("https://www.kiyoh.com/v1/review");
+  });
+
+  it("uses klantenvertellen.nl base URL for tenant 99", async () => {
+    const authMock = await getAuthMock();
+    mockSuccessfulAuth(authMock);
+    fetchMock.mockResolvedValueOnce(createJsonResponse(REVIEW_RESPONSE_WITH_EMAIL));
+
+    const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
+    await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KV);
+
+    const fetchCall = fetchMock.mock.calls[0];
+    const requestUrl = fetchCall[0] as string;
+    expect(requestUrl).toContain("https://www.klantenvertellen.nl/v1/review");
+  });
+
+  it("uses env override URL when KIYOH_REVIEW_LIST_URL is set", async () => {
+    process.env.KIYOH_REVIEW_LIST_URL = "https://custom.example.com/v1/review";
+    const authMock = await getAuthMock();
+    mockSuccessfulAuth(authMock);
+    fetchMock.mockResolvedValueOnce(createJsonResponse(REVIEW_RESPONSE_WITH_EMAIL));
+
+    const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
+    await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH);
+
+    const fetchCall = fetchMock.mock.calls[0];
+    const requestUrl = fetchCall[0] as string;
+    expect(requestUrl).toContain("https://custom.example.com/v1/review");
   });
 
   it("includes the bearer token in the Authorization header", async () => {
@@ -109,7 +147,7 @@ describe("resolveReviewerEmail - success path", () => {
     fetchMock.mockResolvedValueOnce(createJsonResponse(REVIEW_RESPONSE_WITH_EMAIL));
 
     const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
-    await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_TENANT_ID);
+    await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH);
 
     const fetchCall = fetchMock.mock.calls[0];
     const requestOptions = fetchCall[1] as RequestInit;
@@ -125,33 +163,33 @@ describe("resolveReviewerEmail - success path", () => {
 
 describe("resolveReviewerEmail - empty response", () => {
   beforeEach(async () => {
-    process.env.KIYOH_REVIEW_LIST_URL = "https://www.klantenvertellen.nl/v1/review";
+    delete process.env.KIYOH_REVIEW_LIST_URL;
     const authMock = await getAuthMock();
     mockSuccessfulAuth(authMock);
   });
 
-  it("returns failure when API returns empty reviews array", async () => {
+  it("returns failure when API returns empty array", async () => {
     const authMock = await getAuthMock();
     mockSuccessfulAuth(authMock);
     fetchMock.mockResolvedValueOnce(createJsonResponse(REVIEW_RESPONSE_EMPTY));
 
     const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
-    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_TENANT_ID);
+    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH);
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("No reviews found");
   });
 
-  it("returns failure when API returns no reviews field", async () => {
+  it("returns failure when API returns non-array response", async () => {
     const authMock = await getAuthMock();
     mockSuccessfulAuth(authMock);
-    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+    fetchMock.mockResolvedValueOnce(createJsonResponse({ reviews: [] }));
 
     const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
-    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_TENANT_ID);
+    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH);
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("No reviews found");
+    expect(result.error).toContain("not an array");
   });
 });
 
@@ -159,7 +197,7 @@ describe("resolveReviewerEmail - empty response", () => {
 
 describe("resolveReviewerEmail - network errors", () => {
   beforeEach(async () => {
-    process.env.KIYOH_REVIEW_LIST_URL = "https://www.klantenvertellen.nl/v1/review";
+    delete process.env.KIYOH_REVIEW_LIST_URL;
     const authMock = await getAuthMock();
     mockSuccessfulAuth(authMock);
   });
@@ -170,7 +208,7 @@ describe("resolveReviewerEmail - network errors", () => {
     fetchMock.mockRejectedValueOnce(createNetworkError("ECONNREFUSED"));
 
     const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
-    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_TENANT_ID);
+    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH);
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Network error");
@@ -183,7 +221,7 @@ describe("resolveReviewerEmail - network errors", () => {
     fetchMock.mockResolvedValueOnce(createErrorResponse(500, "Internal Server Error"));
 
     const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
-    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_TENANT_ID);
+    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH);
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("HTTP 500");
@@ -194,7 +232,7 @@ describe("resolveReviewerEmail - network errors", () => {
     authMock.mockRejectedValueOnce(new Error("Auth token expired"));
 
     const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
-    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_TENANT_ID);
+    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH);
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Authentication failed");
@@ -206,7 +244,7 @@ describe("resolveReviewerEmail - network errors", () => {
 
 describe("resolveReviewerEmail - missing email field", () => {
   beforeEach(async () => {
-    process.env.KIYOH_REVIEW_LIST_URL = "https://www.klantenvertellen.nl/v1/review";
+    delete process.env.KIYOH_REVIEW_LIST_URL;
     const authMock = await getAuthMock();
     mockSuccessfulAuth(authMock);
   });
@@ -217,7 +255,7 @@ describe("resolveReviewerEmail - missing email field", () => {
     fetchMock.mockResolvedValueOnce(createJsonResponse(REVIEW_RESPONSE_MISSING_EMAIL));
 
     const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
-    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_TENANT_ID);
+    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH);
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("email field is empty");
@@ -229,7 +267,7 @@ describe("resolveReviewerEmail - missing email field", () => {
     fetchMock.mockResolvedValueOnce(createJsonResponse(REVIEW_RESPONSE_BLANK_EMAIL));
 
     const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
-    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_TENANT_ID);
+    const result = await resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH);
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("email field is empty");
@@ -242,7 +280,7 @@ describe("resolveReviewerEmail - missing email field", () => {
     const { resolveReviewerEmail } = await import("@/lib/review-disable/kiyoh-review-client");
 
     await expect(
-      resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_TENANT_ID)
+      resolveReviewerEmail(SAMPLE_REVIEW_ID, SAMPLE_LOCATION_ID, SAMPLE_TENANT_ID_KIYOH)
     ).resolves.toBeDefined();
   });
 });

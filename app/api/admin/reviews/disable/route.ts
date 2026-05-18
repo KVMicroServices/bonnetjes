@@ -60,11 +60,11 @@ async function sendDisableNotification(
   failureReason: string
 ): Promise<void> {
   try {
-    const emailResolution = await resolveReviewerEmail(reviewId, tenantId);
+    const emailResolution = await resolveReviewerEmail(reviewId, locationId, tenantId);
 
     if (!emailResolution.success || !emailResolution.email) {
       logger.warn(
-        { reviewId, tenantId, error: emailResolution.error },
+        { reviewId, locationId, tenantId, error: emailResolution.error },
         "Could not resolve reviewer email for disable notification, skipping"
       );
       return;
@@ -80,7 +80,7 @@ async function sendDisableNotification(
 
     if (!sendResult.success) {
       logger.warn(
-        { reviewId, tenantId, error: sendResult.error },
+        { reviewId, locationId, tenantId, error: sendResult.error },
         "Failed to send review disable notification email"
       );
     }
@@ -89,7 +89,7 @@ async function sendDisableNotification(
       ? notificationError.message
       : String(notificationError);
     logger.warn(
-      { reviewId, tenantId, error: errorMessage },
+      { reviewId, locationId, tenantId, error: errorMessage },
       "Unexpected error during disable notification sending"
     );
   }
@@ -140,12 +140,12 @@ export async function POST(request: Request) {
         });
         const failureReason = receipt?.failureReason || "VERIFICATION_FAILED";
 
-        await sendDisableNotification(
+        sendDisableNotification(
           result.reviewId,
           syncState.locationId,
           syncState.tenantId,
           failureReason
-        );
+        ).catch(() => {});
       }
 
       return NextResponse.json({ success: true, reviewId: result.reviewId });
@@ -167,12 +167,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: result.error }, { status: 500 });
       }
 
-      await sendDisableNotification(
+      sendDisableNotification(
         data.reviewId,
         data.locationId,
         data.tenantId,
         ADMIN_DISABLED_REASON
-      );
+      ).catch(() => {});
 
       return NextResponse.json({ success: true });
     }

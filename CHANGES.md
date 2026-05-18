@@ -1,5 +1,14 @@
 # Changes
 
+## [065] Fix Kiyoh review email resolution to match actual API
+
+**What**: Updated `resolveReviewerEmail` to pass `locationId`, parse bare-array response, and derive base URL from tenantId (98→kiyoh.com, 99→klantenvertellen.nl).
+**Decisions**:
+- `locationId` added as required parameter (all callers already had it available)
+- Response parsed as `[{ email, ... }]` array instead of `{ reviews: [...] }` wrapper
+- `KIYOH_REVIEW_LIST_URL` env var still works as override but is no longer required
+**Files**: `lib/review-disable/kiyoh-review-client.ts`, `app/api/admin/reviews/disable/route.ts`, `lib/queue/review-disable-worker.ts`, `tests/services/kiyoh-review-client.test.ts`, `.env.example`
+
 ## [064] Add unit tests for email service and kiyoh review client
 
 **What**: Created test suites for `email-service` and `kiyoh-review-client` covering SMTP validation, translation loading, HTML rendering, and reviewer email resolution.
