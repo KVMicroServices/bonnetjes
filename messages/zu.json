@@ -334,5 +334,29 @@
     "failure_SUSPECTED_FRAUD": "Ukukhwabanisa okusolwayo",
     "failure_UNREADABLE_TEXT": "Umbhalo ongafundeki",
     "failure_MISSING_KEY_FIELDS": "Izindawo ezingekho"
+  },
+  "ReviewDisableEmail": {
+    "subject": "Isibuyekezo sakho sicishiwe",
+    "greeting": "Sawubona,",
+    "body": "Isibuyekezo sakho (ID: {reviewId}) sendawo {locationId} sicishiwe ngoba asiphumelelanga inqubo yethu yokuqinisekisa.",
+    "reasonLabel": "Isizathu",
+    "failureNotAReceipt": "Isithombe esilayishiwe besingesona irisidi esisebenzayo",
+    "failureImageUnclear": "Isithombe serisidi besingacacile ngokwanele ukuqinisekisa",
+    "failureInsufficientInfo": "Irisidi ibingenalo ulwazi olwanele",
+    "failureDuplicateReceipt": "Le risidi seyake yathunyelwa ngaphambilini",
+    "failureReceiptTooOld": "Irisidi indala kakhulu ukuba yamukelwe",
+    "failureSuspectedFraud": "Irisidi iphawulwe ngenxa yokusolwa ngokukhwabanisa",
+    "failureUnreadableText": "Umbhalo kwirisidi awukwazanga ukufundwa",
+    "failureMissingKeyFields": "Irisidi ibingenalo ulwazi oludingekayo",
+    "failureAdminDisabled": "Umphathi ucishe lesi sibuyekezo",
+    "failureVerificationFailed": "Irisidi ayiphumelelanga ukuqinisekiswa",
+    "disputeButtonText": "Phikisa lesi sinqumo",
+    "footer": "Uma ukholelwa ukuthi lokhu bekuyiphutha, chofoza inkinobho engenhla ukuthumela ukuphikisa."
+  },
+  "Dispute": {
+    "title": "Uhlelo lokuPhikisa",
+    "underDevelopment": "Uhlelo lokuphikisa lusekuthuthukisweni okwamanje.",
+    "reviewIdLabel": "I-ID yokuBuyekeza",
+    "checkBackLater": "Sicela ubuye kamuva."
   }
 }

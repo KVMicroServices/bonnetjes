@@ -23,6 +23,8 @@
 
 **Correctness properties**: Keep them simple and short. Only include what's strictly necessary — exhaustive property testing is rarely worth the time cost.
 
+**Tests**: Every spec task list must include a task for unit tests covering the new service/module logic. Tests are not optional — they are part of the deliverable.
+
 **Philosophy**: Small, focused specs that ship fast. One spec = one deliverable.
 
 ---

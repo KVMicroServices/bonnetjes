@@ -1,5 +1,59 @@
 # Changes
 
+## [062] Add unit tests for email service and kiyoh review client
+
+**What**: Created test suites for `email-service` and `kiyoh-review-client` covering SMTP validation, translation loading, HTML rendering, and reviewer email resolution.
+**Files**: `tests/services/email-service.test.ts`, `tests/services/kiyoh-review-client.test.ts`
+
+## [061] Add dispute page placeholder with localization
+
+**What**: Created public `/dispute` server component page with localized placeholder text and reviewId display from search params.
+**Files**: `app/dispute/page.tsx`, all 8 `messages/*.json` files
+
+## [060] Integrate email notification into admin disable route
+
+**What**: After a successful "disable" or "disable-manual" action in the admin route, the handler now resolves the reviewer email via Kiyoh API and sends a notification email.
+**Decisions**:
+- For "disable": tenantId/locationId from ReceiptSyncState, failureReason from Receipt (fallback `VERIFICATION_FAILED`)
+- For "disable-manual": uses provided reviewId/tenantId, generic reason `ADMIN_DISABLED`
+- Extracted `sendDisableNotification` helper that catches all errors — email never affects HTTP response
+
+## [059] Integrate email notification into review-disable worker
+
+**What**: After a successful review disable, the worker now resolves the reviewer email via Kiyoh API and sends a notification email with the receipt's failure reason.
+**Decisions**:
+- Email failures logged as warnings, never affect job success
+- Default failure reason `VERIFICATION_FAILED` used if receipt lookup returns null
+- Outer try-catch ensures no unexpected error can propagate from notification logic
+
+## [058] Add Kiyoh review client for reviewer email resolution
+
+**What**: Created `lib/review-disable/kiyoh-review-client.ts` with `resolveReviewerEmail(reviewId, tenantId)` that fetches the reviewer's email from the Kiyoh review list API (never throws).
+**Decisions**:
+- Reuses `authenticateKiyohAdmin()` for bearer token (cached)
+- Returns `ReviewerEmailResult` with success/email/error fields
+- Added `KIYOH_REVIEW_LIST_URL` to `.env.example` with default `https://www.klantenvertellen.nl/v1/review`
+**Files**: `lib/review-disable/kiyoh-review-client.ts`, `.env.example`
+
+## [057] Add email service module for review-disable notifications
+
+**What**: Created `lib/email/email-service.ts` with `sendReviewDisableEmail` function that validates SMTP config, creates a lazy Nodemailer transport singleton, loads translations, renders HTML, sends email, and returns an `EmailResult` (never throws).
+**Decisions**:
+- Lazy singleton transport created on first successful send (avoids startup failures)
+- SMTP config validated at call time; returns failure result if any var is missing
+- Added `nodemailer@8.0.7` and `@types/nodemailer@8.0.0` as exact-pinned dependencies
+- Added `APP_URL` to `.env.example` for dispute link construction
+**Files**: `lib/email/email-service.ts`, `package.json`, `.env.example`
+
+## [056] Add email translations and template modules for review-disable notifications
+
+**What**: Created `lib/email/email-translations.ts` (server-side translation loader) and `lib/email/email-templates.ts` (inline-styled HTML renderer). Added `ReviewDisableEmail` namespace with 16 keys to all 8 locale files.
+**Decisions**:
+- Reads JSON files directly via `fs` for use in queue worker context (no React/next-intl dependency)
+- Falls back to `en` locale when requested locale is unsupported or file is missing
+- Maps failure reason codes (e.g. `NOT_A_RECEIPT`) to translation keys via constant map
+**Files**: `lib/email/email-translations.ts`, `lib/email/email-templates.ts`, `messages/*.json` (all 8)
+
 ## [055] Add health endpoint to queue worker and queue-worker-dev service
 
 **What**: Added an HTTP health check server to the queue worker process (GET `/health` on port 3001) and a `queue-worker-dev` service to docker-compose.

@@ -334,5 +334,29 @@
     "failure_SUSPECTED_FRAUD": "Vermoeden van fraude",
     "failure_UNREADABLE_TEXT": "Onleesbare tekst",
     "failure_MISSING_KEY_FIELDS": "Ontbrekende velden"
+  },
+  "ReviewDisableEmail": {
+    "subject": "Je review is uitgeschakeld",
+    "greeting": "Hallo,",
+    "body": "Je review (ID: {reviewId}) voor locatie {locationId} is uitgeschakeld omdat deze niet door ons verificatieproces is gekomen.",
+    "reasonLabel": "Reden",
+    "failureNotAReceipt": "De geüploade afbeelding was geen geldige bon",
+    "failureImageUnclear": "De bonafbeelding was te onduidelijk om te verifiëren",
+    "failureInsufficientInfo": "De bon bevatte onvoldoende informatie",
+    "failureDuplicateReceipt": "Deze bon is al eerder ingediend",
+    "failureReceiptTooOld": "De bon is te oud om geaccepteerd te worden",
+    "failureSuspectedFraud": "De bon is gemarkeerd wegens vermoeden van fraude",
+    "failureUnreadableText": "De tekst op de bon kon niet worden gelezen",
+    "failureMissingKeyFields": "De bon miste vereiste informatie",
+    "failureAdminDisabled": "Een beheerder heeft deze review uitgeschakeld",
+    "failureVerificationFailed": "De bon is niet door de verificatie gekomen",
+    "disputeButtonText": "Bezwaar maken",
+    "footer": "Als je denkt dat dit een vergissing is, klik dan op de knop hierboven om een bezwaar in te dienen."
+  },
+  "Dispute": {
+    "title": "Bezwaarsysteem",
+    "underDevelopment": "Het bezwaarsysteem is momenteel in ontwikkeling.",
+    "reviewIdLabel": "Beoordelings-ID",
+    "checkBackLater": "Kom later terug."
   }
 }

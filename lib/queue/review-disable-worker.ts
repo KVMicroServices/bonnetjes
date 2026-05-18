@@ -4,6 +4,8 @@ import { REVIEW_DISABLE_QUEUE } from "./review-disable-queue";
 import type { ReviewDisableJobData } from "./review-disable-queue";
 import { prisma } from "@/lib/db";
 import { disableReviewByReceiptId } from "@/lib/review-disable/review-disable-service";
+import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
+import { sendReviewDisableEmail } from "@/lib/email/email-service";
 import { logger } from "@/lib/logger";
 
 // ─── Worker Configuration ────────────────────────────────────────────────────
@@ -54,6 +56,79 @@ async function processReviewDisableJob(job: Job<ReviewDisableJobData>): Promise<
     { receiptId, reviewId, attempt: attemptNumber },
     "Review disable completed successfully"
   );
+
+  // ─── Email Notification ──────────────────────────────────────────────────
+
+  await sendDisableNotificationEmail(receiptId, reviewId, locationId, tenantId);
+}
+
+// ─── Email Notification Helper ─────────────────────────────────────────────
+
+const DEFAULT_FAILURE_REASON = "VERIFICATION_FAILED";
+const EMAIL_LOCALE = "en";
+
+async function sendDisableNotificationEmail(
+  receiptId: string,
+  reviewId: string,
+  locationId: string,
+  tenantId: number
+): Promise<void> {
+  try {
+    const emailResolution = await resolveReviewerEmail(reviewId, tenantId);
+
+    if (!emailResolution.success || !emailResolution.email) {
+      logger.warn(
+        { receiptId, reviewId, error: emailResolution.error },
+        "Could not resolve reviewer email, skipping notification"
+      );
+      return;
+    }
+
+    const recipientEmail = emailResolution.email;
+
+    let failureReason = DEFAULT_FAILURE_REASON;
+    try {
+      const receipt = await prisma.receipt.findUnique({
+        where: { id: receiptId },
+        select: { failureReason: true },
+      });
+
+      if (receipt && receipt.failureReason) {
+        failureReason = receipt.failureReason;
+      }
+    } catch (receiptLookupError) {
+      const errorMessage = receiptLookupError instanceof Error
+        ? receiptLookupError.message
+        : String(receiptLookupError);
+      logger.warn(
+        { receiptId, reviewId, error: errorMessage },
+        "Failed to look up receipt failureReason, using default"
+      );
+    }
+
+    const sendResult = await sendReviewDisableEmail({
+      recipientEmail: recipientEmail,
+      locale: EMAIL_LOCALE,
+      reviewId: reviewId,
+      locationId: locationId,
+      failureReason: failureReason,
+    });
+
+    if (!sendResult.success) {
+      logger.warn(
+        { receiptId, reviewId, error: sendResult.error },
+        "Failed to send disable notification email"
+      );
+    }
+  } catch (notificationError) {
+    const errorMessage = notificationError instanceof Error
+      ? notificationError.message
+      : String(notificationError);
+    logger.warn(
+      { receiptId, reviewId, error: errorMessage },
+      "Unexpected error during email notification, skipping"
+    );
+  }
 }
 
 // ─── Worker Lifecycle ────────────────────────────────────────────────────────

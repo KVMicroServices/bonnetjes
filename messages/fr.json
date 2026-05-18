@@ -334,5 +334,29 @@
     "failure_SUSPECTED_FRAUD": "Suspicion de fraude",
     "failure_UNREADABLE_TEXT": "Texte illisible",
     "failure_MISSING_KEY_FIELDS": "Champs obligatoires manquants"
+  },
+  "ReviewDisableEmail": {
+    "subject": "Votre avis a été désactivé",
+    "greeting": "Bonjour,",
+    "body": "Votre avis (ID : {reviewId}) pour l'emplacement {locationId} a été désactivé car il n'a pas passé notre processus de vérification.",
+    "reasonLabel": "Raison",
+    "failureNotAReceipt": "L'image téléchargée n'était pas un reçu valide",
+    "failureImageUnclear": "L'image du reçu était trop floue pour être vérifiée",
+    "failureInsufficientInfo": "Le reçu ne contenait pas suffisamment d'informations",
+    "failureDuplicateReceipt": "Ce reçu a déjà été soumis",
+    "failureReceiptTooOld": "Le reçu est trop ancien pour être accepté",
+    "failureSuspectedFraud": "Le reçu a été signalé pour suspicion de fraude",
+    "failureUnreadableText": "Le texte du reçu n'a pas pu être lu",
+    "failureMissingKeyFields": "Le reçu manquait d'informations requises",
+    "failureAdminDisabled": "Un administrateur a désactivé cet avis",
+    "failureVerificationFailed": "Le reçu n'a pas passé la vérification",
+    "disputeButtonText": "Contester cette décision",
+    "footer": "Si vous pensez qu'il s'agit d'une erreur, cliquez sur le bouton ci-dessus pour soumettre une contestation."
+  },
+  "Dispute": {
+    "title": "Système de contestation",
+    "underDevelopment": "Le système de contestation est actuellement en cours de développement.",
+    "reviewIdLabel": "ID de l'avis",
+    "checkBackLater": "Veuillez revenir plus tard."
   }
 }

@@ -334,5 +334,29 @@
     "failure_SUSPECTED_FRAUD": "Ukuqhathwa okurhanelwayo",
     "failure_UNREADABLE_TEXT": "Isicatshulwa esingafundekiyo",
     "failure_MISSING_KEY_FIELDS": "Iindawo ezingekhoyo"
+  },
+  "ReviewDisableEmail": {
+    "subject": "Uphononongo lwakho lucinyiwe",
+    "greeting": "Molo,",
+    "body": "Uphononongo lwakho (ID: {reviewId}) lwendawo {locationId} lucinyiwe kuba aluphumelelanga inkqubo yethu yokuqinisekisa.",
+    "reasonLabel": "Isizathu",
+    "failureNotAReceipt": "Umfanekiso olayishiweyo ubungeyiyo irisithi esebenzayo",
+    "failureImageUnclear": "Umfanekiso werisithi ubungacacanga ngokwaneleyo ukuqinisekisa",
+    "failureInsufficientInfo": "Irisithi ibingenalo ulwazi olwaneleyo",
+    "failureDuplicateReceipt": "Le risithi sele ithunyelwe ngaphambili",
+    "failureReceiptTooOld": "Irisithi indala kakhulu ukuba yamkelwe",
+    "failureSuspectedFraud": "Irisithi iphawulwe ngenxa yokurhanelwa kokuqhathwa",
+    "failureUnreadableText": "Isicatshulwa kwirisithi asikwazanga ukufundwa",
+    "failureMissingKeyFields": "Irisithi ibingenalo ulwazi olufunekayo",
+    "failureAdminDisabled": "Umlawuli ucime olu phononongo",
+    "failureVerificationFailed": "Irisithi ayiphumelelanga ukuqinisekiswa",
+    "disputeButtonText": "Phikisa esi sigqibo",
+    "footer": "Ukuba ukholelwa ukuba oku yimpazamo, cofa iqhosha elingentla ukuthumela ukuphikisa."
+  },
+  "Dispute": {
+    "title": "Inkqubo yokuPhikisa",
+    "underDevelopment": "Inkqubo yokuphikisa isekuphuhliseni okwangoku.",
+    "reviewIdLabel": "I-ID yoHlaziyo",
+    "checkBackLater": "Nceda ubuye kamva."
   }
 }

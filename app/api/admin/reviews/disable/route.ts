@@ -5,12 +5,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/db";
 import {
   disableReviewByReceiptId,
   enableReviewByReceiptId,
   disableReviewManual,
   enableReviewManual,
 } from "@/lib/review-disable/review-disable-service";
+import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
+import { sendReviewDisableEmail } from "@/lib/email/email-service";
 
 const disableByReceiptSchema = z.object({
   action: z.literal("disable"),
@@ -42,6 +45,55 @@ const requestSchema = z.discriminatedUnion("action", [
   disableManualSchema,
   enableManualSchema,
 ]);
+
+const ADMIN_DISABLED_REASON = "ADMIN_DISABLED";
+const DEFAULT_EMAIL_LOCALE = "en";
+
+/**
+ * Attempts to resolve the reviewer email and send a disable notification.
+ * Logs warnings on failure but never throws — email is fire-and-forget.
+ */
+async function sendDisableNotification(
+  reviewId: string,
+  locationId: string,
+  tenantId: number,
+  failureReason: string
+): Promise<void> {
+  try {
+    const emailResolution = await resolveReviewerEmail(reviewId, tenantId);
+
+    if (!emailResolution.success || !emailResolution.email) {
+      logger.warn(
+        { reviewId, tenantId, error: emailResolution.error },
+        "Could not resolve reviewer email for disable notification, skipping"
+      );
+      return;
+    }
+
+    const sendResult = await sendReviewDisableEmail({
+      recipientEmail: emailResolution.email,
+      locale: DEFAULT_EMAIL_LOCALE,
+      reviewId: reviewId,
+      locationId: locationId,
+      failureReason: failureReason,
+    });
+
+    if (!sendResult.success) {
+      logger.warn(
+        { reviewId, tenantId, error: sendResult.error },
+        "Failed to send review disable notification email"
+      );
+    }
+  } catch (notificationError) {
+    const errorMessage = notificationError instanceof Error
+      ? notificationError.message
+      : String(notificationError);
+    logger.warn(
+      { reviewId, tenantId, error: errorMessage },
+      "Unexpected error during disable notification sending"
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -75,6 +127,27 @@ export async function POST(request: Request) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 404 });
       }
+
+      const syncState = await prisma.receiptSyncState.findFirst({
+        where: { receiptId: data.receiptId },
+        select: { tenantId: true, locationId: true },
+      });
+
+      if (syncState && result.reviewId) {
+        const receipt = await prisma.receipt.findUnique({
+          where: { id: data.receiptId },
+          select: { failureReason: true },
+        });
+        const failureReason = receipt?.failureReason || "VERIFICATION_FAILED";
+
+        await sendDisableNotification(
+          result.reviewId,
+          syncState.locationId,
+          syncState.tenantId,
+          failureReason
+        );
+      }
+
       return NextResponse.json({ success: true, reviewId: result.reviewId });
     }
 
@@ -93,6 +166,14 @@ export async function POST(request: Request) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 500 });
       }
+
+      await sendDisableNotification(
+        data.reviewId,
+        data.locationId,
+        data.tenantId,
+        ADMIN_DISABLED_REASON
+      );
+
       return NextResponse.json({ success: true });
     }
 

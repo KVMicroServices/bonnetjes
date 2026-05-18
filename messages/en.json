@@ -334,5 +334,29 @@
     "failure_SUSPECTED_FRAUD": "Suspected Fraud",
     "failure_UNREADABLE_TEXT": "Unreadable Text",
     "failure_MISSING_KEY_FIELDS": "Missing Key Fields"
+  },
+  "ReviewDisableEmail": {
+    "subject": "Your review has been disabled",
+    "greeting": "Hello,",
+    "body": "Your review (ID: {reviewId}) for location {locationId} has been disabled because it did not pass our verification process.",
+    "reasonLabel": "Reason",
+    "failureNotAReceipt": "The uploaded image was not a valid receipt",
+    "failureImageUnclear": "The receipt image was too unclear to verify",
+    "failureInsufficientInfo": "The receipt did not contain sufficient information",
+    "failureDuplicateReceipt": "This receipt has already been submitted",
+    "failureReceiptTooOld": "The receipt is too old to be accepted",
+    "failureSuspectedFraud": "The receipt was flagged for suspected fraud",
+    "failureUnreadableText": "The text on the receipt could not be read",
+    "failureMissingKeyFields": "The receipt was missing required information",
+    "failureAdminDisabled": "An administrator has disabled this review",
+    "failureVerificationFailed": "The receipt did not pass verification",
+    "disputeButtonText": "Dispute this decision",
+    "footer": "If you believe this was a mistake, click the button above to submit a dispute."
+  },
+  "Dispute": {
+    "title": "Dispute System",
+    "underDevelopment": "The dispute system is currently under development.",
+    "reviewIdLabel": "Review ID",
+    "checkBackLater": "Please check back later."
   }
 }

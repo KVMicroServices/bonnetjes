@@ -334,5 +334,29 @@
     "failure_SUSPECTED_FRAUD": "Vermoedelike bedrog",
     "failure_UNREADABLE_TEXT": "Onleesbare teks",
     "failure_MISSING_KEY_FIELDS": "Ontbrekende velde"
+  },
+  "ReviewDisableEmail": {
+    "subject": "Jou resensie is gedeaktiveer",
+    "greeting": "Hallo,",
+    "body": "Jou resensie (ID: {reviewId}) vir ligging {locationId} is gedeaktiveer omdat dit nie ons verifikasieproses geslaag het nie.",
+    "reasonLabel": "Rede",
+    "failureNotAReceipt": "Die opgelaaide beeld was nie 'n geldige kwitansie nie",
+    "failureImageUnclear": "Die kwitansie-beeld was te onduidelik om te verifieer",
+    "failureInsufficientInfo": "Die kwitansie het nie voldoende inligting bevat nie",
+    "failureDuplicateReceipt": "Hierdie kwitansie is reeds voorheen ingedien",
+    "failureReceiptTooOld": "Die kwitansie is te oud om aanvaar te word",
+    "failureSuspectedFraud": "Die kwitansie is gemerk weens vermoedelike bedrog",
+    "failureUnreadableText": "Die teks op die kwitansie kon nie gelees word nie",
+    "failureMissingKeyFields": "Die kwitansie het vereiste inligting ontbreek",
+    "failureAdminDisabled": "'n Administrateur het hierdie resensie gedeaktiveer",
+    "failureVerificationFailed": "Die kwitansie het nie die verifikasie geslaag nie",
+    "disputeButtonText": "Betwis hierdie besluit",
+    "footer": "As jy glo dit was 'n fout, klik op die knoppie hierbo om 'n betwisting in te dien."
+  },
+  "Dispute": {
+    "title": "Betwistingstelsel",
+    "underDevelopment": "Die betwistingstelsel is tans in ontwikkeling.",
+    "reviewIdLabel": "Resensie-ID",
+    "checkBackLater": "Kom asseblief later terug."
   }
 }

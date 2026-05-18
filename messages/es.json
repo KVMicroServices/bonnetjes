@@ -334,5 +334,29 @@
     "failure_SUSPECTED_FRAUD": "Sospecha de fraude",
     "failure_UNREADABLE_TEXT": "Texto ilegible",
     "failure_MISSING_KEY_FIELDS": "Campos obligatorios faltantes"
+  },
+  "ReviewDisableEmail": {
+    "subject": "Tu reseña ha sido desactivada",
+    "greeting": "Hola,",
+    "body": "Tu reseña (ID: {reviewId}) para la ubicación {locationId} ha sido desactivada porque no pasó nuestro proceso de verificación.",
+    "reasonLabel": "Motivo",
+    "failureNotAReceipt": "La imagen subida no era un recibo válido",
+    "failureImageUnclear": "La imagen del recibo era demasiado poco clara para verificar",
+    "failureInsufficientInfo": "El recibo no contenía información suficiente",
+    "failureDuplicateReceipt": "Este recibo ya ha sido enviado anteriormente",
+    "failureReceiptTooOld": "El recibo es demasiado antiguo para ser aceptado",
+    "failureSuspectedFraud": "El recibo fue marcado por sospecha de fraude",
+    "failureUnreadableText": "El texto del recibo no pudo ser leído",
+    "failureMissingKeyFields": "Al recibo le faltaba información requerida",
+    "failureAdminDisabled": "Un administrador ha desactivado esta reseña",
+    "failureVerificationFailed": "El recibo no pasó la verificación",
+    "disputeButtonText": "Disputar esta decisión",
+    "footer": "Si crees que esto fue un error, haz clic en el botón de arriba para enviar una disputa."
+  },
+  "Dispute": {
+    "title": "Sistema de disputas",
+    "underDevelopment": "El sistema de disputas está actualmente en desarrollo.",
+    "reviewIdLabel": "ID de la reseña",
+    "checkBackLater": "Por favor, vuelve más tarde."
   }
 }
