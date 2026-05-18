@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { logger } from "@/lib/logger";
+import { convertPdfToImages } from "@/lib/pdf-to-image";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -115,12 +116,7 @@ interface ImageUrlContent {
   image_url: { url: string };
 }
 
-interface FileContent {
-  type: "file";
-  file: { file_id: string };
-}
-
-type MessageContent = TextContent | ImageUrlContent | FileContent;
+type MessageContent = TextContent | ImageUrlContent;
 
 export interface OcrMessage {
   role: "user";
@@ -194,26 +190,6 @@ export function buildOcrMessages(
   originalFilename: string
 ): ReadonlyArray<OcrMessage> {
   const base64Content = fileBuffer.toString("base64");
-  const isPdf = fileType === "pdf" || originalFilename.toLowerCase().endsWith(".pdf");
-
-  if (isPdf) {
-    const mimeType = "application/pdf";
-    const dataUri = `data:${mimeType};base64,${base64Content}`;
-    const pdfPrompt = OCR_PROMPT + "\n\nNote: This is a PDF document provided as base64. Extract what information you can from the text content.";
-
-    const messages: OcrMessage[] = [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: pdfPrompt },
-          { type: "image_url", image_url: { url: dataUri } }
-        ]
-      }
-    ];
-
-    return messages;
-  }
-
   const mimeType = "image/jpeg";
   const dataUri = `data:${mimeType};base64,${base64Content}`;
 
@@ -230,7 +206,7 @@ export function buildOcrMessages(
   return messages;
 }
 
-/** Build messages for PDF using the OpenAI Files API (upload-based approach). */
+/** Build OCR messages, converting PDFs to images first. */
 export async function buildOcrMessagesWithFileUpload(
   fileBuffer: Buffer,
   fileType: string,
@@ -243,31 +219,34 @@ export async function buildOcrMessagesWithFileUpload(
     return buildOcrMessages(fileBuffer, fileType, originalFilename);
   }
 
-  const fileBlob = new Blob([fileBuffer], { type: "application/pdf" });
-  const formData = new FormData();
-  formData.append("file", fileBlob, originalFilename || "receipt.pdf");
-  formData.append("purpose", "assistants");
+  const conversionResult = await convertPdfToImages(fileBuffer);
 
-  const uploadResponse = await fetch(`${config.baseUrl}/files`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${config.apiKey}` },
-    body: formData
-  });
-
-  if (!uploadResponse.ok) {
-    return buildOcrMessages(fileBuffer, fileType, originalFilename);
+  if (!conversionResult.success) {
+    logger.error(
+      { error: conversionResult.error, filename: originalFilename },
+      "PDF conversion failed, cannot process receipt"
+    );
+    throw new Error(`PDF conversion failed: ${conversionResult.error}`);
   }
 
-  const uploadData = await uploadResponse.json();
-  const fileId: string = uploadData.id;
+  if (conversionResult.pages.length === 0) {
+    throw new Error("PDF conversion produced no pages");
+  }
+
+  const imageContent: MessageContent[] = [
+    { type: "text", text: OCR_PROMPT }
+  ];
+
+  for (const page of conversionResult.pages) {
+    const base64Content = page.pngBuffer.toString("base64");
+    const dataUri = `data:image/png;base64,${base64Content}`;
+    imageContent.push({ type: "image_url", image_url: { url: dataUri } });
+  }
 
   const messages: OcrMessage[] = [
     {
       role: "user",
-      content: [
-        { type: "text", text: OCR_PROMPT },
-        { type: "file", file: { file_id: fileId } }
-      ]
+      content: imageContent
     }
   ];
 
@@ -475,8 +454,6 @@ export async function processReceiptOcr(
   const fileType = receipt.fileType || "image";
   const originalFilename = receipt.originalFilename || "receipt";
 
-  const messages = buildOcrMessages(fileBuffer, fileType, originalFilename);
-
   const aiBaseUrl = process.env.AI_API_BASE_URL || DEFAULT_AI_BASE_URL;
   const aiModel = process.env.AI_MODEL_NAME || DEFAULT_AI_MODEL;
   const aiApiKey = process.env.AI_API_KEY || "";
@@ -487,6 +464,8 @@ export async function processReceiptOcr(
     model: aiModel,
     streaming: false
   };
+
+  const messages = await buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config);
 
   const apiResult = await callOcrApi(messages, config);
 

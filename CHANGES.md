@@ -1,5 +1,15 @@
 # Changes
 
+## [056] Fix PDF OCR by converting to images before sending to LLM
+
+**What**: PDFs are now rendered to PNG images server-side using `pdfjs-dist` + `@napi-rs/canvas` before being sent to the OpenAI API, fixing 400 errors caused by sending `application/pdf` data URIs to the Chat Completions endpoint.
+**Why**: OpenAI Chat Completions only accepts image formats (JPEG, PNG, GIF, WebP) in `image_url` content — not PDFs. The previous Files API fallback also only works with the Assistants API.
+**Decisions**:
+- Uses `pdfjs-dist` (pure JS) + `@napi-rs/canvas` (Rust, no native compilation) — no system deps needed in Alpine Docker
+- Converts up to 3 pages per PDF at 2x scale, sends all as separate `image_url` entries
+- Moved `@napi-rs/canvas` from devDependencies to dependencies for production availability
+**Files**: `lib/pdf-to-image.ts`, `lib/services/ocr-service.ts`, `package.json`, `tests/services/ocr-service.test.ts`
+
 ## [055] Add health endpoint to queue worker and queue-worker-dev service
 
 **What**: Added an HTTP health check server to the queue worker process (GET `/health` on port 3001) and a `queue-worker-dev` service to docker-compose.
