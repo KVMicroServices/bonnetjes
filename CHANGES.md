@@ -1,5 +1,14 @@
 # Changes
 
+## [066] Fix PDF conversion failure caused by useSystemFonts in Alpine
+
+**What**: `convertPdfToImages` no longer asks pdfjs-dist to use system fonts. Standard fonts and CMaps are now resolved from the bundled `pdfjs-dist` package via `file://` URLs.
+**Why**: With `useSystemFonts: true`, pdfjs-dist's Node font factory ended up passing an undefined font path into a NAPI binding, producing the cryptic runtime error `Value is none of these types 'String', 'Path'` and aborting every PDF receipt job in the worker (Alpine has no system fonts/fontconfig).
+**Decisions**:
+- Resolve `pdfjs-dist/package.json` at module load via `createRequire(import.meta.url)` so the same code works under both Next.js and the tsx worker
+- Pass `standardFontDataUrl`, `cMapUrl`, and `cMapPacked: true` so embedded text in receipts still renders correctly
+**Files**: `lib/pdf-to-image.ts`
+
 ## [065] Fix Kiyoh review email resolution to match actual API
 
 **What**: Updated `resolveReviewerEmail` to pass `locationId`, parse bare-array response, and derive base URL from tenantId (98→kiyoh.com, 99→klantenvertellen.nl).
