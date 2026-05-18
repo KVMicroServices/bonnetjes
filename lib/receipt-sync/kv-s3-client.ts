@@ -5,7 +5,14 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logger } from "@/lib/logger";
-import type { S3ObjectInfo, SyncConfiguration } from "./types";
+import type { S3ObjectInfo } from "./types";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface KvS3Configuration {
+  readonly kvReceiptS3BucketName: string;
+  readonly kvReceiptAwsRegion: string;
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -17,7 +24,7 @@ export class KvS3Client {
   private readonly s3Client: S3Client;
   private readonly bucketName: string;
 
-  constructor(configuration: SyncConfiguration) {
+  constructor(configuration: KvS3Configuration) {
     this.bucketName = configuration.kvReceiptS3BucketName;
 
     const accessKeyId = process.env.KV_RECEIPT_AWS_ACCESS_KEY_ID;
