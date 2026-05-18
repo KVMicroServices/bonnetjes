@@ -66,6 +66,7 @@ const SAMPLE_TRANSLATIONS = {
   signOff: "Kind regards,",
   teamName: "The Review Team",
   termsButtonText: "View Terms of Use",
+  privacyButtonText: "Privacy Policy",
   questionsLabel: "Questions?",
   reasonLabel: "Reason",
   failureReasonText: "The uploaded image was not a valid receipt",
@@ -75,8 +76,9 @@ const SAMPLE_BRAND = {
   brandName: "Klantenvertellen",
   logoUrl: "https://mcusercontent.com/841b96d7208ddd848e8215ade/images/6aa90dcf-7d1b-4904-886c-cd9ee64d3b67.png",
   bannerImageUrl: "https://kiyoh.com/wp-content/uploads/AdobeStock_262582377-scaled-e1599809135705.jpg",
-  termsUrl: "https://www.klantenvertellen.nl/gebruiksvoorwaarden-klantbeoordelingssysteem/",
-  supportEmail: "support@klantenvertellen.nl",
+  termsUrl: "https://www.klantenvertellen.nl/en/terms-of-use-customer-review-system/",
+  privacyPolicyUrl: "https://kiyoh.com/privacy/",
+  supportEmail: "marketing@kiyoh.co.za",
 };
 
 // ─── Tests: SMTP Config Validation ────────────────────────────────────────────
@@ -216,8 +218,9 @@ describe("resolveBrandConfig", () => {
 
     expect(brand.brandName).toBe("Kiyoh");
     expect(brand.logoUrl).toContain("mcusercontent.com");
-    expect(brand.supportEmail).toBe("support@kiyoh.com");
-    expect(brand.termsUrl).toContain("kiyoh.com");
+    expect(brand.supportEmail).toBe("marketing@kiyoh.co.za");
+    expect(brand.termsUrl).toContain("klantenvertellen.nl/en/terms-of-use-customer-review-system");
+    expect(brand.privacyPolicyUrl).toBe("https://kiyoh.com/privacy/");
   });
 
   it("returns Klantenvertellen branding for tenant 99", async () => {
@@ -227,8 +230,9 @@ describe("resolveBrandConfig", () => {
 
     expect(brand.brandName).toBe("Klantenvertellen");
     expect(brand.logoUrl).toContain("mcusercontent.com");
-    expect(brand.supportEmail).toBe("support@klantenvertellen.nl");
-    expect(brand.termsUrl).toContain("klantenvertellen.nl");
+    expect(brand.supportEmail).toBe("marketing@kiyoh.co.za");
+    expect(brand.termsUrl).toContain("klantenvertellen.nl/en/terms-of-use-customer-review-system");
+    expect(brand.privacyPolicyUrl).toBe("https://kiyoh.com/privacy/");
   });
 });
 
@@ -331,6 +335,21 @@ describe("renderDisableEmailHtml", () => {
     expect(html).toContain(SAMPLE_TRANSLATIONS.termsButtonText);
   });
 
+  it("renders the privacy policy link in the footer", async () => {
+    const { renderDisableEmailHtml } = await import("@/lib/email/email-templates");
+
+    const html = renderDisableEmailHtml({
+      reviewId: "rev-abc-123",
+      locationId: "loc-789",
+      disputeUrl: "https://app.reviewreceipts.com/dispute?token=abc",
+      translations: SAMPLE_TRANSLATIONS,
+      brand: SAMPLE_BRAND,
+    });
+
+    expect(html).toContain(SAMPLE_BRAND.privacyPolicyUrl);
+    expect(html).toContain("Privacy Policy");
+  });
+
   it("escapes HTML special characters in translation values", async () => {
     const { renderDisableEmailHtml } = await import("@/lib/email/email-templates");
 
@@ -397,7 +416,7 @@ describe("sendReviewDisableEmail - transport behavior", () => {
 
     const sentArgs = mockSendMail.mock.calls[0][0];
     expect(sentArgs.html).toContain("mcusercontent.com");
-    expect(sentArgs.html).toContain("support@klantenvertellen.nl");
+    expect(sentArgs.html).toContain("marketing@kiyoh.co.za");
   });
 
   it("uses the Kiyoh branding when tenantId is 98", async () => {
@@ -408,7 +427,7 @@ describe("sendReviewDisableEmail - transport behavior", () => {
 
     const sentArgs = mockSendMail.mock.calls[0][0];
     expect(sentArgs.html).toContain("mcusercontent.com");
-    expect(sentArgs.html).toContain("support@kiyoh.com");
+    expect(sentArgs.html).toContain("marketing@kiyoh.co.za");
   });
 
   it("returns failure result when transport throws an error", async () => {

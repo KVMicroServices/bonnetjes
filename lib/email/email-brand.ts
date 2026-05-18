@@ -11,13 +11,12 @@ const KIYOH_LOGO_URL =
 const KLANTENVERTELLEN_LOGO_URL =
   "https://mcusercontent.com/841b96d7208ddd848e8215ade/images/6aa90dcf-7d1b-4904-886c-cd9ee64d3b67.png";
 
-const KIYOH_TERMS_URL =
-  "https://www.kiyoh.com/consumer/terms-of-use-customer-rating-system";
-const KLANTENVERTELLEN_TERMS_URL =
-  "https://www.klantenvertellen.nl/gebruiksvoorwaarden-klantbeoordelingssysteem/";
+const TERMS_URL =
+  "https://www.klantenvertellen.nl/en/terms-of-use-customer-review-system/";
 
-const KIYOH_SUPPORT_EMAIL = "support@kiyoh.com";
-const KLANTENVERTELLEN_SUPPORT_EMAIL = "support@klantenvertellen.nl";
+const PRIVACY_POLICY_URL = "https://kiyoh.com/privacy/";
+
+const SUPPORT_EMAIL = "marketing@kiyoh.co.za";
 
 const KIYOH_BRAND_NAME = "Kiyoh";
 const KLANTENVERTELLEN_BRAND_NAME = "Klantenvertellen";
@@ -30,6 +29,7 @@ export interface BrandConfig {
   readonly logoUrl: string;
   readonly bannerImageUrl: string;
   readonly termsUrl: string;
+  readonly privacyPolicyUrl: string;
   readonly supportEmail: string;
 }
 
@@ -39,8 +39,9 @@ export function resolveBrandConfig(tenantId: number): BrandConfig {
       brandName: KIYOH_BRAND_NAME,
       logoUrl: KIYOH_LOGO_URL,
       bannerImageUrl: BANNER_IMAGE_URL,
-      termsUrl: KIYOH_TERMS_URL,
-      supportEmail: KIYOH_SUPPORT_EMAIL,
+      termsUrl: TERMS_URL,
+      privacyPolicyUrl: PRIVACY_POLICY_URL,
+      supportEmail: SUPPORT_EMAIL,
     };
   }
 
@@ -48,7 +49,8 @@ export function resolveBrandConfig(tenantId: number): BrandConfig {
     brandName: KLANTENVERTELLEN_BRAND_NAME,
     logoUrl: KLANTENVERTELLEN_LOGO_URL,
     bannerImageUrl: BANNER_IMAGE_URL,
-    termsUrl: KLANTENVERTELLEN_TERMS_URL,
-    supportEmail: KLANTENVERTELLEN_SUPPORT_EMAIL,
+    termsUrl: TERMS_URL,
+    privacyPolicyUrl: PRIVACY_POLICY_URL,
+    supportEmail: SUPPORT_EMAIL,
   };
 }

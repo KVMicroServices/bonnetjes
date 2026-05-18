@@ -353,6 +353,7 @@
     "signOff": "Kind regards,",
     "teamName": "The Review Team",
     "termsButtonText": "View the Terms of Use",
+    "privacyButtonText": "Privacy Policy",
     "questionsLabel": "Questions?",
     "reasonLabel": "Reason",
     "failureNotAReceipt": "The uploaded image was not a valid receipt",

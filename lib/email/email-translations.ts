@@ -41,6 +41,7 @@ const TRANSLATION_KEYS: ReadonlyArray<keyof DisableEmailTranslations> = [
   "signOff",
   "teamName",
   "termsButtonText",
+  "privacyButtonText",
   "questionsLabel",
   "reasonLabel",
 ];

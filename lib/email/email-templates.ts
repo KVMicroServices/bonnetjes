@@ -17,6 +17,7 @@ export interface DisableEmailTranslations {
   readonly signOff: string;
   readonly teamName: string;
   readonly termsButtonText: string;
+  readonly privacyButtonText: string;
   readonly questionsLabel: string;
   readonly reasonLabel: string;
   readonly failureReasonText: string;
@@ -27,6 +28,7 @@ export interface DisableEmailBrand {
   readonly logoUrl: string;
   readonly bannerImageUrl: string;
   readonly termsUrl: string;
+  readonly privacyPolicyUrl: string;
   readonly supportEmail: string;
 }
 
@@ -197,6 +199,10 @@ function renderFooterCard(data: DisableEmailData): string {
             <div style="margin:20px 0;">
               <a href="${brand.termsUrl}" target="_blank" style="${termsButtonStyle}">
                 ${escapeHtml(translations.termsButtonText)}
+              </a>
+              &nbsp;&nbsp;
+              <a href="${brand.privacyPolicyUrl}" target="_blank" style="${termsButtonStyle}">
+                ${escapeHtml(translations.privacyButtonText)}
               </a>
             </div>
             <p style="font-size:14px;color:${MUTED_TEXT_COLOR};font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;">
