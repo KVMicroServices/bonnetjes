@@ -55,6 +55,29 @@ ENV HOSTNAME="0.0.0.0"
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "server.js"]
 
+# --- Worker stage (queue worker with full source for tsx) ---
+FROM base AS worker
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+
+USER nextjs
+
+EXPOSE 3001
+ENV WORKER_HEALTH_PORT=3001
+
+CMD ["npx", "tsx", "scripts/queue-worker.ts"]
+
 # --- Staging stage (full install, migrations, seeding available) ---
 FROM base AS staging
 WORKDIR /app
