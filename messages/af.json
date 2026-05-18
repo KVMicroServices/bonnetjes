@@ -127,6 +127,7 @@
     "statusVerified": "Goedgekeur",
     "statusRejected": "Verwerp",
     "statusPending": "Hangend",
+    "statusRequiresReview": "Hersiening Benodig",
     "approved": "goedgekeur",
     "rejected": "verwerp",
     "receipts": "kwitansies",

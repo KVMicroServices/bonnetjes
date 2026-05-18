@@ -127,6 +127,7 @@
     "statusVerified": "Goedgekeurd",
     "statusRejected": "Afgewezen",
     "statusPending": "In afwachting",
+    "statusRequiresReview": "Beoordeling vereist",
     "approved": "goedgekeurd",
     "rejected": "afgewezen",
     "receipts": "bonnen",

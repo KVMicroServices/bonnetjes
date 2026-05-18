@@ -127,6 +127,7 @@
     "statusVerified": "Genehmigt",
     "statusRejected": "Abgelehnt",
     "statusPending": "Ausstehend",
+    "statusRequiresReview": "Überprüfung erforderlich",
     "approved": "genehmigt",
     "rejected": "abgelehnt",
     "receipts": "Belege",

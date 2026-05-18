@@ -85,7 +85,7 @@ export async function getDashboardStats(
     recentActions,
   ] = await Promise.all([
     database.receipt.count(),
-    database.receipt.count({ where: { verificationStatus: "pending" } }),
+    database.receipt.count({ where: { verificationStatus: { in: ["pending", "requires_review"] } } }),
     database.receipt.count({ where: { verificationStatus: "verified" } }),
     database.receipt.count({
       where: { verificationStatus: { in: ["rejected", "flagged"] } },

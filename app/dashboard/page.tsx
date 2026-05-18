@@ -495,12 +495,15 @@ export default function DashboardPage() {
     if (filter === "rejected") {
       return r?.verificationStatus === "rejected" || r?.verificationStatus === "flagged";
     }
+    if (filter === "pending") {
+      return r?.verificationStatus === "pending" || r?.verificationStatus === "requires_review";
+    }
     return r?.verificationStatus === filter;
   });
 
   const stats = {
     total: activeReceipts.length,
-    pending: activeReceipts.filter((r) => r?.verificationStatus === "pending").length,
+    pending: activeReceipts.filter((r) => r?.verificationStatus === "pending" || r?.verificationStatus === "requires_review").length,
     verified: activeReceipts.filter((r) => r?.verificationStatus === "verified").length,
     rejected: activeReceipts.filter((r) => r?.verificationStatus === "rejected" || r?.verificationStatus === "flagged").length
   };
@@ -524,6 +527,8 @@ export default function DashboardPage() {
         return "bg-red-100 text-red-700";
       case "flagged":
         return "bg-orange-100 text-orange-700";
+      case "requires_review":
+        return "bg-blue-100 text-blue-700";
       default:
         return "bg-yellow-100 text-yellow-700";
     }
@@ -537,6 +542,8 @@ export default function DashboardPage() {
         return <XCircle className="h-4 w-4" />;
       case "flagged":
         return <AlertTriangle className="h-4 w-4" />;
+      case "requires_review":
+        return <Eye className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
     }

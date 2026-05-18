@@ -21,16 +21,18 @@ async function getFileAsBufferWithKvRouting(cloudStoragePath: string): Promise<B
     return getFileAsBuffer(cloudStoragePath);
   }
 
-  const { loadSyncConfiguration } = await import("@/lib/receipt-sync/config");
   const { KvS3Client } = await import("@/lib/receipt-sync/kv-s3-client");
 
-  const configuration = loadSyncConfiguration();
-  if (!configuration || configuration.kvReceiptS3BucketName.length === 0) {
-    throw new Error("KV S3 bucket not configured, cannot fetch kv-sync receipt");
+  const bucketName = process.env.KV_RECEIPT_S3_BUCKET_NAME || "";
+  if (bucketName.length === 0) {
+    throw new Error("KV_RECEIPT_S3_BUCKET_NAME not configured, cannot fetch kv-sync receipt");
   }
 
   const s3Key = cloudStoragePath.substring(KV_SYNC_PATH_PREFIX.length);
-  const kvS3Client = new KvS3Client(configuration);
+  const kvS3Client = new KvS3Client({
+    kvReceiptS3BucketName: bucketName,
+    kvReceiptAwsRegion: process.env.KV_RECEIPT_AWS_REGION || "eu-central-1",
+  });
   return kvS3Client.getReceiptContent(s3Key);
 }
 

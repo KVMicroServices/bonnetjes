@@ -54,6 +54,26 @@
 - Maps failure reason codes (e.g. `NOT_A_RECEIPT`) to translation keys via constant map
 **Files**: `lib/email/email-translations.ts`, `lib/email/email-templates.ts`, `messages/*.json` (all 8)
 
+## [057] Add "requires_review" verification status for medium-confidence OCR results
+
+**What**: Receipts that process successfully but don't meet the high-confidence threshold now get `requires_review` status instead of staying as `pending`.
+**Why**: `pending` was ambiguous — it could mean "not yet processed" or "processed but inconclusive". The new status makes it clear the receipt was analyzed and needs human review.
+**Decisions**:
+- `requires_review` shows with a blue badge and Eye icon in the UI
+- Dashboard filter groups `requires_review` with `pending` under the "Pending" tab
+- Admin stats count both `pending` and `requires_review` in the pending bucket
+**Files**: `lib/services/ocr-service.ts`, `app/dashboard/page.tsx`, `app/admin/page.tsx`, `app/archive/page.tsx`, `lib/services/admin-service.ts`, `messages/*.json`, `tests/services/ocr-service.test.ts`
+
+## [056] Fix PDF OCR by converting to images before sending to LLM
+
+**What**: PDFs are now rendered to PNG images server-side using `pdfjs-dist` + `@napi-rs/canvas` before being sent to the OpenAI API, fixing 400 errors caused by sending `application/pdf` data URIs to the Chat Completions endpoint.
+**Why**: OpenAI Chat Completions only accepts image formats (JPEG, PNG, GIF, WebP) in `image_url` content — not PDFs. The previous Files API fallback also only works with the Assistants API.
+**Decisions**:
+- Uses `pdfjs-dist` (pure JS) + `@napi-rs/canvas` (Rust, no native compilation) — no system deps needed in Alpine Docker
+- Converts up to 3 pages per PDF at 2x scale, sends all as separate `image_url` entries
+- Moved `@napi-rs/canvas` from devDependencies to dependencies for production availability
+**Files**: `lib/pdf-to-image.ts`, `lib/services/ocr-service.ts`, `package.json`, `tests/services/ocr-service.test.ts`
+
 ## [055] Add health endpoint to queue worker and queue-worker-dev service
 
 **What**: Added an HTTP health check server to the queue worker process (GET `/health` on port 3001) and a `queue-worker-dev` service to docker-compose.

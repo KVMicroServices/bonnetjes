@@ -127,6 +127,7 @@
     "statusVerified": "Aprobado",
     "statusRejected": "Rechazado",
     "statusPending": "Pendiente",
+    "statusRequiresReview": "Requiere revisión",
     "approved": "aprobado",
     "rejected": "rechazado",
     "receipts": "recibos",

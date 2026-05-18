@@ -113,7 +113,7 @@ describe("buildOcrMessages", () => {
     }
   });
 
-  it("produces PDF-specific prompt for PDF files", () => {
+  it("treats PDF input as image data (PDF conversion happens at higher level)", () => {
     const buffer = Buffer.from("fake-pdf-data");
     const messages = buildOcrMessages(buffer, "pdf", "receipt.pdf");
 
@@ -122,24 +122,22 @@ describe("buildOcrMessages", () => {
     expect(messages[0].content).toHaveLength(2);
 
     const textContent = messages[0].content[0];
-    if (textContent.type === "text") {
-      expect(textContent.text).toContain("PDF document");
-    }
+    expect(textContent.type).toBe("text");
 
     const imageContent = messages[0].content[1];
     expect(imageContent.type).toBe("image_url");
     if (imageContent.type === "image_url") {
-      expect(imageContent.image_url.url).toContain("data:application/pdf;base64,");
+      expect(imageContent.image_url.url).toContain("data:image/jpeg;base64,");
     }
   });
 
-  it("detects PDF by filename extension when fileType is not pdf", () => {
+  it("does not have PDF-specific handling (conversion is done before calling buildOcrMessages)", () => {
     const buffer = Buffer.from("fake-pdf-data");
     const messages = buildOcrMessages(buffer, "document", "invoice.PDF");
 
     const textContent = messages[0].content[0];
     if (textContent.type === "text") {
-      expect(textContent.text).toContain("PDF document");
+      expect(textContent.text).not.toContain("PDF document");
     }
   });
 });
@@ -271,7 +269,7 @@ describe("determineVerificationStatus", () => {
     expect(decision.failureReason).toBe("DUPLICATE_RECEIPT");
   });
 
-  it("returns pending for medium confidence", () => {
+  it("returns requires_review for medium confidence", () => {
     const mediumConfidenceResult: ParsedOcrResult = {
       ...highConfidenceReadableResult,
       confidence: 50,
@@ -284,7 +282,7 @@ describe("determineVerificationStatus", () => {
       recentDate
     );
 
-    expect(decision.status).toBe("pending");
+    expect(decision.status).toBe("requires_review");
   });
 });
 
