@@ -1,5 +1,11 @@
 # Changes
 
+## [067] Fix webpack-time crash from require.resolve in pdf-to-image
+
+**What**: Replaced `require.resolve("pdfjs-dist/package.json")` with a runtime path computed from `process.cwd()`, cached behind a small lazy helper.
+**Why**: Webpack statically resolved the literal in 066 and inlined a numeric module id, so `path.dirname(84273)` threw `ERR_INVALID_ARG_TYPE` while collecting page data for `/api/receipts/[id]/ocr`.
+**Files**: `lib/pdf-to-image.ts`
+
 ## [066] Fix PDF conversion failure caused by useSystemFonts in Alpine
 
 **What**: `convertPdfToImages` no longer asks pdfjs-dist to use system fonts. Standard fonts and CMaps are now resolved from the bundled `pdfjs-dist` package via `file://` URLs.
