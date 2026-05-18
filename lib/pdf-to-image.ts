@@ -1,5 +1,4 @@
 import path from "node:path";
-import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { createCanvas } from "@napi-rs/canvas";
 import { logger } from "@/lib/logger";
@@ -9,14 +8,39 @@ import { logger } from "@/lib/logger";
 const DEFAULT_SCALE = 2.0;
 const MAX_PAGES_TO_CONVERT = 3;
 
-const requireFromHere = createRequire(import.meta.url);
-const PDFJS_PACKAGE_ROOT = path.dirname(
-  requireFromHere.resolve("pdfjs-dist/package.json")
-);
-const STANDARD_FONT_DATA_URL =
-  pathToFileURL(path.join(PDFJS_PACKAGE_ROOT, "standard_fonts") + path.sep).href;
-const CMAP_URL =
-  pathToFileURL(path.join(PDFJS_PACKAGE_ROOT, "cmaps") + path.sep).href;
+// ─── Asset paths ─────────────────────────────────────────────────────────────
+
+interface PdfjsAssetUrls {
+  standardFontDataUrl: string;
+  cMapUrl: string;
+}
+
+let cachedAssetUrls: PdfjsAssetUrls | null = null;
+
+/**
+ * Resolve pdfjs-dist's bundled standard fonts and cMaps as file:// URLs.
+ *
+ * We compute this at runtime from process.cwd() rather than via require.resolve
+ * because webpack would otherwise statically inline pdfjs-dist/package.json into
+ * the route bundle and replace the call with a numeric module id, breaking
+ * production builds.
+ */
+function getPdfjsAssetUrls(): PdfjsAssetUrls {
+  if (cachedAssetUrls !== null) {
+    return cachedAssetUrls;
+  }
+
+  const packageRoot = path.join(process.cwd(), "node_modules", "pdfjs-dist");
+  const fontsDir = path.join(packageRoot, "standard_fonts") + path.sep;
+  const cmapsDir = path.join(packageRoot, "cmaps") + path.sep;
+
+  cachedAssetUrls = {
+    standardFontDataUrl: pathToFileURL(fontsDir).href,
+    cMapUrl: pathToFileURL(cmapsDir).href
+  };
+
+  return cachedAssetUrls;
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -49,13 +73,14 @@ export async function convertPdfToImages(
 ): Promise<PdfToImageResult> {
   try {
     const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const assetUrls = getPdfjsAssetUrls();
 
     const loadingTask = pdfjsLib.getDocument({
       data: new Uint8Array(pdfBuffer),
       useSystemFonts: false,
       disableFontFace: true,
-      standardFontDataUrl: STANDARD_FONT_DATA_URL,
-      cMapUrl: CMAP_URL,
+      standardFontDataUrl: assetUrls.standardFontDataUrl,
+      cMapUrl: assetUrls.cMapUrl,
       cMapPacked: true
     });
 
