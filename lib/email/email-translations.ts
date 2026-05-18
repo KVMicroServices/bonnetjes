@@ -3,18 +3,7 @@ import { join } from "path";
 import { logger } from "@/lib/logger";
 import { SUPPORTED_LOCALES } from "@/lib/i18n-config";
 import type { SupportedLocale } from "@/lib/i18n-config";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export interface DisableEmailTranslations {
-  readonly subject: string;
-  readonly greeting: string;
-  readonly body: string;
-  readonly reasonLabel: string;
-  readonly failureReasonText: string;
-  readonly disputeButtonText: string;
-  readonly footer: string;
-}
+import type { DisableEmailTranslations } from "@/lib/email/email-templates";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -34,6 +23,27 @@ const FAILURE_REASON_KEY_MAP: Readonly<Record<string, string>> = {
   ADMIN_DISABLED: "failureAdminDisabled",
   VERIFICATION_FAILED: "failureVerificationFailed",
 };
+
+const TRANSLATION_KEYS: ReadonlyArray<keyof DisableEmailTranslations> = [
+  "subject",
+  "headerTagline",
+  "headerTitle",
+  "greeting",
+  "intro",
+  "guidelinesLinkText",
+  "requirementsIntro",
+  "requirementCompanyName",
+  "requirementDate",
+  "requirementOrderNumber",
+  "requirementCustomerName",
+  "disputePrompt",
+  "disputeButtonText",
+  "signOff",
+  "teamName",
+  "termsButtonText",
+  "questionsLabel",
+  "reasonLabel",
+];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -83,29 +93,20 @@ export function loadDisableEmailTranslations(
   const fallbackMessages =
     resolvedLocale === DEFAULT_LOCALE ? null : loadMessagesForLocale(DEFAULT_LOCALE);
 
-  const effectiveMessages = localeMessages;
-  const effectiveFallback = fallbackMessages;
-
   const failureReasonKey = FAILURE_REASON_KEY_MAP[failureReason];
   const resolvedFailureReasonKey = failureReasonKey
     ? failureReasonKey
     : "failureVerificationFailed";
 
-  return {
-    subject: getTranslationValue(effectiveMessages, effectiveFallback, "subject"),
-    greeting: getTranslationValue(effectiveMessages, effectiveFallback, "greeting"),
-    body: getTranslationValue(effectiveMessages, effectiveFallback, "body"),
-    reasonLabel: getTranslationValue(effectiveMessages, effectiveFallback, "reasonLabel"),
-    failureReasonText: getTranslationValue(
-      effectiveMessages,
-      effectiveFallback,
-      resolvedFailureReasonKey
-    ),
-    disputeButtonText: getTranslationValue(
-      effectiveMessages,
-      effectiveFallback,
-      "disputeButtonText"
-    ),
-    footer: getTranslationValue(effectiveMessages, effectiveFallback, "footer"),
-  };
+  const result: Record<string, string> = {};
+  for (const key of TRANSLATION_KEYS) {
+    result[key] = getTranslationValue(localeMessages, fallbackMessages, key);
+  }
+  result.failureReasonText = getTranslationValue(
+    localeMessages,
+    fallbackMessages,
+    resolvedFailureReasonKey
+  );
+
+  return result as unknown as DisableEmailTranslations;
 }

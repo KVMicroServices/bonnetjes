@@ -337,9 +337,23 @@
     "failure_MISSING_KEY_FIELDS": "Campos obligatorios faltantes"
   },
   "ReviewDisableEmail": {
-    "subject": "Tu reseña ha sido desactivada",
+    "subject": "Actualización sobre tu reseña — comprobante de compra rechazado",
+    "headerTagline": "Actualización sobre tu reseña",
+    "headerTitle": "Comprobante de compra rechazado",
     "greeting": "Hola,",
-    "body": "Tu reseña (ID: {reviewId}) para la ubicación {locationId} ha sido desactivada porque no pasó nuestro proceso de verificación.",
+    "intro": "Te escribimos para informarte que tu reseña ha sido eliminada. El comprobante de compra que subiste fue rechazado porque no cumple con nuestros criterios. Por ello, la reseña ya no cumple con nuestras {guidelinesLink}.",
+    "guidelinesLinkText": "directrices de uso",
+    "requirementsIntro": "Para verificar una reseña, un comprobante de compra válido debe incluir claramente:",
+    "requirementCompanyName": "Una mención clara del nombre de la empresa.",
+    "requirementDate": "La fecha de la compra, entrega o pedido.",
+    "requirementOrderNumber": "Un número de pedido, factura o referencia.",
+    "requirementCustomerName": "Tu nombre (que coincida con el usado en la reseña).",
+    "disputePrompt": "¿No estás de acuerdo con esta decisión o ya tienes el documento correcto a mano? Pulsa el botón de abajo para disputar y subir un comprobante de compra válido.",
+    "disputeButtonText": "Disputar y volver a subir",
+    "signOff": "Un cordial saludo,",
+    "teamName": "El equipo de reseñas",
+    "termsButtonText": "Ver las condiciones de uso",
+    "questionsLabel": "¿Preguntas?",
     "reasonLabel": "Motivo",
     "failureNotAReceipt": "La imagen subida no era un recibo válido",
     "failureImageUnclear": "La imagen del recibo era demasiado poco clara para verificar",
@@ -350,9 +364,7 @@
     "failureUnreadableText": "El texto del recibo no pudo ser leído",
     "failureMissingKeyFields": "Al recibo le faltaba información requerida",
     "failureAdminDisabled": "Un administrador ha desactivado esta reseña",
-    "failureVerificationFailed": "El recibo no pasó la verificación",
-    "disputeButtonText": "Disputar esta decisión",
-    "footer": "Si crees que esto fue un error, haz clic en el botón de arriba para enviar una disputa."
+    "failureVerificationFailed": "El recibo no pasó la verificación"
   },
   "Dispute": {
     "title": "Disputar una reseña rechazada",

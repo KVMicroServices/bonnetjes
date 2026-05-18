@@ -337,9 +337,23 @@
     "failure_MISSING_KEY_FIELDS": "Fehlende Pflichtfelder"
   },
   "ReviewDisableEmail": {
-    "subject": "Ihre Bewertung wurde deaktiviert",
-    "greeting": "Hallo,",
-    "body": "Ihre Bewertung (ID: {reviewId}) für Standort {locationId} wurde deaktiviert, da sie unseren Verifizierungsprozess nicht bestanden hat.",
+    "subject": "Update zu Ihrer Bewertung — Kaufnachweis abgelehnt",
+    "headerTagline": "Update zu Ihrer Bewertung",
+    "headerTitle": "Kaufnachweis abgelehnt",
+    "greeting": "Liebe Bewerterin, lieber Bewerter,",
+    "intro": "Wir möchten Sie informieren, dass Ihre Bewertung leider entfernt wurde. Der von Ihnen hochgeladene Kaufnachweis wurde abgelehnt, da er unsere Kriterien nicht erfüllt. Damit entspricht die Bewertung nicht mehr unseren {guidelinesLink}.",
+    "guidelinesLinkText": "Nutzungsrichtlinien",
+    "requirementsIntro": "Damit eine Bewertung verifiziert werden kann, muss ein gültiger Kaufnachweis Folgendes enthalten:",
+    "requirementCompanyName": "Eine klare Angabe des Firmennamens.",
+    "requirementDate": "Das Datum des Kaufs, der Lieferung oder der Bestellung.",
+    "requirementOrderNumber": "Eine Bestell-, Rechnungs- oder Referenznummer.",
+    "requirementCustomerName": "Ihr Name (übereinstimmend mit dem Namen in der Bewertung).",
+    "disputePrompt": "Sind Sie mit dieser Entscheidung nicht einverstanden oder haben Sie inzwischen das richtige Dokument zur Hand? Klicken Sie auf die Schaltfläche unten, um Einspruch einzulegen und einen gültigen Kaufnachweis hochzuladen.",
+    "disputeButtonText": "Einspruch & Neu hochladen",
+    "signOff": "Mit freundlichen Grüßen,",
+    "teamName": "Das Review-Team",
+    "termsButtonText": "Nutzungsbedingungen ansehen",
+    "questionsLabel": "Fragen?",
     "reasonLabel": "Grund",
     "failureNotAReceipt": "Das hochgeladene Bild war kein gültiger Beleg",
     "failureImageUnclear": "Das Belegbild war zu unklar zur Verifizierung",
@@ -350,9 +364,7 @@
     "failureUnreadableText": "Der Text auf dem Beleg konnte nicht gelesen werden",
     "failureMissingKeyFields": "Dem Beleg fehlten erforderliche Informationen",
     "failureAdminDisabled": "Ein Administrator hat diese Bewertung deaktiviert",
-    "failureVerificationFailed": "Der Beleg hat die Verifizierung nicht bestanden",
-    "disputeButtonText": "Entscheidung anfechten",
-    "footer": "Wenn Sie glauben, dass dies ein Fehler war, klicken Sie auf die Schaltfläche oben, um einen Einspruch einzureichen."
+    "failureVerificationFailed": "Der Beleg hat die Verifizierung nicht bestanden"
   },
   "Dispute": {
     "title": "Einspruch gegen abgelehnte Bewertung",

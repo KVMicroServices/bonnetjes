@@ -1,5 +1,15 @@
 # Changes
 
+## [070] Redesign rejection email with branded card-based template
+
+**What**: Replaced the plain-text-style rejection email with a card-based HTML template matching the Kiyoh/Klantenvertellen brand guidelines — banner image, logo, requirement bullets, dispute CTA, and branded footer with terms link and support email.
+**Decisions**:
+- Added `email-brand.ts` to resolve tenant-aware branding (logo, terms URL, support email) from `tenantId`
+- Logos served from `/public` via absolute APP_URL paths so email clients can fetch them
+- Template uses `{guidelinesLink}` placeholder in the `intro` translation key, interpolated at render time with the brand's terms URL
+- Installed `@types/nodemailer` to fix pre-existing type error
+**Files**: `lib/email/email-brand.ts`, `lib/email/email-templates.ts`, `lib/email/email-translations.ts`, `lib/email/email-service.ts`, `tests/services/email-service.test.ts`, `messages/*.json` (all 8)
+
 ## [069] Sign dispute links and link disputes to reviews via ReceiptDispute table
 
 **What**: Replaced the raw `?reviewId=` dispute query string with a signed token (HMAC-SHA256, 30-day expiry) carrying reviewId, tenantId, locationId, and failureReason. Added a `ReceiptDispute` table joining each dispute receipt to its originating review, persisted on every verified dispute. Email service builds and sends the signed link; the dispute page and all three API routes verify the token and reject expired/tampered links.

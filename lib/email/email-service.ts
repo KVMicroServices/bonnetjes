@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { loadDisableEmailTranslations } from "@/lib/email/email-translations";
 import { renderDisableEmailHtml, renderDisableEmailSubject } from "@/lib/email/email-templates";
 import type { DisableEmailData } from "@/lib/email/email-templates";
+import { resolveBrandConfig } from "@/lib/email/email-brand";
 import { signDisputeToken } from "@/lib/dispute/dispute-token";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -87,15 +88,18 @@ function validateSmtpConfig(): EmailResult | null {
   return null;
 }
 
+function getAppUrl(): string {
+  const appUrl = process.env[APP_URL_VAR] || "";
+  return appUrl.replace(/\/$/, "");
+}
+
 function buildDisputeUrl(params: {
   readonly reviewId: string;
   readonly locationId: string;
   readonly tenantId: number;
   readonly failureReason: string;
+  readonly appUrl: string;
 }): string {
-  const appUrl = process.env[APP_URL_VAR] || "";
-  const trimmedAppUrl = appUrl.replace(/\/$/, "");
-
   const token = signDisputeToken({
     reviewId: params.reviewId,
     tenantId: params.tenantId,
@@ -103,7 +107,7 @@ function buildDisputeUrl(params: {
     failureReason: params.failureReason,
   });
 
-  return `${trimmedAppUrl}/dispute?token=${encodeURIComponent(token)}`;
+  return `${params.appUrl}/dispute?token=${encodeURIComponent(token)}`;
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
@@ -117,27 +121,24 @@ export async function sendReviewDisableEmail(
       return validationFailure;
     }
 
+    const appUrl = getAppUrl();
+    const brand = resolveBrandConfig(params.tenantId, appUrl);
     const translations = loadDisableEmailTranslations(params.locale, params.failureReason);
+
     const disputeUrl = buildDisputeUrl({
       reviewId: params.reviewId,
       locationId: params.locationId,
       tenantId: params.tenantId,
       failureReason: params.failureReason,
+      appUrl: appUrl,
     });
 
     const emailData: DisableEmailData = {
       reviewId: params.reviewId,
       locationId: params.locationId,
-      failureReason: translations.failureReasonText,
       disputeUrl: disputeUrl,
-      translations: {
-        subject: translations.subject,
-        greeting: translations.greeting,
-        body: translations.body,
-        reasonLabel: translations.reasonLabel,
-        disputeButtonText: translations.disputeButtonText,
-        footer: translations.footer,
-      },
+      translations: translations,
+      brand: brand,
     };
 
     const subject = renderDisableEmailSubject(emailData);
@@ -154,7 +155,7 @@ export async function sendReviewDisableEmail(
     });
 
     logger.info(
-      { recipientEmail: params.recipientEmail, reviewId: params.reviewId },
+      { recipientEmail: params.recipientEmail, reviewId: params.reviewId, tenantId: params.tenantId },
       "Review disable notification email sent successfully"
     );
 

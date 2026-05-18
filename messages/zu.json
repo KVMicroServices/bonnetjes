@@ -337,9 +337,23 @@
     "failure_MISSING_KEY_FIELDS": "Izindawo ezingekho"
   },
   "ReviewDisableEmail": {
-    "subject": "Isibuyekezo sakho sicishiwe",
-    "greeting": "Sawubona,",
-    "body": "Isibuyekezo sakho (ID: {reviewId}) sendawo {locationId} sicishiwe ngoba asiphumelelanga inqubo yethu yokuqinisekisa.",
+    "subject": "Isibuyekezo sokubuyekezwa kwakho — ubufakazi bokuthenga abuvunyiwe",
+    "headerTagline": "Isibuyekezo sokubuyekezwa kwakho",
+    "headerTitle": "Ubufakazi bokuthenga abuvunyiwe",
+    "greeting": "Mbuyekezi othandekayo,",
+    "intro": "Sikwazisa ukuthi ukubuyekeza kwakho kususiwe. Ubufakazi bokuthenga obulayishile abuvunyiwe ngoba abuhlangabezani nezimfuneko zethu. Ngenxa yalokho, ukubuyekeza akusahambisani {guidelinesLink}.",
+    "guidelinesLinkText": "neziqondiso zomsebenzisi",
+    "requirementsIntro": "Ukuze siqinisekise ukubuyekeza, ubufakazi bokuthenga obusebenzayo kufanele buqukathe:",
+    "requirementCompanyName": "Igama lenkampani libhalwe ngokusobala.",
+    "requirementDate": "Idethi yokuthenga, yokulethwa noma ye-oda.",
+    "requirementOrderNumber": "Inombolo ye-oda, ye-invoyisi noma yenkomba.",
+    "requirementCustomerName": "Igama lakho (livumelane nelisetshenziswe ekubuyekezeni).",
+    "disputePrompt": "Awuvumelani nalesi sinqumo noma usuwutholile umqulu olungile? Chofoza inkinobho engezansi ukuze uphikise futhi ulayishe ubufakazi obusebenzayo.",
+    "disputeButtonText": "Phikisa & layisha kabusha",
+    "signOff": "Ngiyabonga,",
+    "teamName": "Ithimba lokuBuyekeza",
+    "termsButtonText": "Buka imibandela yokusebenzisa",
+    "questionsLabel": "Imibuzo?",
     "reasonLabel": "Isizathu",
     "failureNotAReceipt": "Isithombe esilayishiwe besingesona irisidi esisebenzayo",
     "failureImageUnclear": "Isithombe serisidi besingacacile ngokwanele ukuqinisekisa",
@@ -350,9 +364,7 @@
     "failureUnreadableText": "Umbhalo kwirisidi awukwazanga ukufundwa",
     "failureMissingKeyFields": "Irisidi ibingenalo ulwazi oludingekayo",
     "failureAdminDisabled": "Umphathi ucishe lesi sibuyekezo",
-    "failureVerificationFailed": "Irisidi ayiphumelelanga ukuqinisekiswa",
-    "disputeButtonText": "Phikisa lesi sinqumo",
-    "footer": "Uma ukholelwa ukuthi lokhu bekuyiphutha, chofoza inkinobho engenhla ukuthumela ukuphikisa."
+    "failureVerificationFailed": "Irisidi ayiphumelelanga ukuqinisekiswa"
   },
   "Dispute": {
     "title": "Phikisa Ukubuyekezwa Okwenqatshelwe",

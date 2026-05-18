@@ -337,9 +337,23 @@
     "failure_MISSING_KEY_FIELDS": "Missing Key Fields"
   },
   "ReviewDisableEmail": {
-    "subject": "Your review has been disabled",
-    "greeting": "Hello,",
-    "body": "Your review (ID: {reviewId}) for location {locationId} has been disabled because it did not pass our verification process.",
+    "subject": "Update on your review — proof of purchase rejected",
+    "headerTagline": "Update on your review",
+    "headerTitle": "Proof of Purchase Rejected",
+    "greeting": "Dear reviewer,",
+    "intro": "We are writing to let you know that your review has unfortunately been removed. The proof of purchase you uploaded was rejected because it did not meet our criteria, so the review no longer complies with our {guidelinesLink}.",
+    "guidelinesLinkText": "user guidelines",
+    "requirementsIntro": "For us to verify a review, a valid proof of purchase must clearly include:",
+    "requirementCompanyName": "A clear mention of the company name.",
+    "requirementDate": "The date of purchase, delivery, or order.",
+    "requirementOrderNumber": "An order number, invoice number, or reference number.",
+    "requirementCustomerName": "Your name (matching the name used on the review).",
+    "disputePrompt": "Disagree with this decision or have the correct document on hand? Tap the button below to dispute and upload a valid proof of purchase.",
+    "disputeButtonText": "Dispute & Re-upload",
+    "signOff": "Kind regards,",
+    "teamName": "The Review Team",
+    "termsButtonText": "View the Terms of Use",
+    "questionsLabel": "Questions?",
     "reasonLabel": "Reason",
     "failureNotAReceipt": "The uploaded image was not a valid receipt",
     "failureImageUnclear": "The receipt image was too unclear to verify",
@@ -350,9 +364,7 @@
     "failureUnreadableText": "The text on the receipt could not be read",
     "failureMissingKeyFields": "The receipt was missing required information",
     "failureAdminDisabled": "An administrator has disabled this review",
-    "failureVerificationFailed": "The receipt did not pass verification",
-    "disputeButtonText": "Dispute this decision",
-    "footer": "If you believe this was a mistake, click the button above to submit a dispute."
+    "failureVerificationFailed": "The receipt did not pass verification"
   },
   "Dispute": {
     "title": "Dispute a Rejected Review",

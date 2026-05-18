@@ -337,9 +337,23 @@
     "failure_MISSING_KEY_FIELDS": "Iindawo ezingekhoyo"
   },
   "ReviewDisableEmail": {
-    "subject": "Uphononongo lwakho lucinyiwe",
-    "greeting": "Molo,",
-    "body": "Uphononongo lwakho (ID: {reviewId}) lwendawo {locationId} lucinyiwe kuba aluphumelelanga inkqubo yethu yokuqinisekisa.",
+    "subject": "Uhlaziyo lophononongo lwakho — ubungqina bokuthenga abukhange bumkelwe",
+    "headerTagline": "Uhlaziyo lophononongo lwakho",
+    "headerTitle": "Ubungqina bokuthenga abukhange bumkelwe",
+    "greeting": "Mphononongi othandekayo,",
+    "intro": "Sikwazisa ukuba uphononongo lwakho lukhutshiwe. Ubungqina bokuthenga obulayishileyo abukhange bamkeleke kuba abuhlangabezani neemfuneko zethu. Ngenxa yoko, uphononongo aluvumelani nezethu {guidelinesLink}.",
+    "guidelinesLinkText": "imigaqo yokusetyenziswa",
+    "requirementsIntro": "Ukuze siqinisekise uphononongo, ubungqina bokuthenga obusebenzayo kufuneka buquke ngokucacileyo:",
+    "requirementCompanyName": "Igama lenkampani libhalwe ngokucacileyo.",
+    "requirementDate": "Umhla wokuthenga, wokuhanjiswa okanye we-odolo.",
+    "requirementOrderNumber": "Inombolo ye-odolo, ye-invoyisi okanye yokubhekisa.",
+    "requirementCustomerName": "Igama lakho (lifana nelo lisetyenziswe kuphononongo).",
+    "disputePrompt": "Awuvumelani nesi sigqibo okanye sele unalo uxwebhu olufanelekileyo? Cofa iqhosha elingezantsi ukuze uphikise kwaye ulayishe ubungqina obusebenzayo.",
+    "disputeButtonText": "Phikisa & ulayishe kwakhona",
+    "signOff": "Ozithobileyo,",
+    "teamName": "Iqela loPhononongo",
+    "termsButtonText": "Jonga imiqathango yokusetyenziswa",
+    "questionsLabel": "Imibuzo?",
     "reasonLabel": "Isizathu",
     "failureNotAReceipt": "Umfanekiso olayishiweyo ubungeyiyo irisithi esebenzayo",
     "failureImageUnclear": "Umfanekiso werisithi ubungacacanga ngokwaneleyo ukuqinisekisa",
@@ -350,9 +364,7 @@
     "failureUnreadableText": "Isicatshulwa kwirisithi asikwazanga ukufundwa",
     "failureMissingKeyFields": "Irisithi ibingenalo ulwazi olufunekayo",
     "failureAdminDisabled": "Umlawuli ucime olu phononongo",
-    "failureVerificationFailed": "Irisithi ayiphumelelanga ukuqinisekiswa",
-    "disputeButtonText": "Phikisa esi sigqibo",
-    "footer": "Ukuba ukholelwa ukuba oku yimpazamo, cofa iqhosha elingentla ukuthumela ukuphikisa."
+    "failureVerificationFailed": "Irisithi ayiphumelelanga ukuqinisekiswa"
   },
   "Dispute": {
     "title": "Phikisa uHlaziyo oluKhatyiweyo",

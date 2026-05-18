@@ -337,9 +337,23 @@
     "failure_MISSING_KEY_FIELDS": "Champs obligatoires manquants"
   },
   "ReviewDisableEmail": {
-    "subject": "Votre avis a été désactivé",
+    "subject": "Mise à jour de votre avis — preuve d'achat refusée",
+    "headerTagline": "Mise à jour de votre avis",
+    "headerTitle": "Preuve d'achat refusée",
     "greeting": "Bonjour,",
-    "body": "Votre avis (ID : {reviewId}) pour l'emplacement {locationId} a été désactivé car il n'a pas passé notre processus de vérification.",
+    "intro": "Nous vous informons que votre avis a malheureusement été supprimé. La preuve d'achat que vous avez téléchargée a été refusée car elle ne répond pas à nos critères. L'avis ne respecte donc plus nos {guidelinesLink}.",
+    "guidelinesLinkText": "règles d'utilisation",
+    "requirementsIntro": "Pour qu'un avis soit vérifié, une preuve d'achat valide doit clairement comporter :",
+    "requirementCompanyName": "Une mention claire du nom de l'entreprise.",
+    "requirementDate": "La date d'achat, de livraison ou de commande.",
+    "requirementOrderNumber": "Un numéro de commande, de facture ou de référence.",
+    "requirementCustomerName": "Votre nom (correspondant au nom utilisé pour l'avis).",
+    "disputePrompt": "Vous n'êtes pas d'accord avec cette décision ou vous avez désormais le bon document ? Cliquez sur le bouton ci-dessous pour contester et téléverser une preuve d'achat valide.",
+    "disputeButtonText": "Contester & téléverser à nouveau",
+    "signOff": "Cordialement,",
+    "teamName": "L'équipe Review",
+    "termsButtonText": "Voir les conditions d'utilisation",
+    "questionsLabel": "Des questions ?",
     "reasonLabel": "Raison",
     "failureNotAReceipt": "L'image téléchargée n'était pas un reçu valide",
     "failureImageUnclear": "L'image du reçu était trop floue pour être vérifiée",
@@ -350,9 +364,7 @@
     "failureUnreadableText": "Le texte du reçu n'a pas pu être lu",
     "failureMissingKeyFields": "Le reçu manquait d'informations requises",
     "failureAdminDisabled": "Un administrateur a désactivé cet avis",
-    "failureVerificationFailed": "Le reçu n'a pas passé la vérification",
-    "disputeButtonText": "Contester cette décision",
-    "footer": "Si vous pensez qu'il s'agit d'une erreur, cliquez sur le bouton ci-dessus pour soumettre une contestation."
+    "failureVerificationFailed": "Le reçu n'a pas passé la vérification"
   },
   "Dispute": {
     "title": "Contester un avis rejeté",

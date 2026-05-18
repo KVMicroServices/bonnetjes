@@ -337,9 +337,23 @@
     "failure_MISSING_KEY_FIELDS": "Ontbrekende velden"
   },
   "ReviewDisableEmail": {
-    "subject": "Je review is uitgeschakeld",
-    "greeting": "Hallo,",
-    "body": "Je review (ID: {reviewId}) voor locatie {locationId} is uitgeschakeld omdat deze niet door ons verificatieproces is gekomen.",
+    "subject": "Update over je beoordeling — aankoopbewijs afgewezen",
+    "headerTagline": "Update over je beoordeling",
+    "headerTitle": "Aankoopbewijs Afgewezen",
+    "greeting": "Beste reviewer,",
+    "intro": "We sturen je dit bericht om je te laten weten dat je beoordeling helaas is verwijderd. Het door jou geüploade aankoopbewijs is afgewezen omdat het niet aan onze criteria voldoet. Hierdoor voldoet de beoordeling niet langer aan onze {guidelinesLink}.",
+    "guidelinesLinkText": "gebruikersrichtlijnen",
+    "requirementsIntro": "Om een beoordeling te kunnen verifiëren, moet een geldig aankoopbewijs het volgende bevatten:",
+    "requirementCompanyName": "Een duidelijke vermelding van de naam van het bedrijf.",
+    "requirementDate": "De datum van aankoop, levering of bestelling.",
+    "requirementOrderNumber": "Een bestelnummer, factuurnummer of referentienummer.",
+    "requirementCustomerName": "Jouw naam (overeenkomend met de naam die is gebruikt voor de beoordeling).",
+    "disputePrompt": "Ben je het niet eens met deze beslissing of heb je inmiddels het juiste document bij de hand? Klik op de onderstaande knop om bezwaar te maken en een geldig aankoopbewijs te uploaden.",
+    "disputeButtonText": "Bezwaar maken & Opnieuw uploaden",
+    "signOff": "Met vriendelijke groet,",
+    "teamName": "Het Review Team",
+    "termsButtonText": "Bekijk de Gebruiksvoorwaarden",
+    "questionsLabel": "Vragen?",
     "reasonLabel": "Reden",
     "failureNotAReceipt": "De geüploade afbeelding was geen geldige bon",
     "failureImageUnclear": "De bonafbeelding was te onduidelijk om te verifiëren",
@@ -350,9 +364,7 @@
     "failureUnreadableText": "De tekst op de bon kon niet worden gelezen",
     "failureMissingKeyFields": "De bon miste vereiste informatie",
     "failureAdminDisabled": "Een beheerder heeft deze review uitgeschakeld",
-    "failureVerificationFailed": "De bon is niet door de verificatie gekomen",
-    "disputeButtonText": "Bezwaar maken",
-    "footer": "Als je denkt dat dit een vergissing is, klik dan op de knop hierboven om een bezwaar in te dienen."
+    "failureVerificationFailed": "De bon is niet door de verificatie gekomen"
   },
   "Dispute": {
     "title": "Bezwaar maken tegen een afgewezen beoordeling",

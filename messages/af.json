@@ -337,9 +337,23 @@
     "failure_MISSING_KEY_FIELDS": "Ontbrekende velde"
   },
   "ReviewDisableEmail": {
-    "subject": "Jou resensie is gedeaktiveer",
-    "greeting": "Hallo,",
-    "body": "Jou resensie (ID: {reviewId}) vir ligging {locationId} is gedeaktiveer omdat dit nie ons verifikasieproses geslaag het nie.",
+    "subject": "Opdatering oor jou resensie — aankoopbewys afgekeur",
+    "headerTagline": "Opdatering oor jou resensie",
+    "headerTitle": "Aankoopbewys afgekeur",
+    "greeting": "Beste resensent,",
+    "intro": "Ons laat jou weet dat jou resensie ongelukkig verwyder is. Die aankoopbewys wat jy opgelaai het, is afgekeur omdat dit nie aan ons kriteria voldoen nie. Daarom voldoen die resensie nie meer aan ons {guidelinesLink} nie.",
+    "guidelinesLinkText": "gebruikersriglyne",
+    "requirementsIntro": "Om 'n resensie te verifieer, moet 'n geldige aankoopbewys duidelik die volgende bevat:",
+    "requirementCompanyName": "'n Duidelike vermelding van die maatskappy se naam.",
+    "requirementDate": "Die datum van aankoop, lewering of bestelling.",
+    "requirementOrderNumber": "'n Bestel-, faktuur- of verwysingsnommer.",
+    "requirementCustomerName": "Jou naam (dieselfde as wat in die resensie gebruik is).",
+    "disputePrompt": "Verskil jy met hierdie besluit, of het jy nou die regte dokument byderhand? Klik die knoppie hieronder om dit te betwis en 'n geldige aankoopbewys op te laai.",
+    "disputeButtonText": "Betwis & laai weer op",
+    "signOff": "Vriendelike groete,",
+    "teamName": "Die Resensie-span",
+    "termsButtonText": "Sien die gebruiksvoorwaardes",
+    "questionsLabel": "Vrae?",
     "reasonLabel": "Rede",
     "failureNotAReceipt": "Die opgelaaide beeld was nie 'n geldige kwitansie nie",
     "failureImageUnclear": "Die kwitansie-beeld was te onduidelik om te verifieer",
@@ -350,9 +364,7 @@
     "failureUnreadableText": "Die teks op die kwitansie kon nie gelees word nie",
     "failureMissingKeyFields": "Die kwitansie het vereiste inligting ontbreek",
     "failureAdminDisabled": "'n Administrateur het hierdie resensie gedeaktiveer",
-    "failureVerificationFailed": "Die kwitansie het nie die verifikasie geslaag nie",
-    "disputeButtonText": "Betwis hierdie besluit",
-    "footer": "As jy glo dit was 'n fout, klik op die knoppie hierbo om 'n betwisting in te dien."
+    "failureVerificationFailed": "Die kwitansie het nie die verifikasie geslaag nie"
   },
   "Dispute": {
     "title": "Betwis 'n afgekeurde resensie",
