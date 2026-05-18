@@ -1,5 +1,15 @@
 # Changes
 
+## [057] Add "requires_review" verification status for medium-confidence OCR results
+
+**What**: Receipts that process successfully but don't meet the high-confidence threshold now get `requires_review` status instead of staying as `pending`.
+**Why**: `pending` was ambiguous — it could mean "not yet processed" or "processed but inconclusive". The new status makes it clear the receipt was analyzed and needs human review.
+**Decisions**:
+- `requires_review` shows with a blue badge and Eye icon in the UI
+- Dashboard filter groups `requires_review` with `pending` under the "Pending" tab
+- Admin stats count both `pending` and `requires_review` in the pending bucket
+**Files**: `lib/services/ocr-service.ts`, `app/dashboard/page.tsx`, `app/admin/page.tsx`, `app/archive/page.tsx`, `lib/services/admin-service.ts`, `messages/*.json`, `tests/services/ocr-service.test.ts`
+
 ## [056] Fix PDF OCR by converting to images before sending to LLM
 
 **What**: PDFs are now rendered to PNG images server-side using `pdfjs-dist` + `@napi-rs/canvas` before being sent to the OpenAI API, fixing 400 errors caused by sending `application/pdf` data URIs to the Chat Completions endpoint.

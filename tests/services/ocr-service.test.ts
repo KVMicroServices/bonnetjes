@@ -269,7 +269,7 @@ describe("determineVerificationStatus", () => {
     expect(decision.failureReason).toBe("DUPLICATE_RECEIPT");
   });
 
-  it("returns pending for medium confidence", () => {
+  it("returns requires_review for medium confidence", () => {
     const mediumConfidenceResult: ParsedOcrResult = {
       ...highConfidenceReadableResult,
       confidence: 50,
@@ -282,7 +282,7 @@ describe("determineVerificationStatus", () => {
       recentDate
     );
 
-    expect(decision.status).toBe("pending");
+    expect(decision.status).toBe("requires_review");
   });
 });
 

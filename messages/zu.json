@@ -127,6 +127,7 @@
     "statusVerified": "Ivunyiwe",
     "statusRejected": "Yenqatshiwe",
     "statusPending": "Ilindile",
+    "statusRequiresReview": "Kudinga ukubuyekezwa",
     "approved": "ivunyiwe",
     "rejected": "yenqatshiwe",
     "receipts": "amarisidi",

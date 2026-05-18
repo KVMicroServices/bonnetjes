@@ -519,6 +519,8 @@ export default function AdminPage() {
         return "bg-red-100 text-red-700";
       case "flagged":
         return "bg-orange-100 text-orange-700";
+      case "requires_review":
+        return "bg-blue-100 text-blue-700";
       default:
         return "bg-yellow-100 text-yellow-700";
     }
@@ -532,6 +534,8 @@ export default function AdminPage() {
         return <XCircle className="h-4 w-4" />;
       case "flagged":
         return <AlertTriangle className="h-4 w-4" />;
+      case "requires_review":
+        return <Eye className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
     }

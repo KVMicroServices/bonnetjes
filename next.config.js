@@ -15,6 +15,7 @@ const nextConfig = {
   images: { unoptimized: true },
   experimental: {
     instrumentationHook: true,
+    serverComponentsExternalPackages: ["@napi-rs/canvas", "pdfjs-dist"],
   },
 };
 

@@ -164,7 +164,7 @@ export interface SecondaryAnalysisResult {
   secondaryVerdict: string;
 }
 
-export type VerificationStatus = "pending" | "verified" | "rejected";
+export type VerificationStatus = "pending" | "verified" | "rejected" | "requires_review";
 
 export interface VerificationDecision {
   status: VerificationStatus;
@@ -361,7 +361,7 @@ export function determineVerificationStatus(
     return { status: "rejected", failureReason, isDateTooOld, dateValidationMessage };
   }
 
-  return { status: "pending", failureReason: null, isDateTooOld, dateValidationMessage };
+  return { status: "requires_review", failureReason: null, isDateTooOld, dateValidationMessage };
 }
 
 /** Run a secondary AI analysis on a rejected receipt to confirm or add nuance. */

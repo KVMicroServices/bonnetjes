@@ -149,6 +149,8 @@ export default function ArchivePage() {
         return <CheckCircle className="w-4 h-4 text-kv-green" />;
       case "rejected":
         return <XCircle className="w-4 h-4 text-red-500" />;
+      case "requires_review":
+        return <Eye className="w-4 h-4 text-blue-500" />;
       default:
         return <Clock className="w-4 h-4 text-yellow-500" />;
     }
@@ -293,7 +295,8 @@ export default function ArchivePage() {
                                       {getStatusIcon(receipt.verificationStatus)}
                                       <span className="text-sm capitalize">
                                         {receipt.verificationStatus === "verified" ? t("statusVerified") :
-                                         receipt.verificationStatus === "rejected" ? t("statusRejected") : t("statusPending")}
+                                         receipt.verificationStatus === "rejected" ? t("statusRejected") :
+                                         receipt.verificationStatus === "requires_review" ? t("statusRequiresReview") : t("statusPending")}
                                       </span>
                                     </div>
                                   </td>
