@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { DisputeUploader } from "@/components/dispute-uploader";
 import { verifyDisputeToken } from "@/lib/dispute/dispute-token";
@@ -23,6 +24,14 @@ export default async function DisputePage({ searchParams }: DisputePageProps) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-md rounded-xl border border-amber-200 bg-white p-8 text-center shadow-sm">
+          <Image
+            src="/kiyoh-logo.png"
+            alt="Kiyoh"
+            width={120}
+            height={40}
+            className="mx-auto mb-6"
+            priority
+          />
           <h1 className="mb-4 text-2xl font-bold text-gray-900">
             {translations("title")}
           </h1>
@@ -44,6 +53,14 @@ export default async function DisputePage({ searchParams }: DisputePageProps) {
     <main className="min-h-screen bg-gray-50 px-4 py-12">
       <div className="mx-auto w-full max-w-2xl space-y-6">
         <header className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <Image
+            src="/kiyoh-logo.png"
+            alt="Kiyoh"
+            width={120}
+            height={40}
+            className="mb-4"
+            priority
+          />
           <h1 className="text-2xl font-bold text-gray-900">
             {translations("title")}
           </h1>

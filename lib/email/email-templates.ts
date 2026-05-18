@@ -70,17 +70,18 @@ function renderBannerCell(brand: DisableEmailBrand): string {
     `background-image:url('${brand.bannerImageUrl}')`,
     "background-size:cover",
     "background-repeat:no-repeat",
-    "background-position:center -45px",
+    "background-position:center center",
     `border-top-left-radius:${BANNER_RADIUS_TOP_PX}px`,
     `border-top-right-radius:${BANNER_RADIUS_TOP_PX}px`,
+    "height:160px",
   ].join(";");
 
   return `
-    <td align="top" valign="center" style="${bannerStyle};">
+    <td align="top" valign="top" style="${bannerStyle};">
       <table align="right" border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
         <tr>
-          <td align="right" style="padding:20px;">
-            <img alt="${escapedBrandName}" src="${brand.logoUrl}" style="display:block;width:200px;height:auto;" width="200" />
+          <td align="right" valign="top" style="padding:20px;">
+            <img alt="${escapedBrandName}" src="${brand.logoUrl}" style="display:block;width:180px;height:auto;" width="180" />
           </td>
         </tr>
       </table>

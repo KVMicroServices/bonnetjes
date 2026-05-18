@@ -73,8 +73,8 @@ const SAMPLE_TRANSLATIONS = {
 
 const SAMPLE_BRAND = {
   brandName: "Klantenvertellen",
-  logoUrl: "https://app.reviewreceipts.com/klantenvertellen-logo.jpg",
-  bannerImageUrl: "https://example.com/banner.jpg",
+  logoUrl: "https://mcusercontent.com/841b96d7208ddd848e8215ade/images/6aa90dcf-7d1b-4904-886c-cd9ee64d3b67.png",
+  bannerImageUrl: "https://kiyoh.com/wp-content/uploads/AdobeStock_262582377-scaled-e1599809135705.jpg",
   termsUrl: "https://www.klantenvertellen.nl/gebruiksvoorwaarden-klantbeoordelingssysteem/",
   supportEmail: "support@klantenvertellen.nl",
 };
@@ -212,10 +212,10 @@ describe("resolveBrandConfig", () => {
   it("returns Kiyoh branding for tenant 98", async () => {
     const { resolveBrandConfig } = await import("@/lib/email/email-brand");
 
-    const brand = resolveBrandConfig(98, "https://app.example.com");
+    const brand = resolveBrandConfig(98);
 
     expect(brand.brandName).toBe("Kiyoh");
-    expect(brand.logoUrl).toBe("https://app.example.com/kiyoh-logo.png");
+    expect(brand.logoUrl).toContain("mcusercontent.com");
     expect(brand.supportEmail).toBe("support@kiyoh.com");
     expect(brand.termsUrl).toContain("kiyoh.com");
   });
@@ -223,20 +223,12 @@ describe("resolveBrandConfig", () => {
   it("returns Klantenvertellen branding for tenant 99", async () => {
     const { resolveBrandConfig } = await import("@/lib/email/email-brand");
 
-    const brand = resolveBrandConfig(99, "https://app.example.com");
+    const brand = resolveBrandConfig(99);
 
     expect(brand.brandName).toBe("Klantenvertellen");
-    expect(brand.logoUrl).toBe("https://app.example.com/klantenvertellen-logo.jpg");
+    expect(brand.logoUrl).toContain("mcusercontent.com");
     expect(brand.supportEmail).toBe("support@klantenvertellen.nl");
     expect(brand.termsUrl).toContain("klantenvertellen.nl");
-  });
-
-  it("strips trailing slash from app URL", async () => {
-    const { resolveBrandConfig } = await import("@/lib/email/email-brand");
-
-    const brand = resolveBrandConfig(98, "https://app.example.com/");
-
-    expect(brand.logoUrl).toBe("https://app.example.com/kiyoh-logo.png");
   });
 });
 
@@ -397,25 +389,25 @@ describe("sendReviewDisableEmail - transport behavior", () => {
     );
   });
 
-  it("uses the Klantenvertellen logo path when tenantId is 99", async () => {
+  it("uses the Klantenvertellen branding when tenantId is 99", async () => {
     mockSendMail.mockResolvedValueOnce({ messageId: "msg-002" });
 
     const { sendReviewDisableEmail } = await import("@/lib/email/email-service");
     await sendReviewDisableEmail({ ...VALID_PARAMS, tenantId: 99 });
 
     const sentArgs = mockSendMail.mock.calls[0][0];
-    expect(sentArgs.html).toContain("/klantenvertellen-logo.jpg");
+    expect(sentArgs.html).toContain("mcusercontent.com");
     expect(sentArgs.html).toContain("support@klantenvertellen.nl");
   });
 
-  it("uses the Kiyoh logo path when tenantId is 98", async () => {
+  it("uses the Kiyoh branding when tenantId is 98", async () => {
     mockSendMail.mockResolvedValueOnce({ messageId: "msg-003" });
 
     const { sendReviewDisableEmail } = await import("@/lib/email/email-service");
     await sendReviewDisableEmail({ ...VALID_PARAMS, tenantId: 98 });
 
     const sentArgs = mockSendMail.mock.calls[0][0];
-    expect(sentArgs.html).toContain("/kiyoh-logo.png");
+    expect(sentArgs.html).toContain("mcusercontent.com");
     expect(sentArgs.html).toContain("support@kiyoh.com");
   });
 

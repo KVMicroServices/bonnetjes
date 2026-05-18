@@ -122,7 +122,7 @@ export async function sendReviewDisableEmail(
     }
 
     const appUrl = getAppUrl();
-    const brand = resolveBrandConfig(params.tenantId, appUrl);
+    const brand = resolveBrandConfig(params.tenantId);
     const translations = loadDisableEmailTranslations(params.locale, params.failureReason);
 
     const disputeUrl = buildDisputeUrl({
