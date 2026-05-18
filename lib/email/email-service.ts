@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { loadDisableEmailTranslations } from "@/lib/email/email-translations";
 import { renderDisableEmailHtml, renderDisableEmailSubject } from "@/lib/email/email-templates";
 import type { DisableEmailData } from "@/lib/email/email-templates";
+import { signDisputeToken } from "@/lib/dispute/dispute-token";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,7 @@ export interface SendDisableEmailParams {
   readonly locale: string;
   readonly reviewId: string;
   readonly locationId: string;
+  readonly tenantId: number;
   readonly failureReason: string;
 }
 
@@ -85,9 +87,23 @@ function validateSmtpConfig(): EmailResult | null {
   return null;
 }
 
-function buildDisputeUrl(reviewId: string): string {
+function buildDisputeUrl(params: {
+  readonly reviewId: string;
+  readonly locationId: string;
+  readonly tenantId: number;
+  readonly failureReason: string;
+}): string {
   const appUrl = process.env[APP_URL_VAR] || "";
-  return `${appUrl}/dispute?reviewId=${reviewId}`;
+  const trimmedAppUrl = appUrl.replace(/\/$/, "");
+
+  const token = signDisputeToken({
+    reviewId: params.reviewId,
+    tenantId: params.tenantId,
+    locationId: params.locationId,
+    failureReason: params.failureReason,
+  });
+
+  return `${trimmedAppUrl}/dispute?token=${encodeURIComponent(token)}`;
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
@@ -102,7 +118,12 @@ export async function sendReviewDisableEmail(
     }
 
     const translations = loadDisableEmailTranslations(params.locale, params.failureReason);
-    const disputeUrl = buildDisputeUrl(params.reviewId);
+    const disputeUrl = buildDisputeUrl({
+      reviewId: params.reviewId,
+      locationId: params.locationId,
+      tenantId: params.tenantId,
+      failureReason: params.failureReason,
+    });
 
     const emailData: DisableEmailData = {
       reviewId: params.reviewId,

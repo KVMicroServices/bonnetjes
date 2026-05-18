@@ -111,6 +111,7 @@ async function sendDisableNotificationEmail(
       locale: EMAIL_LOCALE,
       reviewId: reviewId,
       locationId: locationId,
+      tenantId: tenantId,
       failureReason: failureReason,
     });
 

@@ -1,5 +1,28 @@
 # Changes
 
+## [069] Sign dispute links and link disputes to reviews via ReceiptDispute table
+
+**What**: Replaced the raw `?reviewId=` dispute query string with a signed token (HMAC-SHA256, 30-day expiry) carrying reviewId, tenantId, locationId, and failureReason. Added a `ReceiptDispute` table joining each dispute receipt to its originating review, persisted on every verified dispute. Email service builds and sends the signed link; the dispute page and all three API routes verify the token and reject expired/tampered links.
+**Decisions**:
+- Token format: `base64url(json).base64url(hmacSha256)`. Signing secret reads `DISPUTE_TOKEN_SECRET`, falls back to `NEXTAUTH_SECRET` so existing deployments keep working until the dedicated secret is set.
+- `ReceiptDispute` keeps both rows (original synced receipt + dispute receipt) and stays queryable by `reviewId`. `ReceiptSyncState.receiptId` is intentionally untouched so the original rejection audit trail remains.
+- The dispute page renders an "invalid/expired link" state with localized copy in all 8 locales when the token is missing, malformed, signature-mismatched, or expired.
+- API routes use a small `resolveDisputeToken` helper that maps token errors to clean HTTP responses (400 missing, 401 invalid, 410 expired, 500 missing-secret).
+- `requestHumanReview` now requires the token's reviewId to match the dispute record before flipping status, preventing cross-receipt review escalation with a stale token.
+- `sendReviewDisableEmail` gained a required `tenantId` param so the token can be issued at send time. Both callers (admin disable route and review-disable worker) already had it available.
+**Files**: `lib/dispute/dispute-token.ts`, `lib/dispute/dispute-token-http.ts`, `lib/email/email-service.ts`, `lib/services/dispute-service.ts`, `app/dispute/page.tsx`, `components/dispute-uploader.tsx`, `app/api/dispute/upload/route.ts`, `app/api/dispute/verify/route.ts`, `app/api/dispute/request-review/route.ts`, `app/api/admin/reviews/disable/route.ts`, `lib/queue/review-disable-worker.ts`, `prisma/schema.prisma`, `prisma/migrations/20260601000003_add_receipt_dispute/migration.sql`, `tests/services/dispute-token.test.ts`, `tests/services/email-service.test.ts`, `messages/*.json` (all 8), `.env.example`
+
+## [068] Add receipt dispute page with live verification and human review fallback
+
+**What**: Replaced the `/dispute` placeholder with a full upload + live verification flow. Users land on `/dispute?reviewId=...`, follow on-page guidance, upload a receipt to Cloudflare R2 via a dispute-scoped presigned URL, and get an instant OCR + fraud verdict. Verified receipts are persisted as if pulled normally; rejected ones expose a "Request human review" button that flips status to `requires_review`.
+**Decisions**:
+- Three new public route handlers under `app/api/dispute/*` (upload, verify, request-review). No auth — links arrive from outbound disable emails. Inputs validated at the boundary.
+- Storage uses the existing Cloudflare-prefixed env vars via `lib/s3.ts` (`generateDisputePresignedUploadUrl` writes to `disputes/<reviewId>/...`).
+- Dispute receipts attach to a dedicated `disputes@receipt-sync.internal` system user so they sit alongside synced receipts in admin views without polluting real user accounts. Dispute origin is recorded in `ocrReasoning` (`dispute_for_review:<id>`).
+- Verification reuses `lib/services/ocr-service` and `lib/fraud-detection`; the route adapts those to a small `DisputeOcrAdapter` to keep `dispute-service.ts` framework-free.
+- 8 locale files updated with the new `Dispute` namespace keys.
+**Files**: `app/dispute/page.tsx`, `components/dispute-uploader.tsx`, `lib/services/dispute-service.ts`, `lib/s3.ts`, `app/api/dispute/upload/route.ts`, `app/api/dispute/verify/route.ts`, `app/api/dispute/request-review/route.ts`, `messages/*.json` (all 8)
+
 ## [067] Fix webpack-time crash from require.resolve in pdf-to-image
 
 **What**: Replaced `require.resolve("pdfjs-dist/package.json")` with a runtime path computed from `process.cwd()`, cached behind a small lazy helper.

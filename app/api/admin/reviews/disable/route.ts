@@ -75,6 +75,7 @@ async function sendDisableNotification(
       locale: DEFAULT_EMAIL_LOCALE,
       reviewId: reviewId,
       locationId: locationId,
+      tenantId: tenantId,
       failureReason: failureReason,
     });
 

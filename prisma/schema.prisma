@@ -172,3 +172,19 @@ model ReviewDisableAudit {
   @@index([reviewId])
   @@index([status])
 }
+
+model ReceiptDispute {
+  id            String   @id @default(cuid())
+  reviewId      String
+  tenantId      Int?
+  locationId    String?
+  receiptId     String
+  status        String   // verified, rejected, requires_review
+  failureReason String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([reviewId])
+  @@index([receiptId])
+  @@index([status])
+}

@@ -27,6 +27,7 @@ function setSmtpEnvVars() {
   process.env.SMTP_PASS = "secret-password";
   process.env.SMTP_FROM = "noreply@reviewreceipts.com";
   process.env.APP_URL = "https://app.reviewreceipts.com";
+  process.env.DISPUTE_TOKEN_SECRET = "test-dispute-token-secret";
 }
 
 function clearSmtpEnvVars() {
@@ -36,6 +37,7 @@ function clearSmtpEnvVars() {
   delete process.env.SMTP_PASS;
   delete process.env.SMTP_FROM;
   delete process.env.APP_URL;
+  delete process.env.DISPUTE_TOKEN_SECRET;
 }
 
 const VALID_PARAMS = {
@@ -43,6 +45,7 @@ const VALID_PARAMS = {
   locale: "en",
   reviewId: "review-123",
   locationId: "location-456",
+  tenantId: 99,
   failureReason: "NOT_A_RECEIPT",
 };
 

@@ -36,6 +36,28 @@ export async function generatePresignedUploadUrl(
   return { uploadUrl, cloud_storage_path };
 }
 
+/** Generate a presigned upload URL scoped to a specific dispute reviewId. */
+export async function generateDisputePresignedUploadUrl(
+  reviewId: string,
+  fileName: string,
+  contentType: string
+): Promise<{ uploadUrl: string; cloud_storage_path: string }> {
+  const timestamp = Date.now();
+  const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const safeReviewId = reviewId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const cloud_storage_path = `${folderPrefix}disputes/${safeReviewId}/${timestamp}-${safeName}`;
+
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: cloud_storage_path,
+    ContentType: contentType
+  });
+
+  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+
+  return { uploadUrl, cloud_storage_path };
+}
+
 export async function initiateMultipartUpload(
   fileName: string,
   isPublic: boolean = false
