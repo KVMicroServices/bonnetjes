@@ -1,5 +1,39 @@
 # Changes
 
+## [085] Simplify confidence logic to single threshold with secondary analysis on all uncertain outcomes
+
+**What**: Replaced the two-threshold system (high/low) with a single confidence threshold. Receipts meeting the threshold with no failure indicators auto-verify; everything else goes through secondary analysis. Removed auto-reject on low confidence.
+**Why**: Low confidence on a pass was incorrectly auto-rejecting receipts. Confidence should indicate whether to trust the model's judgment, not determine the outcome directly.
+**Decisions**:
+- Single threshold gate: ≥ threshold + no failure + readable + fields = verified; everything else = requires_review
+- Secondary analysis runs on ALL non-verified, non-hard-rule outcomes (not just rejections)
+- Hard rules (duplicate, date too old) still reject immediately without secondary analysis
+- Auto-disable only on hard-rule rejections and secondary-confirmed rejections
+- Removed `getLowConfidenceThreshold`, `SETTING_LOW_CONFIDENCE_THRESHOLD`, and all low threshold UI/translations
+- Updated secondary prompt to handle uncertain results (not just rejections)
+**Files**:
+- lib/services/ocr-service.ts
+- lib/services/app-settings-service.ts
+- lib/services/dispute-service.ts
+- app/api/receipts/[id]/ocr/route.ts
+- app/api/admin/settings/route.ts
+- app/admin/settings/page.tsx
+- messages/*.json (all 8 languages)
+- tests/services/ocr-service.test.ts
+- tests/services/app-settings-service.test.ts
+- tests/routes/admin-settings.test.ts
+
+## [084] Give secondary analysis authority to overwrite verification status and OCR values
+
+**What**: Secondary analysis now returns a structured verdict (confirmed_rejection, overturned_to_verified, requires_review) with its own OCR extraction values and confidence score, which overwrite the initial analysis and re-apply confidence threshold logic.
+**Decisions**:
+- Secondary analysis prompt updated to extract its own shop name, date, amount, confidence, and readable flag
+- Verdict drives final status: confirmed keeps rejection, overturned/requires_review re-runs `determineVerificationStatus` with secondary values
+- `secondaryAnalysis` DB field now stores JSON (with legacy string fallback in worker)
+- Auto-disable only triggers on `confirmed_rejection` verdict
+- Applied consistently across all three OCR paths (worker, streaming route, dispute verify)
+**Files**: `lib/services/ocr-service.ts`, `lib/queue/receipt-worker.ts`, `app/api/receipts/[id]/ocr/route.ts`, `lib/services/dispute-service.ts`, `app/api/dispute/verify/route.ts`, `components/receipt-card.tsx`
+
 ## [083] Fix blank page on reload and add receipt queue auto-refresh
 
 **What**: Removed the `mounted` state guard in `Providers` that hid the entire app tree before hydration, and added 15-second polling to the admin receipts queue.

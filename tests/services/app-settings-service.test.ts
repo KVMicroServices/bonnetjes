@@ -21,14 +21,12 @@ import {
   isAutoVerifyEnabled,
   isAutoDisableEnabled,
   getHighConfidenceThreshold,
-  getLowConfidenceThreshold,
   setSettingBoolean,
   setSettingInteger,
   getFeatureToggles,
   SETTING_AUTO_VERIFY_ENABLED,
   SETTING_AUTO_DISABLE_ENABLED,
   SETTING_HIGH_CONFIDENCE_THRESHOLD,
-  SETTING_LOW_CONFIDENCE_THRESHOLD,
 } from "@/lib/services/app-settings-service";
 
 // ─── Tests: getSettingBoolean ──────────────────────────────────────────────────
@@ -310,33 +308,6 @@ describe("getHighConfidenceThreshold", () => {
   });
 });
 
-// ─── Tests: getLowConfidenceThreshold ──────────────────────────────────────────
-
-describe("getLowConfidenceThreshold", () => {
-  it("returns 30 by default when no DB row exists", async () => {
-    mockPrisma.appSetting.findUnique.mockResolvedValue(null);
-
-    const result = await getLowConfidenceThreshold();
-
-    expect(result).toBe(30);
-    expect(mockPrisma.appSetting.findUnique).toHaveBeenCalledWith({
-      where: { key: SETTING_LOW_CONFIDENCE_THRESHOLD },
-    });
-  });
-
-  it("returns value from DB when set", async () => {
-    mockPrisma.appSetting.findUnique.mockResolvedValue({
-      key: SETTING_LOW_CONFIDENCE_THRESHOLD,
-      value: "15",
-      updatedAt: new Date(),
-    });
-
-    const result = await getLowConfidenceThreshold();
-
-    expect(result).toBe(15);
-  });
-});
-
 // ─── Tests: setSettingInteger ──────────────────────────────────────────────────
 
 describe("setSettingInteger", () => {
@@ -375,7 +346,6 @@ describe("getFeatureToggles", () => {
       autoDisableEnabled: false,
       autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
-      lowConfidenceThreshold: 30,
     });
   });
 
@@ -392,7 +362,6 @@ describe("getFeatureToggles", () => {
         updatedAt: new Date(),
       })
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
 
     const result = await getFeatureToggles();
@@ -402,7 +371,6 @@ describe("getFeatureToggles", () => {
       autoDisableEnabled: false,
       autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
-      lowConfidenceThreshold: 30,
     });
   });
 });

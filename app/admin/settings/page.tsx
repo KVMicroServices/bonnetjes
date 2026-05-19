@@ -23,7 +23,6 @@ interface AppSettings {
   autoDisableEnabled: boolean;
   autoDisableLocationWhitelist: string[];
   highConfidenceThreshold: number;
-  lowConfidenceThreshold: number;
 }
 
 export default function SettingsPage() {
@@ -39,11 +38,9 @@ export default function SettingsPage() {
     autoDisableEnabled: false,
     autoDisableLocationWhitelist: [],
     highConfidenceThreshold: 70,
-    lowConfidenceThreshold: 30,
   });
   const [updatingSetting, setUpdatingSetting] = useState<string | null>(null);
   const [highThresholdInput, setHighThresholdInput] = useState("70");
-  const [lowThresholdInput, setLowThresholdInput] = useState("30");
   const [newLocationId, setNewLocationId] = useState("");
 
   const isAdmin = (session?.user as any)?.role === "admin";
@@ -67,7 +64,6 @@ export default function SettingsPage() {
         const data = await response.json();
         setSettings(data);
         setHighThresholdInput(String(data.highConfidenceThreshold));
-        setLowThresholdInput(String(data.lowConfidenceThreshold));
       }
     } catch {
       // Fetch failed silently
@@ -101,7 +97,6 @@ export default function SettingsPage() {
         const updatedSettings = await response.json();
         setSettings(updatedSettings);
         setHighThresholdInput(String(updatedSettings.highConfidenceThreshold));
-        setLowThresholdInput(String(updatedSettings.lowConfidenceThreshold));
         toast({
           title: t("settingUpdated"),
           description: t("settingUpdatedDescription"),
@@ -127,12 +122,7 @@ export default function SettingsPage() {
   const handleThresholdBlur = (key: string, inputValue: string, currentValue: number) => {
     const parsed = parseInt(inputValue, 10);
     if (isNaN(parsed) || parsed < 0 || parsed > 100) {
-      // Reset to current value on invalid input
-      if (key === "highConfidenceThreshold") {
-        setHighThresholdInput(String(currentValue));
-      } else {
-        setLowThresholdInput(String(currentValue));
-      }
+      setHighThresholdInput(String(currentValue));
       return;
     }
     if (parsed !== currentValue) {
@@ -365,28 +355,6 @@ export default function SettingsPage() {
                   disabled={updatingSetting === "highConfidenceThreshold"}
                   className="w-20 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-center text-sm text-gray-700 disabled:opacity-50"
                   aria-label={t("highConfidenceLabel")}
-                />
-                <span className="text-sm text-gray-500">%</span>
-              </div>
-            </div>
-
-            {/* Low Confidence Threshold */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-900">{t("lowConfidenceLabel")}</p>
-                <p className="text-sm text-gray-500">{t("lowConfidenceDescription")}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={lowThresholdInput}
-                  onChange={(event) => setLowThresholdInput(event.target.value)}
-                  onBlur={() => handleThresholdBlur("lowConfidenceThreshold", lowThresholdInput, settings.lowConfidenceThreshold)}
-                  disabled={updatingSetting === "lowConfidenceThreshold"}
-                  className="w-20 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-center text-sm text-gray-700 disabled:opacity-50"
-                  aria-label={t("lowConfidenceLabel")}
                 />
                 <span className="text-sm text-gray-500">%</span>
               </div>

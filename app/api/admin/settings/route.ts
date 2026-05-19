@@ -12,7 +12,6 @@ import {
   SETTING_AUTO_VERIFY_ENABLED,
   SETTING_AUTO_DISABLE_ENABLED,
   SETTING_HIGH_CONFIDENCE_THRESHOLD,
-  SETTING_LOW_CONFIDENCE_THRESHOLD,
   SETTING_AUTO_DISABLE_LOCATION_WHITELIST,
 } from "@/lib/services/app-settings-service";
 
@@ -86,16 +85,6 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: "highConfidenceThreshold must be between 0 and 100" }, { status: 400 });
       }
       await setSettingInteger(SETTING_HIGH_CONFIDENCE_THRESHOLD, payload.highConfidenceThreshold);
-    }
-
-    if ("lowConfidenceThreshold" in payload) {
-      if (typeof payload.lowConfidenceThreshold !== "number") {
-        return NextResponse.json({ error: "lowConfidenceThreshold must be a number" }, { status: 400 });
-      }
-      if (payload.lowConfidenceThreshold < MIN_THRESHOLD || payload.lowConfidenceThreshold > MAX_THRESHOLD) {
-        return NextResponse.json({ error: "lowConfidenceThreshold must be between 0 and 100" }, { status: 400 });
-      }
-      await setSettingInteger(SETTING_LOW_CONFIDENCE_THRESHOLD, payload.lowConfidenceThreshold);
     }
 
     if ("autoDisableLocationWhitelist" in payload) {

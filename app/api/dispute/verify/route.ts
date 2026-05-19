@@ -136,13 +136,13 @@ function createOcrAdapter(): DisputeOcrAdapter {
       };
     },
     async runSecondary(messages, parsed, failureReason) {
-      const verdict = await runSecondaryAnalysis(
+      const result = await runSecondaryAnalysis(
         messages as ReadonlyArray<OcrMessage>,
         toParsedOcrResult(parsed),
         failureReason as FailureReason,
         config
       );
-      return verdict;
+      return result;
     },
   };
 }

@@ -6,13 +6,11 @@ import { logger } from "@/lib/logger";
 export const SETTING_AUTO_VERIFY_ENABLED = "receipt_auto_verify_enabled";
 export const SETTING_AUTO_DISABLE_ENABLED = "receipt_auto_disable_enabled";
 export const SETTING_HIGH_CONFIDENCE_THRESHOLD = "high_confidence_threshold";
-export const SETTING_LOW_CONFIDENCE_THRESHOLD = "low_confidence_threshold";
 export const SETTING_AUTO_DISABLE_LOCATION_WHITELIST = "auto_disable_location_whitelist";
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
 const DEFAULT_HIGH_CONFIDENCE_THRESHOLD = 70;
-const DEFAULT_LOW_CONFIDENCE_THRESHOLD = 30;
 
 // ─── Read (Boolean) ───────────────────────────────────────────────────────────
 
@@ -59,10 +57,6 @@ export async function isAutoDisableEnabled(): Promise<boolean> {
 
 export async function getHighConfidenceThreshold(): Promise<number> {
   return getSettingInteger(SETTING_HIGH_CONFIDENCE_THRESHOLD, DEFAULT_HIGH_CONFIDENCE_THRESHOLD);
-}
-
-export async function getLowConfidenceThreshold(): Promise<number> {
-  return getSettingInteger(SETTING_LOW_CONFIDENCE_THRESHOLD, DEFAULT_LOW_CONFIDENCE_THRESHOLD);
 }
 
 // ─── Read (String Array / JSON) ───────────────────────────────────────────────
@@ -135,7 +129,6 @@ export interface AppSettings {
   autoDisableEnabled: boolean;
   autoDisableLocationWhitelist: readonly string[];
   highConfidenceThreshold: number;
-  lowConfidenceThreshold: number;
 }
 
 export async function getAppSettings(): Promise<AppSettings> {
@@ -143,9 +136,8 @@ export async function getAppSettings(): Promise<AppSettings> {
   const autoDisableEnabled = await isAutoDisableEnabled();
   const autoDisableLocationWhitelist = await getAutoDisableLocationWhitelist();
   const highConfidenceThreshold = await getHighConfidenceThreshold();
-  const lowConfidenceThreshold = await getLowConfidenceThreshold();
 
-  return { autoVerifyEnabled, autoDisableEnabled, autoDisableLocationWhitelist, highConfidenceThreshold, lowConfidenceThreshold };
+  return { autoVerifyEnabled, autoDisableEnabled, autoDisableLocationWhitelist, highConfidenceThreshold };
 }
 
 // ─── Legacy alias ─────────────────────────────────────────────────────────────

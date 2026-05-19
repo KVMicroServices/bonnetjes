@@ -126,7 +126,7 @@ async function processReceiptJob(job: Job<ReceiptProcessingJobData>): Promise<vo
 
 // ─── Auto-Disable Helper ─────────────────────────────────────────────────────
 
-const SECONDARY_ANALYSIS_CONFIRMED = "Initial analysis valid";
+const SECONDARY_VERDICT_CONFIRMED = "confirmed_rejection";
 
 /**
  * Checks if a rejected receipt has confirmed secondary analysis and a linked
@@ -142,8 +142,16 @@ async function enqueueReviewDisableIfConfirmed(receiptId: string): Promise<void>
     return;
   }
 
-  const isConfirmed = receipt.secondaryAnalysis
-    && receipt.secondaryAnalysis.includes(SECONDARY_ANALYSIS_CONFIRMED);
+  let isConfirmed = false;
+  if (receipt.secondaryAnalysis) {
+    try {
+      const parsed = JSON.parse(receipt.secondaryAnalysis);
+      isConfirmed = parsed.verdict === SECONDARY_VERDICT_CONFIRMED;
+    } catch {
+      // Legacy format fallback: check for old string-based confirmation
+      isConfirmed = receipt.secondaryAnalysis.includes("Initial analysis valid");
+    }
+  }
 
   if (!isConfirmed) {
     logger.info(

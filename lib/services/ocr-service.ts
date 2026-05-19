@@ -3,7 +3,6 @@ import { logger } from "@/lib/logger";
 import { convertPdfToImages } from "@/lib/pdf-to-image";
 import {
   getHighConfidenceThreshold,
-  getLowConfidenceThreshold,
 } from "@/lib/services/app-settings-service";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -13,7 +12,6 @@ const DEFAULT_AI_MODEL = "gpt-5.4-nano";
 const DEFAULT_SECONDARY_AI_MODEL = "gpt-5.4-mini";
 const MAX_TOKENS = 2000;
 const HIGH_CONFIDENCE_THRESHOLD = 70;
-const LOW_CONFIDENCE_THRESHOLD = 30;
 const OCR_REASONING_MAX_TOKENS = parseInt(process.env.OCR_REASONING_MAX_TOKENS || "150", 10);
 
 const OCR_PROMPT = `You are a receipt verification expert. ALWAYS respond in English regardless of the language on the receipt.
@@ -48,7 +46,7 @@ Respond with raw JSON only. All text in your response must be in English.`;
 
 const SECONDARY_ANALYSIS_PROMPT = `You are a receipt verification quality assurance expert. ALWAYS respond in English.
 
-A receipt was analyzed and REJECTED by the primary OCR model. Your job is to independently review the receipt image and the primary model's reasoning, then either confirm the rejection or overturn it with justification.
+A receipt was analyzed by the primary OCR model but the result was not confident enough to auto-verify. Your job is to independently review the receipt image alongside the primary model's analysis, then provide your own assessment.
 
 Primary analysis result:
 - Extracted shop name: {shopName}
@@ -61,14 +59,25 @@ Primary analysis result:
 
 Instructions:
 1. Look at the receipt image yourself. Do NOT blindly trust the primary analysis.
-2. Consider whether the failure reason is justified given what you can see.
-3. If the rejection is clearly correct, respond with "Initial analysis valid".
-4. If you disagree with the rejection or see information the primary model missed, explain what you found and why the rejection may be wrong.
-5. If the receipt is borderline (partially readable, some fields visible but not all), note which fields you can confirm and which are genuinely unreadable.
+2. Consider whether the primary model's assessment is justified given what you can see.
+3. Provide your own independent extraction of the receipt data (shop name, date, amount).
+4. Provide your own confidence score (0-100) based on what you can see.
+5. Decide on a verdict:
+   - "confirmed_rejection" if the receipt is clearly invalid or unreadable
+   - "overturned_to_verified" if you can clearly read the receipt and extract valid data
+   - "requires_review" if the receipt is borderline and needs human review
+6. Provide a brief reasoning for your decision.
 
 Respond with JSON in this exact format:
 {
-  "secondaryVerdict": "string - either 'Initial analysis valid' or a detailed explanation of your findings (2-4 sentences, always in English)"
+  "verdict": "confirmed_rejection" | "overturned_to_verified" | "requires_review",
+  "reasoning": "2-4 sentences explaining your decision, always in English",
+  "extractedShopName": "string - shop name you extracted, or null if not found",
+  "extractedDate": "YYYY-MM-DD or null if not found",
+  "extractedAmount": number or null if not found,
+  "receiptReadable": true/false,
+  "confidence": 0-100,
+  "failureReason": "one of: NOT_A_RECEIPT, IMAGE_UNCLEAR, INSUFFICIENT_INFO, UNREADABLE_TEXT, MISSING_KEY_FIELDS, or null if receipt is valid"
 }
 
 Respond with raw JSON only. All text must be in English.`;
@@ -164,8 +173,17 @@ export interface ParsedOcrResult {
   failureReason: FailureReason | null;
 }
 
+export type SecondaryVerdict = "confirmed_rejection" | "overturned_to_verified" | "requires_review";
+
 export interface SecondaryAnalysisResult {
-  secondaryVerdict: string;
+  verdict: SecondaryVerdict;
+  reasoning: string;
+  extractedShopName: string | null;
+  extractedDate: string | null;
+  extractedAmount: number | null;
+  receiptReadable: boolean;
+  confidence: number;
+  failureReason: string | null;
 }
 
 export type VerificationStatus = "pending" | "verified" | "rejected" | "requires_review";
@@ -328,10 +346,9 @@ export function determineVerificationStatus(
   ocrResult: ParsedOcrResult,
   isDuplicate: boolean,
   receiptDate: Date | null,
-  thresholds?: { highConfidence?: number; lowConfidence?: number }
+  thresholds?: { highConfidence?: number }
 ): VerificationDecision {
-  const highThreshold = thresholds?.highConfidence ?? HIGH_CONFIDENCE_THRESHOLD;
-  const lowThreshold = thresholds?.lowConfidence ?? LOW_CONFIDENCE_THRESHOLD;
+  const confidenceThreshold = thresholds?.highConfidence ?? HIGH_CONFIDENCE_THRESHOLD;
 
   let isDateTooOld = false;
   let dateValidationMessage = "";
@@ -353,24 +370,24 @@ export function determineVerificationStatus(
     return { status: "rejected", failureReason: "DUPLICATE_RECEIPT", isDateTooOld, dateValidationMessage };
   }
 
-  const hasHighConfidence = ocrResult.confidence >= highThreshold;
+  const meetsThreshold = ocrResult.confidence >= confidenceThreshold;
   const isReadable = ocrResult.receiptReadable;
   const hasShopName = ocrResult.extractedShopName !== null;
   const hasDate = receiptDate !== null;
+  const hasNoFailure = ocrResult.failureReason === null;
 
-  if (hasHighConfidence && isReadable && hasShopName && hasDate) {
+  if (meetsThreshold && hasNoFailure && isReadable && hasShopName && hasDate) {
     return { status: "verified", failureReason: null, isDateTooOld, dateValidationMessage };
   }
 
-  const hasLowConfidence = ocrResult.confidence < lowThreshold;
-
-  if (!isReadable || hasLowConfidence) {
-    const failureReason = ocrResult.failureReason || "IMAGE_UNCLEAR";
-    return { status: "rejected", failureReason, isDateTooOld, dateValidationMessage };
-  }
-
-  return { status: "requires_review", failureReason: null, isDateTooOld, dateValidationMessage };
+  return { status: "requires_review", failureReason: ocrResult.failureReason, isDateTooOld, dateValidationMessage };
 }
+
+const VALID_SECONDARY_VERDICTS: readonly SecondaryVerdict[] = [
+  "confirmed_rejection",
+  "overturned_to_verified",
+  "requires_review",
+];
 
 /** Run a secondary AI analysis on a rejected receipt to confirm or add nuance. */
 export async function runSecondaryAnalysis(
@@ -378,7 +395,7 @@ export async function runSecondaryAnalysis(
   ocrResult: ParsedOcrResult,
   failureReason: FailureReason,
   config: OcrApiConfig
-): Promise<string> {
+): Promise<SecondaryAnalysisResult | null> {
   let dateString = "null";
   if (ocrResult.extractedDate) {
     dateString = ocrResult.extractedDate.toISOString().split("T")[0];
@@ -431,16 +448,22 @@ export async function runSecondaryAnalysis(
 
     if (!response.ok) {
       logger.warn({ status: response.status }, "Secondary analysis API call failed");
-      return "Secondary analysis unavailable";
+      return null;
     }
 
     const llmResponse = await response.json();
     const rawContent: string = llmResponse.choices[0].message.content;
     const parsed: SecondaryAnalysisResult = JSON.parse(rawContent);
-    return parsed.secondaryVerdict;
+
+    if (!VALID_SECONDARY_VERDICTS.includes(parsed.verdict)) {
+      logger.warn({ verdict: parsed.verdict }, "Secondary analysis returned invalid verdict");
+      return null;
+    }
+
+    return parsed;
   } catch (error) {
     logger.warn({ error }, "Secondary analysis parsing failed");
-    return "Secondary analysis unavailable";
+    return null;
   }
 }
 
@@ -487,36 +510,91 @@ export async function processReceiptOcr(
   const ocrResult = parseOcrResult(rawContent);
 
   const highConfidence = await getHighConfidenceThreshold();
-  const lowConfidence = await getLowConfidenceThreshold();
 
   const verificationDecision = determineVerificationStatus(
     ocrResult,
     receipt.isDuplicate,
     ocrResult.extractedDate,
-    { highConfidence, lowConfidence }
+    { highConfidence }
   );
 
   let secondaryAnalysis: string | null = null;
-  if (verificationDecision.status === "rejected" && verificationDecision.failureReason) {
-    secondaryAnalysis = await runSecondaryAnalysis(
+  let finalVerificationStatus = verificationDecision.status;
+  let finalFailureReason = verificationDecision.failureReason;
+  let finalShopName = ocrResult.extractedShopName;
+  let finalDate = ocrResult.extractedDate;
+  let finalAmount = ocrResult.extractedAmount;
+  let finalConfidence = ocrResult.confidence;
+  let finalReadable = ocrResult.receiptReadable;
+
+  const isHardRuleRejection = verificationDecision.failureReason === "DUPLICATE_RECEIPT"
+    || verificationDecision.failureReason === "RECEIPT_TOO_OLD";
+  const needsSecondaryAnalysis = verificationDecision.status !== "verified" && !isHardRuleRejection;
+
+  if (needsSecondaryAnalysis) {
+    const primaryFailureReason = ocrResult.failureReason || "IMAGE_UNCLEAR";
+    const secondaryResult = await runSecondaryAnalysis(
       messages,
       ocrResult,
-      verificationDecision.failureReason,
+      primaryFailureReason,
       config
     );
+
+    if (secondaryResult) {
+      secondaryAnalysis = JSON.stringify(secondaryResult);
+
+      if (secondaryResult.extractedShopName !== null) {
+        finalShopName = secondaryResult.extractedShopName;
+      }
+      if (secondaryResult.extractedDate !== null) {
+        finalDate = new Date(secondaryResult.extractedDate);
+      }
+      if (secondaryResult.extractedAmount !== null) {
+        finalAmount = secondaryResult.extractedAmount;
+      }
+      finalConfidence = secondaryResult.confidence;
+      finalReadable = secondaryResult.receiptReadable;
+
+      if (secondaryResult.verdict === "confirmed_rejection") {
+        finalVerificationStatus = "rejected";
+        if (secondaryResult.failureReason && FAILURE_REASONS.includes(secondaryResult.failureReason as FailureReason)) {
+          finalFailureReason = secondaryResult.failureReason as FailureReason;
+        }
+      } else if (secondaryResult.verdict === "overturned_to_verified" || secondaryResult.verdict === "requires_review") {
+        const secondaryOcrResult: ParsedOcrResult = {
+          extractedShopName: finalShopName,
+          extractedDate: finalDate,
+          extractedAmount: finalAmount,
+          receiptReadable: finalReadable,
+          confidence: finalConfidence,
+          reasoning: secondaryResult.reasoning,
+          failureReason: secondaryResult.failureReason as FailureReason | null,
+        };
+
+        const secondaryDecision = determineVerificationStatus(
+          secondaryOcrResult,
+          receipt.isDuplicate,
+          finalDate,
+          { highConfidence }
+        );
+
+        finalVerificationStatus = secondaryDecision.status;
+        finalFailureReason = secondaryDecision.failureReason;
+      }
+    }
   }
 
   const patternAnalysis = await dependencies.fraudDetection.detectSuspiciousPatterns(
     receipt.userId,
-    ocrResult.extractedShopName,
-    ocrResult.extractedAmount
+    finalShopName,
+    finalAmount
   );
 
   const newFraudRiskScore = dependencies.fraudDetection.calculateFraudRiskScore(
     receipt.isDuplicate,
     receipt.manipulationScore || 0,
     patternAnalysis.riskScore,
-    ocrResult.confidence
+    finalConfidence
   );
 
   let ocrReasoning = ocrResult.reasoning;
@@ -527,22 +605,22 @@ export async function processReceiptOcr(
   await dependencies.database.receipt.update({
     where: { id: receiptId },
     data: {
-      extractedShopName: ocrResult.extractedShopName,
-      extractedDate: ocrResult.extractedDate,
-      extractedAmount: ocrResult.extractedAmount,
-      ocrConfidence: ocrResult.confidence,
+      extractedShopName: finalShopName,
+      extractedDate: finalDate,
+      extractedAmount: finalAmount,
+      ocrConfidence: finalConfidence,
       ocrReasoning,
-      receiptReadable: ocrResult.receiptReadable,
-      failureReason: verificationDecision.failureReason,
+      receiptReadable: finalReadable,
+      failureReason: finalFailureReason,
       secondaryAnalysis,
       suspiciousPatterns: JSON.stringify(patternAnalysis.patterns),
       fraudRiskScore: newFraudRiskScore,
-      verificationStatus: verificationDecision.status,
+      verificationStatus: finalVerificationStatus,
       processedAt: new Date()
     }
   });
 
-  return { success: true, verificationStatus: verificationDecision.status };
+  return { success: true, verificationStatus: finalVerificationStatus };
 }
 
 /** Create an OcrApiConfig from environment variables with defaults. */
