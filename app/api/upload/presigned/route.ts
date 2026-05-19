@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { generatePresignedUploadUrl } from "@/lib/s3";
+import { generateUploadUrl } from "@/lib/services/upload-service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,28 +23,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "application/pdf"
-    ];
-    if (!allowedTypes.includes(contentType)) {
-      return NextResponse.json(
-        { error: "File type not allowed. Supported: JPG, PNG, GIF, WebP, PDF" },
-        { status: 400 }
-      );
-    }
-
-    const { uploadUrl, cloud_storage_path } = await generatePresignedUploadUrl(
+    const result = await generateUploadUrl(
+      { storage: { generatePresignedUploadUrl } },
       fileName,
       contentType,
       isPublic
     );
 
-    return NextResponse.json({ uploadUrl, cloud_storage_path });
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      uploadUrl: result.data.uploadUrl,
+      cloud_storage_path: result.data.cloudStoragePath
+    });
   } catch (error) {
     console.error("Presigned URL error:", error);
     return NextResponse.json(

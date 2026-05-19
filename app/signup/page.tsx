@@ -4,11 +4,14 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Receipt, Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslations } from "next-intl";
+import { LanguageSelector } from "@/components/language-selector";
 
 export default function SignupPage() {
   const router = useRouter();
+  const t = useTranslations("Signup");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,12 +25,12 @@ export default function SignupPage() {
     setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("passwordMismatch"));
       return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+      setError(t("passwordTooShort"));
       return;
     }
 
@@ -43,11 +46,10 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Failed to create account");
+        setError(data.error || t("genericError"));
         return;
       }
 
-      // Auto sign in after signup
       const result = await signIn("credentials", {
         email,
         password,
@@ -55,12 +57,12 @@ export default function SignupPage() {
       });
 
       if (result?.error) {
-        setError("Account created but failed to sign in");
+        setError(t("accountCreatedSignInFailed"));
       } else {
         router.replace("/dashboard");
       }
     } catch {
-      setError("An error occurred. Please try again.");
+      setError(t("genericError"));
     } finally {
       setLoading(false);
     }
@@ -80,7 +82,7 @@ export default function SignupPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/kiyoh-logo.png" alt="Kiyoh" className="h-12 w-auto" />
           </Link>
-          <p className="mt-4 text-gray-600">Create your account</p>
+          <p className="mt-4 text-gray-600">{t("subtitle")}</p>
         </div>
 
         <div className="rounded-2xl bg-white p-8 shadow-xl">
@@ -93,7 +95,7 @@ export default function SignupPage() {
 
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
-                Full Name
+                {t("nameLabel")}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -102,7 +104,7 @@ export default function SignupPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-4 text-gray-900 focus:border-kv-green focus:outline-none focus:ring-2 focus:ring-kv-green/20"
-                  placeholder="John Doe"
+                  placeholder={t("namePlaceholder")}
                   required
                 />
               </div>
@@ -110,7 +112,7 @@ export default function SignupPage() {
 
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
-                Email
+                {t("emailLabel")}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -119,7 +121,7 @@ export default function SignupPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-4 text-gray-900 focus:border-kv-green focus:outline-none focus:ring-2 focus:ring-kv-green/20"
-                  placeholder="you@example.com"
+                  placeholder={t("emailPlaceholder")}
                   required
                 />
               </div>
@@ -127,7 +129,7 @@ export default function SignupPage() {
 
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
-                Password
+                {t("passwordLabel")}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -136,7 +138,7 @@ export default function SignupPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-12 text-gray-900 focus:border-kv-green focus:outline-none focus:ring-2 focus:ring-kv-green/20"
-                  placeholder="••••••••"
+                  placeholder={t("passwordPlaceholder")}
                   required
                 />
                 <button
@@ -155,7 +157,7 @@ export default function SignupPage() {
 
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
-                Confirm Password
+                {t("confirmPasswordLabel")}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -164,7 +166,7 @@ export default function SignupPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-4 text-gray-900 focus:border-kv-green focus:outline-none focus:ring-2 focus:ring-kv-green/20"
-                  placeholder="••••••••"
+                  placeholder={t("passwordPlaceholder")}
                   required
                 />
               </div>
@@ -178,23 +180,27 @@ export default function SignupPage() {
               {loading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  Creating account...
+                  {t("submitting")}
                 </>
               ) : (
-                "Create Account"
+                t("submitButton")
               )}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-600">
-            Already have an account?{" "}
+            {t("hasAccount")}{" "}
             <Link
               href="/login"
               className="font-medium text-kv-green hover:text-kv-green/90"
             >
-              Sign in
+              {t("signInLink")}
             </Link>
           </p>
+        </div>
+
+        <div className="mt-4 flex justify-center">
+          <LanguageSelector />
         </div>
       </motion.div>
     </div>

@@ -1,0 +1,23 @@
+# Test Kiyoh connection
+curl -X POST http://localhost:3005/settings/test-connection \
+  -H "Content-Type: application/json" \
+  -d '{"shop": "mock-dev-store.myshopify.com"}'
+
+# Bulk sync all products
+curl -X POST http://localhost:3005/settings/bulk-sync \
+  -H "Content-Type: application/json" \
+  -d '{"shop": "mock-dev-store.myshopify.com"}'
+
+# Single product sync (via product webhook)
+curl -X POST http://localhost:3005/webhooks/products-update \
+  -H "Content-Type: application/json" \
+  -H "x-shopify-shop-domain: mock-dev-store.myshopify.com" \
+  -H "x-shopify-hmac-sha256: fake" \
+  -d '{"id": 1001, "title": "Organic Cotton T-Shirt", "handle": "organic-cotton-t-shirt", "vendor": "EcoWear", "status": "active", "images": [{"src": "https://cdn.shopify.com/mock/tshirt.jpg"}], "variants": [{"id": 2001, "sku": "ECO-TSHIRT-S", "barcode": "8712345000011", "price": "29.95"}]}'
+
+# Send invitation (via order webhook)
+curl -X POST http://localhost:3005/webhooks/orders-updated \
+  -H "Content-Type: application/json" \
+  -H "x-shopify-shop-domain: mock-dev-store.myshopify.com" \
+  -H "x-shopify-hmac-sha256: fake" \
+  -d '{"id": 5001, "order_number": 1042, "email": "jan.devries@example.nl", "fulfillment_status": "fulfilled", "customer_locale": "nl-NL", "customer": {"email": "jan.devries@example.nl", "first_name": "Jan", "last_name": "de Vries"}, "line_items": [{"sku": "ECO-TSHIRT-M", "price": "29.95", "title": "Organic Cotton T-Shirt", "product_id": 1001}]}'

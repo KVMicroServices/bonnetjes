@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
+import { getDashboardStats } from "@/lib/services/admin-service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,49 +21,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const [totalReceipts, pendingCount, verifiedCount, rejectedCount, totalUsers, recentActions] = await Promise.all([
-      prisma.receipt.count(),
-      prisma.receipt.count({ where: { verificationStatus: "pending" } }),
-      prisma.receipt.count({ where: { verificationStatus: "verified" } }),
-      prisma.receipt.count({ where: { verificationStatus: { in: ["rejected", "flagged"] } } }),
-      prisma.user.count({ where: { role: "user" } }),
-      prisma.adminAction.findMany({
-        take: 10,
-        orderBy: { createdAt: "desc" },
-        include: {
-          admin: { select: { name: true, email: true } },
-          receipt: { select: { id: true, extractedShopName: true } }
-        }
-      })
-    ]);
+    const result = await getDashboardStats({ database: prisma });
 
-    // Get fraud stats
-    const fraudStats = await prisma.receipt.aggregate({
-      _avg: { fraudRiskScore: true },
-      _count: { _all: true }
-    });
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: 500 }
+      );
+    }
 
-    const duplicateCount = await prisma.receipt.count({
-      where: { isDuplicate: true }
-    });
-
-    const highRiskCount = await prisma.receipt.count({
-      where: { fraudRiskScore: { gte: 50 } }
-    });
-
-    return NextResponse.json({
-      totalReceipts,
-      pendingCount,
-      verifiedCount,
-      rejectedCount,
-      totalUsers,
-      fraudStats: {
-        averageRiskScore: Math.round(fraudStats._avg?.fraudRiskScore ?? 0),
-        duplicateCount,
-        highRiskCount
-      },
-      recentActions
-    });
+    return NextResponse.json(result.stats);
   } catch (error) {
     console.error("Admin stats error:", error);
     return NextResponse.json(

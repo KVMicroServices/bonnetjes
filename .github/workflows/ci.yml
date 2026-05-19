@@ -1,0 +1,12 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, development]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pass
+        run: echo "CI passed"

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
-import { getFileAsBuffer } from "@/lib/s3";
+import { getFileAsBuffer, getFileUrl } from "@/lib/s3";
 import {
   calculateImageHash,
   checkForDuplicates,
@@ -12,6 +12,8 @@ import {
   detectSuspiciousPatterns,
   calculateFraudRiskScore
 } from "@/lib/fraud-detection";
+import { listReceipts, createReceipt } from "@/lib/services/receipt-service";
+import { enqueueReceiptProcessing } from "@/lib/queue";
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,17 +25,41 @@ export async function GET(request: NextRequest) {
     const userId = (session.user as any).id;
     const isAdmin = (session.user as any).role === "admin";
 
-    const receipts = await prisma.receipt.findMany({
-      where: isAdmin ? {} : { userId },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true }
-        }
-      },
-      orderBy: { createdAt: "desc" }
-    });
+    const searchParams = request.nextUrl.searchParams;
+    const cursor = searchParams.get("cursor") || undefined;
+    const limitParam = searchParams.get("limit");
+    let limit = 15;
+    if (limitParam) {
+      limit = parseInt(limitParam, 10);
+    }
 
-    return NextResponse.json(receipts);
+    const result = await listReceipts(
+      { database: prisma, storage: { getFileUrl, getFileAsBuffer } },
+      userId,
+      isAdmin,
+      { cursor, limit }
+    );
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: 500 }
+      );
+    }
+
+    const DEFAULT_POLL_INTERVAL_SECONDS = 300;
+    const pollIntervalSecondsRaw = parseInt(process.env.POLL_INTERVAL_SECONDS || "", 10);
+    let pollIntervalSeconds = DEFAULT_POLL_INTERVAL_SECONDS;
+    if (Number.isFinite(pollIntervalSecondsRaw)) {
+      pollIntervalSeconds = pollIntervalSecondsRaw;
+    }
+
+    return NextResponse.json({
+      receipts: result.receipts,
+      nextCursor: result.nextCursor,
+      hasMore: result.hasMore,
+      pollIntervalSeconds,
+    });
   } catch (error) {
     console.error("Get receipts error:", error);
     return NextResponse.json(
@@ -53,85 +79,30 @@ export async function POST(request: NextRequest) {
     const userId = (session.user as any).id;
     const body = await request.json();
 
-    const {
-      cloudStoragePath,
-      isPublic,
-      originalFilename,
-      fileType,
-      fileSize
-    } = body;
-
-    if (!cloudStoragePath) {
-      return NextResponse.json(
-        { error: "Missing cloudStoragePath" },
-        { status: 400 }
-      );
-    }
-
-    // Perform fraud detection
-    let imageHash: string | null = null;
-    let isDuplicate = false;
-    let duplicateOfId: string | undefined;
-    let manipulationScore = 0;
-    let manipulationFlags: string[] = [];
-    let suspiciousPatterns: string[] = [];
-    let patternRiskScore = 0;
-
-    try {
-      // Get file for analysis
-      const fileBuffer = await getFileAsBuffer(cloudStoragePath);
-
-      // Calculate hash for duplicate detection
-      imageHash = calculateImageHash(fileBuffer);
-      const duplicateCheck = await checkForDuplicates(imageHash, userId);
-      isDuplicate = duplicateCheck.isDuplicate;
-      duplicateOfId = duplicateCheck.duplicateOfId;
-
-      // Analyze metadata for manipulation
-      const metadataAnalysis = analyzeMetadata(fileBuffer);
-      manipulationScore = metadataAnalysis.manipulationScore;
-      manipulationFlags = metadataAnalysis.flags;
-
-      // Detect suspicious patterns (without expected values, we'll update after OCR)
-      const patternAnalysis = await detectSuspiciousPatterns(
-        userId,
-        null,
-        null
-      );
-      suspiciousPatterns = patternAnalysis.patterns;
-      patternRiskScore = patternAnalysis.riskScore;
-    } catch (err) {
-      console.error("Fraud detection error:", err);
-    }
-
-    const fraudRiskScore = calculateFraudRiskScore(
-      isDuplicate,
-      manipulationScore,
-      patternRiskScore,
-      100
+    const result = await createReceipt(
+      { database: prisma, storage: { getFileUrl, getFileAsBuffer } },
+      userId,
+      body,
+      {
+        calculateImageHash,
+        checkForDuplicates,
+        analyzeMetadata,
+        detectSuspiciousPatterns,
+        calculateFraudRiskScore
+      }
     );
 
-    // Create receipt record (no expected values required, OCR will extract them)
-    const receipt = await prisma.receipt.create({
-      data: {
-        userId,
-        cloudStoragePath,
-        isPublic: isPublic ?? false,
-        originalFilename: originalFilename ?? "receipt",
-        fileType: fileType ?? "image",
-        fileSize: fileSize ?? 0,
-        verificationStatus: "pending",
-        imageHash,
-        isDuplicate,
-        duplicateOfId,
-        manipulationScore,
-        manipulationFlags: JSON.stringify(manipulationFlags),
-        suspiciousPatterns: JSON.stringify(suspiciousPatterns),
-        fraudRiskScore
-      }
-    });
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.statusCode }
+      );
+    }
 
-    return NextResponse.json(receipt, { status: 201 });
+    // Enqueue async OCR + fraud re-scoring
+    await enqueueReceiptProcessing(result.receipt.id, userId);
+
+    return NextResponse.json(result.receipt, { status: 201 });
   } catch (error) {
     console.error("Create receipt error:", error);
     return NextResponse.json(

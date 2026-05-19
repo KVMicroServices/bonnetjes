@@ -1,0 +1,10 @@
+{
+  "name": "cli",
+  "description": "Kiyoh project agent with coding standards, banned patterns, localization rules, and testing conventions from AGENTS.md",
+  "prompt": "Follow all rules from the AGENTS.md resource strictly: scope checks, banned code patterns, code standards, localization requirements, CHANGES.md format, module patterns, and testing conventions. Violations are immediate failures.",
+  "tools": ["@builtin"],
+  "resources": [
+    "file://AGENTS.md"
+  ],
+  "model": "claude-opus-4.6"
+}

@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
+import { logger } from "@/lib/logger";
+import { disableReviewByReceiptId } from "@/lib/review-disable/review-disable-service";
 
 export async function GET() {
   try {
@@ -26,11 +28,9 @@ export async function GET() {
 
     return NextResponse.json(receipts);
   } catch (error) {
-    console.error("Admin receipts error:", error);
+    logger.error({ error }, "Admin receipts error");
     return NextResponse.json({ error: "Failed to fetch receipts" }, { status: 500 });
   }
-
-  // PATCH: update status (approve/reject)
 }
 
 export async function PATCH(request: Request) {
@@ -50,9 +50,24 @@ export async function PATCH(request: Request) {
       data: { verificationStatus }
     });
 
-    return NextResponse.json(updated);
+    // Check if auto-disable is enabled and receipt was rejected
+    const autoDisableEnabled = process.env.RECEIPT_AUTO_DISABLE_ENABLED === "true";
+    if (autoDisableEnabled && verificationStatus === "rejected") {
+      disableReviewByReceiptId(id).catch((error) => {
+        logger.error({ error, receiptId: id }, "Auto-disable review failed (non-blocking)");
+      });
+    }
+
+    // Check if a linked ReceiptSyncState exists for this receipt
+    const syncState = await prisma.receiptSyncState.findFirst({
+      where: { receiptId: id },
+      select: { reviewId: true },
+    });
+    const canDisableReview = syncState !== null;
+
+    return NextResponse.json({ ...updated, canDisableReview });
   } catch (error) {
-    console.error("Admin receipt update error:", error);
+    logger.error({ error }, "Admin receipt update error");
     return NextResponse.json({ error: "Failed to update receipt" }, { status: 500 });
   }
 }

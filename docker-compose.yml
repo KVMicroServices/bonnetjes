@@ -1,0 +1,118 @@
+services:
+  database:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bonnetjes
+      POSTGRES_PASSWORD: bonnetjes
+      POSTGRES_DB: bonnetjes
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bonnetjes"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${DOCKER_TARGET:-staging}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://bonnetjes:bonnetjes@database:5432/bonnetjes
+      NEXTAUTH_URL: http://localhost:3000
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - .env
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  queue-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${DOCKER_TARGET:-staging}
+    command: node scripts/queue-worker.js
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://bonnetjes:bonnetjes@database:5432/bonnetjes
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - .env
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dependencies
+    command: sh -c "npx prisma generate && npm run dev"
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://bonnetjes:bonnetjes@database:5432/bonnetjes
+      NEXTAUTH_URL: http://localhost:3000
+      REDIS_URL: redis://redis:6379
+      WATCHPACK_POLLING: "true"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  queue-worker-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dependencies
+    command: sh -c "npx prisma generate && npx tsx scripts/queue-worker.ts"
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://bonnetjes:bonnetjes@database:5432/bonnetjes
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:

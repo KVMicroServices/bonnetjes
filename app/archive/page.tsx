@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 interface ReceiptData {
   id: string;
@@ -42,6 +43,7 @@ export default function ArchivePage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("Archive");
   const [groupedReceipts, setGroupedReceipts] = useState<Record<string, ReceiptData[]>>({});
   const [loading, setLoading] = useState(true);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
@@ -103,7 +105,7 @@ export default function ArchivePage() {
       console.error("Failed to load preview:", error);
       toast({
         title: "Error",
-        description: "Failed to load receipt preview",
+        description: t("failedToLoad"),
         variant: "destructive"
       });
     } finally {
@@ -147,6 +149,8 @@ export default function ArchivePage() {
         return <CheckCircle className="w-4 h-4 text-kv-green" />;
       case "rejected":
         return <XCircle className="w-4 h-4 text-red-500" />;
+      case "requires_review":
+        return <Eye className="w-4 h-4 text-blue-500" />;
       default:
         return <Clock className="w-4 h-4 text-yellow-500" />;
     }
@@ -178,7 +182,7 @@ export default function ArchivePage() {
               className="flex items-center gap-2 text-kv-gray hover:text-kv-green transition-colors"
             >
               <ChevronLeft className="w-5 h-5" />
-              Terug naar Dashboard
+              {t("backToDashboard")}
             </button>
           </div>
         </div>
@@ -186,10 +190,10 @@ export default function ArchivePage() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <Archive className="w-8 h-8 text-kv-green" />
-            <h1 className="text-2xl font-bold text-kv-gray">Archief</h1>
+            <h1 className="text-2xl font-bold text-kv-gray">{t("title")}</h1>
           </div>
           <p className="text-gray-600">
-            {totalArchived} gearchiveerde bonnen in {sortedDates.length} mappen
+            {t("description", { total: totalArchived, folders: sortedDates.length })}
           </p>
         </div>
 
@@ -197,9 +201,9 @@ export default function ArchivePage() {
         {sortedDates.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <Archive className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-700 mb-2">Geen gearchiveerde bonnen</h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">{t("noArchived")}</h3>
             <p className="text-gray-500">
-              Gearchiveerde bonnen worden hier gegroepeerd per datum weergegeven.
+              {t("noArchivedDescription")}
             </p>
           </div>
         ) : (
@@ -226,9 +230,9 @@ export default function ArchivePage() {
                       <div className="text-left">
                         <h3 className="font-medium text-kv-gray">{formatDate(dateKey)}</h3>
                         <p className="text-sm text-gray-500">
-                          {receipts.length} bonnen · 
-                          <span className="text-kv-green"> {verifiedCount} goedgekeurd</span> · 
-                          <span className="text-red-500"> {rejectedCount} afgewezen</span>
+                          {receipts.length} {t("receipts")} · 
+                          <span className="text-kv-green"> {verifiedCount} {t("approved")}</span> · 
+                          <span className="text-red-500"> {rejectedCount} {t("rejected")}</span>
                         </p>
                       </div>
                     </div>
@@ -253,12 +257,12 @@ export default function ArchivePage() {
                           <table className="w-full">
                             <thead>
                               <tr className="text-left text-xs font-medium text-gray-500 uppercase">
-                                <th className="pb-3">Bon</th>
-                                <th className="pb-3">Datum</th>
-                                <th className="pb-3">Bedrag</th>
-                                <th className="pb-3">Status</th>
-                                {isAdmin && <th className="pb-3">Gebruiker</th>}
-                                <th className="pb-3 text-right">Acties</th>
+                                <th className="pb-3">{t("receipt")}</th>
+                                <th className="pb-3">{t("date")}</th>
+                                <th className="pb-3">{t("amount")}</th>
+                                <th className="pb-3">{t("status")}</th>
+                                {isAdmin && <th className="pb-3">{t("user")}</th>}
+                                <th className="pb-3 text-right">{t("actions")}</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -290,8 +294,9 @@ export default function ArchivePage() {
                                     <div className="flex items-center gap-1">
                                       {getStatusIcon(receipt.verificationStatus)}
                                       <span className="text-sm capitalize">
-                                        {receipt.verificationStatus === "verified" ? "Goedgekeurd" :
-                                         receipt.verificationStatus === "rejected" ? "Afgewezen" : "In afwachting"}
+                                        {receipt.verificationStatus === "verified" ? t("statusVerified") :
+                                         receipt.verificationStatus === "rejected" ? t("statusRejected") :
+                                         receipt.verificationStatus === "requires_review" ? t("statusRequiresReview") : t("statusPending")}
                                       </span>
                                     </div>
                                   </td>

@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "enabled": true,
+  "name": "Branch Changelog",
+  "description": "Diffs the current branch against development and writes a structured changelog to docs/changelogs/.",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run `git diff development...HEAD --stat` and `git diff development...HEAD` to understand what changed on this branch compared to development. Then check `docs/changelogs/` for any existing file starting with today's date (format `YY.MM.DD`).\n\nFile naming convention:\n- Filename includes a kebab-case slug summarizing the branch: `YY.MM.DD-slug.md`\n- If a file with today's date already exists (different slug): `YY.MM.DD.1-slug.md`, `YY.MM.DD.2-slug.md`, etc.\n- The slug is a short kebab-case summary of the branch purpose (e.g. `fix-login-crash`, `add-otp-support`)\n\nThe in-file heading does NOT include the slug — use `Kiyoh Mobile vYY.MM.DD` or `Kiyoh Mobile vYY.MM.DD.N` for increments, followed by a short description on the next line.\n\nUse this format:\n\n# Kiyoh Mobile vYY.MM.DD(.N if increment)\n\nShort one-sentence description of what this changelog covers.\n\n**Branch**: <current branch> → development\n**Date**: YYYY-MM-DD\n**Scope**: <X files changed, Y insertions, Z deletions>\n\n---\n\n## Features\n\nNew user-facing functionality.\n\n- One sentence per feature added or removed\n\n## Bugs\n\nDefects that caused incorrect behavior.\n\n- One sentence per bug fixed, including what was broken\n\n## QA\n\nQuality-of-life improvements, polish, and minor fixes that aren't bugs.\n\n- One sentence per improvement (UX tweaks, copy changes, performance, accessibility)\n\n## Architecture\n\nRefactors, utilities, docs, config, CI, and Kiro/steering changes.\n\n- One sentence per change (refactors, new helpers, doc updates, config changes)\n\n---\n\n## Files Changed\n\n| Action | Path |\n|--------|------|\n| Modified/Deleted/Added | path |\n\n---\n\nRules:\n- Write entries as plain English sentences, not git log messages\n- Omit sections that have no entries\n- Collapse repetitive file paths (e.g. 'messages/*.json (all 8 languages)' instead of listing each)\n- Keep it concise — aim for 3-5 entries per section max\n- Category guide: Features = new capabilities; Bugs = broken behavior fixed; QA = polish/UX/copy/perf that wasn't broken; Architecture = refactors, utilities, docs, steering, CI, config\n- If a changelog already exists for this exact branch (same slug), overwrite it"
+  },
+  "workspaceFolderName": "KiyohMobileUI",
+  "shortName": "branch-changelog"
+}

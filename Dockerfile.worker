@@ -1,0 +1,44 @@
+# syntax=docker/dockerfile:1
+
+# --- Base stage ---
+FROM node:20-alpine AS base
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /app
+
+# --- Dependencies stage ---
+FROM base AS dependencies
+COPY package.json package-lock.json .npmrc ./
+COPY prisma ./prisma/
+RUN npm ci
+
+# --- Builder stage ---
+FROM base AS builder
+WORKDIR /app
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY . .
+
+RUN npx prisma generate
+
+# --- Worker stage ---
+FROM base
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+
+USER nextjs
+
+EXPOSE 3001
+ENV WORKER_HEALTH_PORT=3001
+
+CMD ["npx", "tsx", "scripts/queue-worker.ts"]

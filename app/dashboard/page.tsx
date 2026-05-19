@@ -2,13 +2,10 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Header } from "@/components/header";
-import { ReceiptUpload } from "@/components/receipt-upload";
-import { GoogleDriveImport } from "@/components/google-drive-import";
 import {
   Receipt,
-  Plus,
   Filter,
   Loader2,
   CheckCircle,
@@ -29,16 +26,16 @@ import {
   ThumbsUp,
   ThumbsDown,
   Mail,
-  FolderOpen,
   Archive,
   CheckSquare,
   Square,
-  User,
   Check,
-  ExternalLink
+  CloudDownload,
+  Power
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 const REJECTION_EMAIL_TEMPLATE = `Beste heer/mevrouw,
 
@@ -77,6 +74,8 @@ interface ReceiptData {
   verificationStatus: string;
   ocrConfidence: number | null;
   ocrReasoning: string | null;
+  failureReason: string | null;
+  secondaryAnalysis: string | null;
   fraudRiskScore: number | null;
   isDuplicate: boolean;
   createdAt: string;
@@ -88,10 +87,13 @@ export default function DashboardPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("Dashboard");
   const [receipts, setReceipts] = useState<ReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showUpload, setShowUpload] = useState(false);
-  const [showDriveImport, setShowDriveImport] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [filter, setFilter] = useState<string>("all");
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -101,12 +103,11 @@ export default function DashboardPage() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [archiving, setArchiving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [disablingReviewId, setDisablingReviewId] = useState<string | null>(null);
+  const [reviewDisabledReceipts, setReviewDisabledReceipts] = useState<Set<string>>(new Set());
 
   const isAdmin = (session?.user as any)?.role === "admin";
-  const [activeTab, setActiveTab] = useState<"receipts" | "queue" | "reviews">("receipts");
-  const [adminReceipts, setAdminReceipts] = useState<any[]>([]);
-  const [loadingAdmin, setLoadingAdmin] = useState(false);
-  const [reviewNotifications, setReviewNotifications] = useState({ count: 0 });
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => {
@@ -145,8 +146,8 @@ export default function DashboardPage() {
       if (response.ok) {
         const { archivedCount } = await response.json();
         toast({
-          title: "Gearchiveerd",
-          description: `${archivedCount} bonnen zijn gearchiveerd`
+          title: t("archived"),
+          description: t("archivedDescription", { count: archivedCount })
         });
         setSelectedIds(new Set());
         fetchReceipts();
@@ -155,7 +156,7 @@ export default function DashboardPage() {
       console.error("Archive error:", error);
       toast({
         title: "Error",
-        description: "Failed to archive receipts",
+        description: t("failedToArchive"),
         variant: "destructive"
       });
     } finally {
@@ -163,51 +164,50 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchReceipts = useCallback(async () => {
+  const [pollIntervalMilliseconds, setPollIntervalMilliseconds] = useState(5000);
+
+  const fetchReceipts = useCallback(async (cursor?: string) => {
+    if (cursor) {
+      setLoadingMore(true);
+    }
     try {
-      const response = await fetch("/api/receipts");
+      const params = new URLSearchParams();
+      params.set("limit", "15");
+      if (cursor) {
+        params.set("cursor", cursor);
+      }
+      const response = await fetch(`/api/receipts?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        setReceipts(data ?? []);
+        const incoming = data.receipts ?? [];
+        if (cursor) {
+          setReceipts(prev => [...prev, ...incoming]);
+        } else {
+          setReceipts(incoming);
+        }
+        setNextCursor(data.nextCursor ?? null);
+        setHasMore(data.hasMore ?? false);
+        if (data.pollIntervalSeconds) {
+          setPollIntervalMilliseconds(data.pollIntervalSeconds * 1000);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch receipts:", error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, []);
 
-  const fetchAdminData = useCallback(async () => {
-    if (!isAdmin) return;
-    setLoadingAdmin(true);
-    try {
-      const [receiptsRes, notifyRes] = await Promise.all([
-        fetch("/api/admin/receipts").catch(() => fetch("/api/receipts")),
-        fetch("/api/admin/reviews/notifications")
-      ]);
-      if (receiptsRes.ok) {
-        const data = await receiptsRes.json();
-        setAdminReceipts(data ?? []);
-      }
-      if (notifyRes.ok) {
-        const data = await notifyRes.json();
-        setReviewNotifications(data);
-      }
-    } catch (err) {
-      console.error("Admin data fetch failed:", err);
-    } finally {
-      setLoadingAdmin(false);
-    }
-  }, [isAdmin]);
+
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/login");
     } else if (status === "authenticated") {
       fetchReceipts();
-      if (isAdmin) fetchAdminData();
     }
-  }, [status, router, fetchReceipts, fetchAdminData, isAdmin]);
+  }, [status, router, fetchReceipts]);
 
   // Auto-refresh when there are pending/processing receipts
   useEffect(() => {
@@ -218,11 +218,37 @@ export default function DashboardPage() {
     if (hasPendingReceipts) {
       const interval = setInterval(() => {
         fetchReceipts();
-      }, 5000); // Refresh every 5 seconds
+      }, pollIntervalMilliseconds);
       
       return () => clearInterval(interval);
     }
-  }, [receipts, fetchReceipts]);
+  }, [receipts, fetchReceipts, pollIntervalMilliseconds]);
+
+  // Infinite scroll: load more when sentinel element is visible
+  useEffect(() => {
+    if (!hasMore || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const firstEntry = entries[0];
+        if (firstEntry.isIntersecting && nextCursor) {
+          fetchReceipts(nextCursor);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasMore, loadingMore, nextCursor, fetchReceipts]);
 
   const handleViewReceipt = async (receipt: ReceiptData) => {
     setSelectedReceipt(receipt);
@@ -237,7 +263,7 @@ export default function DashboardPage() {
       console.error("Failed to load preview:", error);
       toast({
         title: "Error",
-        description: "Failed to load receipt preview",
+        description: t("failedToLoad"),
         variant: "destructive"
       });
     } finally {
@@ -271,23 +297,70 @@ export default function DashboardPage() {
       const response = await fetch(`/api/receipts/${receipt.id}/ocr`, {
         method: "POST"
       });
-      if (response.ok) {
+
+      if (!response.ok) {
+        throw new Error("OCR request failed");
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("No response stream available");
+      }
+
+      const decoder = new TextDecoder();
+      let streamBuffer = "";
+      let completed = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        streamBuffer += decoder.decode(value, { stream: true });
+        const lines = streamBuffer.split("\n");
+        streamBuffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data.length === 0) continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.status === "completed") {
+              completed = true;
+            } else if (parsed.status === "error") {
+              throw new Error(parsed.message || "OCR processing failed");
+            }
+          } catch (parseError) {
+            if (parseError instanceof SyntaxError) {
+              continue;
+            }
+            throw parseError;
+          }
+        }
+      }
+
+      if (completed) {
         toast({
-          title: "Reprocessing Complete",
-          description: "Receipt has been reprocessed successfully"
+          title: t("reprocessingComplete"),
+          description: t("reprocessingDescription")
         });
         fetchReceipts();
         if (selectedReceipt?.id === receipt.id) {
-          const updatedReceipts = await fetch("/api/receipts").then(r => r.json());
-          const updated = updatedReceipts.find((r: ReceiptData) => r.id === receipt.id);
-          if (updated) setSelectedReceipt(updated);
+          const updatedResponse = await fetch(`/api/receipts/${receipt.id}`);
+          if (updatedResponse.ok) {
+            const updated = await updatedResponse.json();
+            if (updated) {
+              setSelectedReceipt(updated);
+            }
+          }
         }
       }
     } catch (error) {
       console.error("Reprocess error:", error);
       toast({
         title: "Error",
-        description: "Failed to reprocess receipt",
+        description: t("failedToReprocess"),
         variant: "destructive"
       });
     } finally {
@@ -306,8 +379,8 @@ export default function DashboardPage() {
 
       if (response.ok) {
         toast({
-          title: "Status Updated",
-          description: `Receipt marked as ${newStatus}`
+          title: t("statusUpdated"),
+          description: t("statusUpdatedDescription", { status: newStatus })
         });
         fetchReceipts();
         if (selectedReceipt?.id === receiptId) {
@@ -318,7 +391,7 @@ export default function DashboardPage() {
       console.error("Failed to update receipt:", error);
       toast({
         title: "Error",
-        description: "Failed to update receipt status",
+        description: t("failedToUpdate"),
         variant: "destructive"
       });
     } finally {
@@ -329,9 +402,68 @@ export default function DashboardPage() {
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(REJECTION_EMAIL_TEMPLATE);
     toast({
-      title: "Copied!",
-      description: "Email template copied to clipboard"
+      title: t("copied"),
+      description: t("copiedDescription")
     });
+  };
+
+  const triggerSync = async () => {
+    setSyncing(true);
+    try {
+      await fetch("/api/admin/receipt-sync/trigger", { method: "POST" });
+      toast({
+        title: t("syncTriggered"),
+        description: t("syncTriggeredDescription")
+      });
+    } catch {
+      // silent fail
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleToggleReview = async (receiptId: string) => {
+    setDisablingReviewId(receiptId);
+    const isCurrentlyDisabled = reviewDisabledReceipts.has(receiptId);
+    const action = isCurrentlyDisabled ? "enable" : "disable";
+
+    try {
+      const response = await fetch("/api/admin/reviews/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, receiptId }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setReviewDisabledReceipts(prev => {
+          const updated = new Set(prev);
+          if (isCurrentlyDisabled) {
+            updated.delete(receiptId);
+          } else {
+            updated.add(receiptId);
+          }
+          return updated;
+        });
+        toast({
+          title: t("reviewToggled"),
+          description: isCurrentlyDisabled ? t("reviewEnabled") : t("reviewDisabled")
+        });
+      } else {
+        toast({
+          title: t("reviewToggleFailed"),
+          description: data.error || t("reviewToggleFailedDescription"),
+          variant: "destructive"
+        });
+      }
+    } catch {
+      toast({
+        title: t("reviewToggleFailed"),
+        description: t("reviewToggleFailedDescription"),
+        variant: "destructive"
+      });
+    } finally {
+      setDisablingReviewId(null);
+    }
   };
 
   const navigateReceipt = (direction: "prev" | "next") => {
@@ -363,22 +495,20 @@ export default function DashboardPage() {
     if (filter === "rejected") {
       return r?.verificationStatus === "rejected" || r?.verificationStatus === "flagged";
     }
+    if (filter === "pending") {
+      return r?.verificationStatus === "pending" || r?.verificationStatus === "requires_review";
+    }
     return r?.verificationStatus === filter;
   });
 
   const stats = {
     total: activeReceipts.length,
-    pending: activeReceipts.filter((r) => r?.verificationStatus === "pending").length,
+    pending: activeReceipts.filter((r) => r?.verificationStatus === "pending" || r?.verificationStatus === "requires_review").length,
     verified: activeReceipts.filter((r) => r?.verificationStatus === "verified").length,
     rejected: activeReceipts.filter((r) => r?.verificationStatus === "rejected" || r?.verificationStatus === "flagged").length
   };
   
   const archivedCount = (receipts ?? []).filter(r => r?.isArchived).length;
-
-  const handleUploadComplete = () => {
-    setShowUpload(false);
-    fetchReceipts();
-  };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
@@ -397,6 +527,8 @@ export default function DashboardPage() {
         return "bg-red-100 text-red-700";
       case "flagged":
         return "bg-orange-100 text-orange-700";
+      case "requires_review":
+        return "bg-blue-100 text-blue-700";
       default:
         return "bg-yellow-100 text-yellow-700";
     }
@@ -410,6 +542,8 @@ export default function DashboardPage() {
         return <XCircle className="h-4 w-4" />;
       case "flagged":
         return <AlertTriangle className="h-4 w-4" />;
+      case "requires_review":
+        return <Eye className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
     }
@@ -424,76 +558,34 @@ export default function DashboardPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Welcome */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome, {session?.user?.name ?? "User"}
-          </h1>
-          <p className="text-gray-600">Manage and verify your receipt submissions</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {t("welcome", { name: session?.user?.name ?? "User" })}
+            </h1>
+            <p className="text-gray-600">{t("subtitle")}</p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={triggerSync}
+              disabled={syncing}
+              className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              <CloudDownload className={`h-4 w-4 ${syncing ? "animate-pulse" : ""}`} />
+              {t("syncNow")}
+            </button>
+          )}
         </div>
 
-        {/* Admin Tabs (only for admins) */}
-        {isAdmin && (
-          <div className="mb-6 flex gap-2 flex-wrap">
-            <button
-              onClick={() => setActiveTab("receipts")}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === "receipts" ? "bg-kv-green text-white" : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <Receipt className="h-4 w-4" />
-              My Receipts
-            </button>
-            <button
-              onClick={() => { setActiveTab("queue"); fetchAdminData(); }}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === "queue" ? "bg-kv-green text-white" : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <Shield className="h-4 w-4" />
-              Review Queue
-              {(stats.pending ?? 0) > 0 && activeTab !== "queue" && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-kv-orange text-[10px] font-bold text-white">
-                  {stats.pending}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => router.push("/admin/moderation")}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition-colors"
-            >
-              <Shield className="h-4 w-4" />
-              Review Moderatie
-            </button>
-            <button
-              onClick={() => router.push("/admin/reviews")}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-kv-green/10 text-kv-green hover:bg-kv-green/20 transition-colors"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Review Platforms
-              {reviewNotifications.count > 0 && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                  {reviewNotifications.count}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => router.push("/admin")}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-            >
-              <Shield className="h-4 w-4" />
-              Admin Panel
-            </button>
-          </div>
-        )}
 
-        {/* Stats - only for My Receipts tab */}
-        {activeTab === "receipts" && (
-          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+        {/* Stats */}
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Total", value: stats.total, icon: Receipt, color: "bg-blue-100 text-blue-600" },
-            { label: "Pending", value: stats.pending, icon: Clock, color: "bg-yellow-100 text-yellow-600" },
-            { label: "Verified", value: stats.verified, icon: CheckCircle, color: "bg-green-100 text-green-600" },
-            { label: "Rejected", value: stats.rejected, icon: XCircle, color: "bg-red-100 text-red-600" }
+            { label: t("statsTotal"), value: stats.total, icon: Receipt, color: "bg-blue-100 text-blue-600" },
+            { label: t("statsPending"), value: stats.pending, icon: Clock, color: "bg-yellow-100 text-yellow-600" },
+            { label: t("statsVerified"), value: stats.verified, icon: CheckCircle, color: "bg-green-100 text-green-600" },
+            { label: t("statsRejected"), value: stats.rejected, icon: XCircle, color: "bg-red-100 text-red-600" }
           ].map((stat) => (
             <motion.div
               key={stat.label}
@@ -513,10 +605,7 @@ export default function DashboardPage() {
             </motion.div>
           ))}
         </div>
-        )}
 
-        {activeTab === "receipts" && (
-        <>
         {/* Actions */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -526,53 +615,13 @@ export default function DashboardPage() {
               onChange={(e) => setFilter(e.target.value)}
               className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-kv-green focus:outline-none"
             >
-              <option value="all">All Receipts</option>
-              <option value="pending">Pending</option>
-              <option value="verified">Verified</option>
-              <option value="rejected">Rejected</option>
+              <option value="all">{t("filterAll")}</option>
+              <option value="pending">{t("filterPending")}</option>
+              <option value="verified">{t("filterVerified")}</option>
+              <option value="rejected">{t("filterRejected")}</option>
             </select>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowDriveImport(true)}
-              className="flex items-center gap-2 rounded-lg border border-kv-green px-4 py-2 font-medium text-kv-green transition-colors hover:bg-kv-green/10"
-            >
-              <FolderOpen className="h-5 w-5" />
-              Google Drive
-            </button>
-            <button
-              onClick={() => setShowUpload(true)}
-              className="flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 font-medium text-white transition-colors hover:bg-kv-green/90"
-            >
-              <Plus className="h-5 w-5" />
-              Upload
-            </button>
-          </div>
         </div>
-
-        {/* Upload Modal */}
-        <AnimatePresence>
-          {showUpload && (
-            <ReceiptUpload
-              onClose={() => setShowUpload(false)}
-              onComplete={handleUploadComplete}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Google Drive Import Modal */}
-        <AnimatePresence>
-          {showDriveImport && (
-            <GoogleDriveImport
-              onClose={() => setShowDriveImport(false)}
-              onComplete={() => {
-                setShowDriveImport(false);
-                fetchReceipts();
-              }}
-            />
-          )}
-        </AnimatePresence>
 
         {/* Archive Selection Bar */}
         {selectedIds.size > 0 && (
@@ -583,13 +632,13 @@ export default function DashboardPage() {
           >
             <div className="flex items-center gap-4">
               <span className="font-medium text-kv-green">
-                {selectedIds.size} geselecteerd
+                {t("selected", { count: selectedIds.size })}
               </span>
               <button
                 onClick={clearSelection}
                 className="text-sm text-gray-600 hover:text-gray-900"
               >
-                Deselecteer alles
+                {t("deselectAll")}
               </button>
             </div>
             <button
@@ -602,7 +651,7 @@ export default function DashboardPage() {
               ) : (
                 <Archive className="h-4 w-4" />
               )}
-              Archiveren
+              {t("archive")}
             </button>
           </motion.div>
         )}
@@ -616,18 +665,11 @@ export default function DashboardPage() {
           >
             <Receipt className="mx-auto mb-4 h-12 w-12 text-gray-400" />
             <h3 className="mb-2 text-lg font-semibold text-gray-900">
-              No receipts yet
+              {t("noReceipts")}
             </h3>
             <p className="mb-4 text-gray-600">
-              Upload your first receipt to start verifying your reviews
+              {t("noReceiptsDescription")}
             </p>
-            <button
-              onClick={() => setShowUpload(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 font-medium text-white transition-colors hover:bg-kv-green/90"
-            >
-              <Plus className="h-5 w-5" />
-              Upload Receipt
-            </button>
           </motion.div>
         ) : (
           <div className="overflow-hidden rounded-xl bg-white shadow-sm">
@@ -640,12 +682,12 @@ export default function DashboardPage() {
                 {selectedIds.size > 0 ? (
                   <>
                     <CheckSquare className="h-4 w-4" />
-                    Deselecteer
+                    {t("deselect")}
                   </>
                 ) : (
                   <>
                     <Square className="h-4 w-4" />
-                    Selecteer alles
+                    {t("selectAll")}
                   </>
                 )}
               </button>
@@ -655,7 +697,7 @@ export default function DashboardPage() {
                   className="flex items-center gap-2 text-sm text-kv-orange hover:text-kv-orange/80"
                 >
                   <Archive className="h-4 w-4" />
-                  Archief ({archivedCount})
+                  {t("archiveFolder", { count: archivedCount })}
                 </button>
               )}
             </div>
@@ -663,13 +705,13 @@ export default function DashboardPage() {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-4 py-3 w-10"></th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Receipt</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Confidence</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("tableReceipt")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("tableDate")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("tableAmount")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("tableConfidence")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("tableRisk")}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("tableStatus")}</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("tableActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -782,14 +824,14 @@ export default function DashboardPage() {
                         <button
                           onClick={() => handleViewReceipt(receipt)}
                           className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                          title="View Receipt"
+                          title={t("viewReceipt")}
                         >
                           <Eye className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDownload(receipt)}
                           className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                          title="Download"
+                          title={t("download")}
                         >
                           <Download className="h-4 w-4" />
                         </button>
@@ -799,7 +841,7 @@ export default function DashboardPage() {
                             onClick={() => handleStatusUpdate(receipt.id, "verified")}
                             disabled={updatingId === receipt.id}
                             className="rounded-lg p-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
-                            title="Approve"
+                            title={t("approve")}
                           >
                             {updatingId === receipt.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -813,16 +855,35 @@ export default function DashboardPage() {
                           <button
                             onClick={() => setShowEmailModal(true)}
                             className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                            title="Email Template"
+                            title={t("emailTemplate")}
                           >
                             <Mail className="h-4 w-4" />
+                          </button>
+                        )}
+                        {/* Disable/Enable review for rejected/flagged (admin only) */}
+                        {isAdmin && (receipt.verificationStatus === "rejected" || receipt.verificationStatus === "flagged") && (
+                          <button
+                            onClick={() => handleToggleReview(receipt.id)}
+                            disabled={disablingReviewId === receipt.id}
+                            className={`rounded-lg p-2 disabled:opacity-50 ${
+                              reviewDisabledReceipts.has(receipt.id)
+                                ? "text-green-600 hover:bg-green-50"
+                                : "text-orange-600 hover:bg-orange-50"
+                            }`}
+                            title={reviewDisabledReceipts.has(receipt.id) ? t("enableReview") : t("disableReview")}
+                          >
+                            {disablingReviewId === receipt.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Power className="h-4 w-4" />
+                            )}
                           </button>
                         )}
                         <button
                           onClick={() => handleReprocess(receipt)}
                           disabled={reprocessingId === receipt.id}
                           className="rounded-lg p-2 text-kv-green hover:bg-kv-green/5 disabled:opacity-50"
-                          title="Reprocess"
+                          title={t("reprocess")}
                         >
                           {reprocessingId === receipt.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -836,9 +897,17 @@ export default function DashboardPage() {
                 ))}
               </tbody>
             </table>
+
+            {/* Load more sentinel */}
+            <div ref={loadMoreRef} className="flex items-center justify-center py-4">
+              {loadingMore && (
+                <Loader2 className="h-5 w-5 animate-spin text-kv-green" />
+              )}
+              {!hasMore && receipts.length > 0 && (
+                <p className="text-sm text-gray-400">All receipts loaded</p>
+              )}
+            </div>
           </div>
-        )}
-        </>
         )}
 
       </main>
@@ -1006,6 +1075,24 @@ export default function DashboardPage() {
                     <div className="rounded-lg bg-blue-50 p-3">
                       <p className="text-xs font-medium text-blue-700 mb-1">AI Analysis</p>
                       <p className="text-sm text-blue-900">{selectedReceipt.ocrReasoning}</p>
+                    </div>
+                  )}
+
+                  {/* Failure Reason */}
+                  {selectedReceipt.failureReason && (
+                    <div className="rounded-lg bg-red-50 p-3">
+                      <p className="text-xs font-medium text-red-700 mb-1">Failure Reason</p>
+                      <p className="text-sm font-medium text-red-900">
+                        {selectedReceipt.failureReason.replace(/_/g, " ")}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Secondary Analysis */}
+                  {selectedReceipt.secondaryAnalysis && (
+                    <div className="rounded-lg bg-amber-50 p-3">
+                      <p className="text-xs font-medium text-amber-700 mb-1">Secondary Analysis</p>
+                      <p className="text-sm text-amber-900">{selectedReceipt.secondaryAnalysis}</p>
                     </div>
                   )}
 
