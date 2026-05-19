@@ -1,6 +1,4 @@
 import path from "node:path";
-import { pathToFileURL } from "node:url";
-import { createCanvas } from "@napi-rs/canvas";
 import { logger } from "@/lib/logger";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -10,36 +8,41 @@ const MAX_PAGES_TO_CONVERT = 3;
 
 // ─── Asset paths ─────────────────────────────────────────────────────────────
 
-interface PdfjsAssetUrls {
+interface PdfjsAssetPaths {
   standardFontDataUrl: string;
   cMapUrl: string;
 }
 
-let cachedAssetUrls: PdfjsAssetUrls | null = null;
+let cachedAssetPaths: PdfjsAssetPaths | null = null;
 
 /**
- * Resolve pdfjs-dist's bundled standard fonts and cMaps as file:// URLs.
+ * Resolve pdfjs-dist's bundled standard fonts and cMaps as absolute filesystem
+ * paths with trailing separators.
  *
- * We compute this at runtime from process.cwd() rather than via require.resolve
- * because webpack would otherwise statically inline pdfjs-dist/package.json into
- * the route bundle and replace the call with a numeric module id, breaking
- * production builds.
+ * In Node, pdfjs-dist's binary data factory ultimately calls `fs.readFile(url)`,
+ * which accepts plain absolute paths but does NOT accept `file://` URL strings,
+ * so we deliberately pass raw paths. pdfjs only validates that the value is a
+ * string ending with `/`.
+ *
+ * The path is computed at runtime from `process.cwd()` to keep webpack from
+ * statically resolving `pdfjs-dist` and replacing the call with a numeric
+ * module id (which previously broke production builds).
  */
-function getPdfjsAssetUrls(): PdfjsAssetUrls {
-  if (cachedAssetUrls !== null) {
-    return cachedAssetUrls;
+function getPdfjsAssetPaths(): PdfjsAssetPaths {
+  if (cachedAssetPaths !== null) {
+    return cachedAssetPaths;
   }
 
   const packageRoot = path.join(process.cwd(), "node_modules", "pdfjs-dist");
   const fontsDir = path.join(packageRoot, "standard_fonts") + path.sep;
   const cmapsDir = path.join(packageRoot, "cmaps") + path.sep;
 
-  cachedAssetUrls = {
-    standardFontDataUrl: pathToFileURL(fontsDir).href,
-    cMapUrl: pathToFileURL(cmapsDir).href
+  cachedAssetPaths = {
+    standardFontDataUrl: fontsDir,
+    cMapUrl: cmapsDir
   };
 
-  return cachedAssetUrls;
+  return cachedAssetPaths;
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -61,11 +64,26 @@ export interface PdfConversionError {
 
 export type PdfToImageResult = PdfConversionResult | PdfConversionError;
 
+interface CanvasFactoryHandle {
+  canvas: { width: number; height: number; toBuffer(mime: string): Buffer };
+  context: unknown;
+}
+
+interface CanvasFactory {
+  create(width: number, height: number): CanvasFactoryHandle;
+  destroy(handle: CanvasFactoryHandle): void;
+}
+
 // ─── PDF Conversion ──────────────────────────────────────────────────────────
 
 /**
  * Convert a PDF buffer into PNG image buffers (one per page, up to MAX_PAGES_TO_CONVERT).
- * Uses pdfjs-dist for parsing and @napi-rs/canvas for rendering.
+ *
+ * Rendering uses the canvas factory provided by pdfjs-dist itself, which is
+ * backed by the `@napi-rs/canvas` copy nested inside `pdfjs-dist/node_modules`.
+ * Mixing that with a top-level `@napi-rs/canvas` of a different version causes
+ * `Path2D` instances to be rejected at render time with a NAPI type-validation
+ * error, so we no longer create the canvas ourselves.
  */
 export async function convertPdfToImages(
   pdfBuffer: Buffer,
@@ -73,18 +91,19 @@ export async function convertPdfToImages(
 ): Promise<PdfToImageResult> {
   try {
     const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    const assetUrls = getPdfjsAssetUrls();
+    const assetPaths = getPdfjsAssetPaths();
 
     const loadingTask = pdfjsLib.getDocument({
       data: new Uint8Array(pdfBuffer),
       useSystemFonts: false,
       disableFontFace: true,
-      standardFontDataUrl: assetUrls.standardFontDataUrl,
-      cMapUrl: assetUrls.cMapUrl,
+      standardFontDataUrl: assetPaths.standardFontDataUrl,
+      cMapUrl: assetPaths.cMapUrl,
       cMapPacked: true
     });
 
     const pdfDocument = await loadingTask.promise;
+    const canvasFactory = pdfDocument.canvasFactory as unknown as CanvasFactory;
     const totalPages = pdfDocument.numPages;
     const pagesToConvert = Math.min(totalPages, MAX_PAGES_TO_CONVERT);
 
@@ -96,24 +115,30 @@ export async function convertPdfToImages(
 
       const canvasWidth = Math.floor(viewport.width);
       const canvasHeight = Math.floor(viewport.height);
-      const canvas = createCanvas(canvasWidth, canvasHeight);
-      const context = canvas.getContext("2d");
+      const handle = canvasFactory.create(canvasWidth, canvasHeight);
 
-      const renderContext = {
-        canvasContext: context as unknown as CanvasRenderingContext2D,
-        viewport,
-        canvas: null
-      };
+      try {
+        const renderTask = page.render({
+          canvasContext: handle.context as CanvasRenderingContext2D,
+          canvas: handle.canvas as unknown as HTMLCanvasElement,
+          viewport
+        });
 
-      await page.render(renderContext).promise;
+        await renderTask.promise;
 
-      const pngBuffer = canvas.toBuffer("image/png");
+        const pngBuffer = handle.canvas.toBuffer("image/png");
 
-      pages.push({
-        pageNumber: pageIndex,
-        pngBuffer: Buffer.from(pngBuffer)
-      });
+        pages.push({
+          pageNumber: pageIndex,
+          pngBuffer: Buffer.from(pngBuffer)
+        });
+      } finally {
+        canvasFactory.destroy(handle);
+      }
     }
+
+    await pdfDocument.cleanup();
+    await pdfDocument.destroy();
 
     logger.info(
       { totalPages, convertedPages: pagesToConvert },

@@ -1,9 +1,55 @@
 # Changes
 
-## [067] Fix webpack-time crash from require.resolve in pdf-to-image
+## [071] Fix review findings for email-notification-on-disable branch
 
-**What**: Replaced `require.resolve("pdfjs-dist/package.json")` with a runtime path computed from `process.cwd()`, cached behind a small lazy helper.
-**Why**: Webpack statically resolved the literal in 066 and inlined a numeric module id, so `path.dirname(84273)` threw `ERR_INVALID_ARG_TYPE` while collecting page data for `/api/receipts/[id]/ocr`.
+**What**: Resolved all 22 standards violations (ternaries → if-else, short-circuits → explicit assignments, magic values → named constants), 2 security issues (pinned @types/nodemailer, escaped HTML in email intro), and 4 stability issues (race condition via upsert, wrapped response.text() in try-catch, added env var startup validation, added Zod schemas to 3 dispute API routes).
+**Decisions**:
+- Used `upsert` for `getOrCreateDisputeUserId` to eliminate race condition
+- Startup validation for `DISPUTE_TOKEN_SECRET`/`NEXTAUTH_SECRET` exits the worker process; `APP_URL` only warns
+- Dispute page narrowed `token` with an explicit null-check early return instead of non-null assertion
+**Files**: `components/dispute-uploader.tsx`, `lib/email/email-service.ts`, `lib/email/email-translations.ts`, `lib/email/email-templates.ts`, `lib/review-disable/kiyoh-review-client.ts`, `lib/queue/review-disable-worker.ts`, `lib/services/dispute-service.ts`, `lib/s3.ts`, `app/dispute/page.tsx`, `app/api/admin/reviews/disable/route.ts`, `app/api/dispute/upload/route.ts`, `app/api/dispute/verify/route.ts`, `app/api/dispute/request-review/route.ts`, `scripts/queue-worker.ts`, `package.json`
+
+## [070] Redesign rejection email with branded card-based template
+
+**What**: Replaced the plain-text-style rejection email with a card-based HTML template matching the Kiyoh/Klantenvertellen brand guidelines — banner image, logo, requirement bullets, dispute CTA, and branded footer with terms link and support email.
+**Decisions**:
+- Added `email-brand.ts` to resolve tenant-aware branding (logo, terms URL, support email) from `tenantId`
+- Logos served from `/public` via absolute APP_URL paths so email clients can fetch them
+- Template uses `{guidelinesLink}` placeholder in the `intro` translation key, interpolated at render time with the brand's terms URL
+- Installed `@types/nodemailer` to fix pre-existing type error
+**Files**: `lib/email/email-brand.ts`, `lib/email/email-templates.ts`, `lib/email/email-translations.ts`, `lib/email/email-service.ts`, `tests/services/email-service.test.ts`, `messages/*.json` (all 8)
+
+## [069] Sign dispute links and link disputes to reviews via ReceiptDispute table
+
+**What**: Replaced the raw `?reviewId=` dispute query string with a signed token (HMAC-SHA256, 30-day expiry) carrying reviewId, tenantId, locationId, and failureReason. Added a `ReceiptDispute` table joining each dispute receipt to its originating review, persisted on every verified dispute. Email service builds and sends the signed link; the dispute page and all three API routes verify the token and reject expired/tampered links.
+**Decisions**:
+- Token format: `base64url(json).base64url(hmacSha256)`. Signing secret reads `DISPUTE_TOKEN_SECRET`, falls back to `NEXTAUTH_SECRET` so existing deployments keep working until the dedicated secret is set.
+- `ReceiptDispute` keeps both rows (original synced receipt + dispute receipt) and stays queryable by `reviewId`. `ReceiptSyncState.receiptId` is intentionally untouched so the original rejection audit trail remains.
+- The dispute page renders an "invalid/expired link" state with localized copy in all 8 locales when the token is missing, malformed, signature-mismatched, or expired.
+- API routes use a small `resolveDisputeToken` helper that maps token errors to clean HTTP responses (400 missing, 401 invalid, 410 expired, 500 missing-secret).
+- `requestHumanReview` now requires the token's reviewId to match the dispute record before flipping status, preventing cross-receipt review escalation with a stale token.
+- `sendReviewDisableEmail` gained a required `tenantId` param so the token can be issued at send time. Both callers (admin disable route and review-disable worker) already had it available.
+**Files**: `lib/dispute/dispute-token.ts`, `lib/dispute/dispute-token-http.ts`, `lib/email/email-service.ts`, `lib/services/dispute-service.ts`, `app/dispute/page.tsx`, `components/dispute-uploader.tsx`, `app/api/dispute/upload/route.ts`, `app/api/dispute/verify/route.ts`, `app/api/dispute/request-review/route.ts`, `app/api/admin/reviews/disable/route.ts`, `lib/queue/review-disable-worker.ts`, `prisma/schema.prisma`, `prisma/migrations/20260601000003_add_receipt_dispute/migration.sql`, `tests/services/dispute-token.test.ts`, `tests/services/email-service.test.ts`, `messages/*.json` (all 8), `.env.example`
+
+## [068] Add receipt dispute page with live verification and human review fallback
+
+**What**: Replaced the `/dispute` placeholder with a full upload + live verification flow. Users land on `/dispute?reviewId=...`, follow on-page guidance, upload a receipt to Cloudflare R2 via a dispute-scoped presigned URL, and get an instant OCR + fraud verdict. Verified receipts are persisted as if pulled normally; rejected ones expose a "Request human review" button that flips status to `requires_review`.
+**Decisions**:
+- Three new public route handlers under `app/api/dispute/*` (upload, verify, request-review). No auth — links arrive from outbound disable emails. Inputs validated at the boundary.
+- Storage uses the existing Cloudflare-prefixed env vars via `lib/s3.ts` (`generateDisputePresignedUploadUrl` writes to `disputes/<reviewId>/...`).
+- Dispute receipts attach to a dedicated `disputes@receipt-sync.internal` system user so they sit alongside synced receipts in admin views without polluting real user accounts. Dispute origin is recorded in `ocrReasoning` (`dispute_for_review:<id>`).
+- Verification reuses `lib/services/ocr-service` and `lib/fraud-detection`; the route adapts those to a small `DisputeOcrAdapter` to keep `dispute-service.ts` framework-free.
+- 8 locale files updated with the new `Dispute` namespace keys.
+**Files**: `app/dispute/page.tsx`, `components/dispute-uploader.tsx`, `lib/services/dispute-service.ts`, `lib/s3.ts`, `app/api/dispute/upload/route.ts`, `app/api/dispute/verify/route.ts`, `app/api/dispute/request-review/route.ts`, `messages/*.json` (all 8)
+
+## [067] Fix PDF rendering crash from mismatched @napi-rs/canvas versions
+
+**What**: Stopped creating our own canvas via the top-level `@napi-rs/canvas` v1.0.0. Now uses `pdfDocument.canvasFactory` (backed by pdfjs-dist's nested v0.1.100 copy) so the canvas, context, and `Path2D` instances all come from the same native binding.
+**Why**: pdfjs-dist v5 bundles its own `@napi-rs/canvas@0.1.100`. When we created a canvas from the top-level v1.0.0, pdfjs's internal `Path2D` objects (from v0.1.100) were rejected by the v1.0.0 context's NAPI binding with `Value is none of these types 'String', 'Path'`. Also switched from `file://` URL strings to plain absolute paths for `standardFontDataUrl`/`cMapUrl` because Node's `fs.readFile` doesn't accept `file://` strings.
+**Decisions**:
+- Use `pdfDocument.canvasFactory.create()` instead of importing `createCanvas` directly
+- Pass raw filesystem paths (not `file://` URLs) for font/cmap directories
+- Removed `@napi-rs/canvas` import from this module entirely
 **Files**: `lib/pdf-to-image.ts`
 
 ## [066] Fix PDF conversion failure caused by useSystemFonts in Alpine

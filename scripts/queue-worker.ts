@@ -24,6 +24,19 @@ if (!process.env.REDIS_URL) {
   );
 }
 
+if (!process.env.APP_URL) {
+  logger.warn(
+    "APP_URL is not set — dispute email links will be broken. Set APP_URL in production."
+  );
+}
+
+if (!process.env.DISPUTE_TOKEN_SECRET && !process.env.NEXTAUTH_SECRET) {
+  logger.error(
+    "Neither DISPUTE_TOKEN_SECRET nor NEXTAUTH_SECRET is set — dispute tokens cannot be signed. Set at least one in production."
+  );
+  process.exit(1);
+}
+
 logger.info("Starting queue worker process...");
 
 startReceiptWorker();
