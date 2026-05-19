@@ -33,10 +33,14 @@
 - 8 locale files updated with the new `Dispute` namespace keys.
 **Files**: `app/dispute/page.tsx`, `components/dispute-uploader.tsx`, `lib/services/dispute-service.ts`, `lib/s3.ts`, `app/api/dispute/upload/route.ts`, `app/api/dispute/verify/route.ts`, `app/api/dispute/request-review/route.ts`, `messages/*.json` (all 8)
 
-## [067] Fix webpack-time crash from require.resolve in pdf-to-image
+## [067] Fix PDF rendering crash from mismatched @napi-rs/canvas versions
 
-**What**: Replaced `require.resolve("pdfjs-dist/package.json")` with a runtime path computed from `process.cwd()`, cached behind a small lazy helper.
-**Why**: Webpack statically resolved the literal in 066 and inlined a numeric module id, so `path.dirname(84273)` threw `ERR_INVALID_ARG_TYPE` while collecting page data for `/api/receipts/[id]/ocr`.
+**What**: Stopped creating our own canvas via the top-level `@napi-rs/canvas` v1.0.0. Now uses `pdfDocument.canvasFactory` (backed by pdfjs-dist's nested v0.1.100 copy) so the canvas, context, and `Path2D` instances all come from the same native binding.
+**Why**: pdfjs-dist v5 bundles its own `@napi-rs/canvas@0.1.100`. When we created a canvas from the top-level v1.0.0, pdfjs's internal `Path2D` objects (from v0.1.100) were rejected by the v1.0.0 context's NAPI binding with `Value is none of these types 'String', 'Path'`. Also switched from `file://` URL strings to plain absolute paths for `standardFontDataUrl`/`cMapUrl` because Node's `fs.readFile` doesn't accept `file://` strings.
+**Decisions**:
+- Use `pdfDocument.canvasFactory.create()` instead of importing `createCanvas` directly
+- Pass raw filesystem paths (not `file://` URLs) for font/cmap directories
+- Removed `@napi-rs/canvas` import from this module entirely
 **Files**: `lib/pdf-to-image.ts`
 
 ## [066] Fix PDF conversion failure caused by useSystemFonts in Alpine
