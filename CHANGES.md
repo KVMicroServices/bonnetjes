@@ -1,5 +1,140 @@
 # Changes
 
+## [087] Fix review findings from 26.05.19 code review
+
+**What**: Applied all 10 standards fixes (ternaries → if-else, short-circuits → if-else, chained ops → separate lines, magic numbers → named constants) and 3 security fixes (admin-gate settings nav link, Zod schema validation on secondary analysis LLM output, type guard on parsed verdict).
+**Decisions**:
+- Confidence thresholds extracted to `CONFIDENCE_HIGH_THRESHOLD` / `CONFIDENCE_MEDIUM_THRESHOLD` constants with helper functions
+- Zod schema replaces manual verdict-only check in `runSecondaryAnalysis`, validating all fields including confidence range 0-100
+- Settings link in header gated on `role === "admin"` (both desktop and mobile)
+- Updated header navigation tests to reflect admin-only settings visibility
+**Files**:
+- app/admin/page.tsx
+- app/api/receipts/[id]/ocr/route.ts
+- lib/services/ocr-service.ts
+- lib/services/dispute-service.ts
+- app/admin/settings/page.tsx
+- components/header.tsx
+- lib/queue/receipt-worker.ts
+- tests/pages/header-navigation.test.tsx
+
+## [086] Add confidence column to review queue table
+
+**What**: Added OCR confidence value as a column before the risk column in the admin review queue table.
+**Files**: `app/admin/page.tsx`, `messages/*.json` (all 8 languages)
+
+## [085] Simplify confidence logic to single threshold with secondary analysis on all uncertain outcomes
+
+**What**: Replaced the two-threshold system (high/low) with a single confidence threshold. Receipts meeting the threshold with no failure indicators auto-verify; everything else goes through secondary analysis. Removed auto-reject on low confidence.
+**Why**: Low confidence on a pass was incorrectly auto-rejecting receipts. Confidence should indicate whether to trust the model's judgment, not determine the outcome directly.
+**Decisions**:
+- Single threshold gate: ≥ threshold + no failure + readable + fields = verified; everything else = requires_review
+- Secondary analysis runs on ALL non-verified, non-hard-rule outcomes (not just rejections)
+- Hard rules (duplicate, date too old) still reject immediately without secondary analysis
+- Auto-disable triggers on hard-rule rejections (bypass secondary confirmation) and secondary-confirmed rejections
+- Removed `getLowConfidenceThreshold`, `SETTING_LOW_CONFIDENCE_THRESHOLD`, and all low threshold UI/translations
+- Updated secondary prompt to handle uncertain results (not just rejections)
+**Files**:
+- lib/services/ocr-service.ts
+- lib/services/app-settings-service.ts
+- lib/services/dispute-service.ts
+- lib/queue/receipt-worker.ts
+- app/api/receipts/[id]/ocr/route.ts
+- app/api/admin/settings/route.ts
+- app/admin/settings/page.tsx
+- messages/*.json (all 8 languages)
+- tests/services/ocr-service.test.ts
+- tests/services/app-settings-service.test.ts
+- tests/routes/admin-settings.test.ts
+
+## [084] Give secondary analysis authority to overwrite verification status and OCR values
+
+**What**: Secondary analysis now returns a structured verdict (confirmed_rejection, overturned_to_verified, requires_review) with its own OCR extraction values and confidence score, which overwrite the initial analysis and re-apply confidence threshold logic.
+**Decisions**:
+- Secondary analysis prompt updated to extract its own shop name, date, amount, confidence, and readable flag
+- Verdict drives final status: confirmed keeps rejection, overturned/requires_review re-runs `determineVerificationStatus` with secondary values
+- `secondaryAnalysis` DB field now stores JSON (with legacy string fallback in worker)
+- Auto-disable only triggers on `confirmed_rejection` verdict
+- Applied consistently across all three OCR paths (worker, streaming route, dispute verify)
+**Files**: `lib/services/ocr-service.ts`, `lib/queue/receipt-worker.ts`, `app/api/receipts/[id]/ocr/route.ts`, `lib/services/dispute-service.ts`, `app/api/dispute/verify/route.ts`, `components/receipt-card.tsx`
+
+## [083] Fix blank page on reload and add receipt queue auto-refresh
+
+**What**: Removed the `mounted` state guard in `Providers` that hid the entire app tree before hydration, and added 15-second polling to the admin receipts queue.
+**Why**: The mounted guard caused a blank page when session resolution raced with the visibility toggle; the queue had no mechanism to show new receipts without a manual reload.
+**Decisions**:
+- `next-themes` already handles hydration internally — the external mounted guard was redundant
+- 15s polling interval balances freshness with network cost
+**Files**: `components/providers.tsx`, `app/admin/page.tsx`
+
+## [082] Add auto-disable location whitelist
+
+**What**: Added a location whitelist setting that restricts auto-disable to specific location IDs only (requires auto-disable to be enabled as prerequisite)
+**Decisions**:
+- Stored as JSON string array in `AppSetting` table (same pattern as other settings)
+- Empty whitelist means all locations are allowed (backwards-compatible default)
+- Whitelist check applied in both `receipt-worker` and `admin/receipts` auto-disable paths
+- UI section only visible when auto-disable toggle is on
+**Files**: `lib/services/app-settings-service.ts`, `app/api/admin/settings/route.ts`, `lib/queue/receipt-worker.ts`, `app/api/admin/receipts/route.ts`, `app/admin/settings/page.tsx`, `messages/*.json`, `tests/services/app-settings-service.test.ts`, `tests/routes/admin-settings.test.ts`
+
+## [081] Add confidence threshold settings to admin settings page
+
+**What**: Added configurable high/low confidence thresholds to the settings page and wired them into the OCR verification logic. Thresholds are stored in the `AppSetting` table with defaults of 70 (auto-verify) and 30 (auto-reject).
+**Decisions**:
+- `determineVerificationStatus` accepts optional thresholds parameter, defaults to module constants when not provided
+- `processReceiptOcr` reads thresholds from DB at call time; streaming OCR route and dispute route use defaults (can be wired later if needed)
+- Input validated server-side: must be number between 0-100
+**Files**: `lib/services/app-settings-service.ts`, `lib/services/ocr-service.ts`, `app/api/admin/settings/route.ts`, `app/admin/settings/page.tsx`, `tests/services/app-settings-service.test.ts`, `tests/routes/admin-settings.test.ts`, `messages/*.json`
+
+## [080] Add auto-verify and auto-disable toggles to admin settings page
+
+**What**: Added toggle switches to the admin settings page for controlling auto-verify (synced receipts) and auto-disable (rejected reviews) features, backed by a new `AppSetting` database table.
+**Decisions**:
+- DB-backed settings with env var fallback — toggles override env vars when set
+- Consumers (`receipt-worker`, `receipt-creator`, `admin/receipts` route) now read from DB at call time
+**Files**: `prisma/schema.prisma`, `prisma/migrations/20260601000005_add_app_setting/`, `lib/services/app-settings-service.ts`, `app/api/admin/settings/route.ts`, `app/admin/settings/page.tsx`, `lib/queue/receipt-worker.ts`, `lib/receipt-sync/receipt-creator.ts`, `app/api/admin/receipts/route.ts`, `messages/*.json`
+
+## [079] Handle pre-existing database migration failures in entrypoint
+
+**What**: Updated docker-entrypoint.sh to handle P3018 (relation already exists) and P3009 (previously failed migration) in addition to P3005, so deploys to environments with pre-existing tables recover automatically.
+**Why**: Deploying to an old environment whose tables predate Prisma migrations caused an unrecoverable failed-migration state.
+**Files**: `scripts/docker-entrypoint.sh`
+
+## [078] Add unit tests for navigation consolidation
+
+**What**: Added unit tests covering settings page auth redirects and role update fetch calls, dashboard redirect behavior, and header navigation link rendering for authenticated/unauthenticated users.
+**Files**: `tests/pages/settings-page.test.ts`, `tests/pages/dashboard-redirect.test.ts`, `tests/pages/header-navigation.test.tsx`
+
+## [077] Update all 8 message files for navigation consolidation
+
+**What**: Removed `Moderation`, `Reviews`, `ReviewDisable`, `Automation` namespaces; updated `Header` to remove `adminPanel`/`moderation`/`platforms`; changed `Admin.title` to "Dashboard" (translated); removed user-management keys from `Admin`; ensured `Settings` namespace has all required keys.
+**Files**: `messages/en.json`, `messages/nl.json`, `messages/de.json`, `messages/fr.json`, `messages/es.json`, `messages/af.json`, `messages/xh.json`, `messages/zu.json`
+
+## [076] Create admin settings page with user management
+
+**What**: Created `app/admin/settings/page.tsx` with admin-only auth check and user management UI (role dropdown per user, fetching from `/api/admin/users`). Added `Settings` translation namespace to all 8 language files.
+**Files**: `app/admin/settings/page.tsx`, `messages/en.json`, `messages/nl.json`, `messages/de.json`, `messages/fr.json`, `messages/es.json`, `messages/af.json`, `messages/xh.json`, `messages/zu.json`
+
+## [075] Simplify admin page: remove users tab, ManualDisableForm, add Reason column
+
+**What**: Removed the "users" tab and ManualDisableForm from the admin page, keeping only queue and stats tabs. Added a "Reason" column to the receipt queue table showing `failureReason` (dash when empty).
+**Files**: `app/admin/page.tsx`
+
+## [074] Replace user dashboard with redirect to /admin
+
+**What**: Replaced the entire user dashboard page with a server component that redirects to `/admin`, ensuring existing bookmarks continue to work.
+**Files**: `app/dashboard/page.tsx`
+
+## [073] Consolidate header navigation to Dashboard and Settings
+
+**What**: Replaced 4 admin nav links with 2 (Dashboard → `/admin`, Settings → `/admin/settings`) for all authenticated users, removing admin-only gating.
+**Files**: `components/header.tsx`, `messages/en.json`, `messages/nl.json`, `messages/de.json`, `messages/fr.json`, `messages/es.json`, `messages/af.json`, `messages/xh.json`, `messages/zu.json`
+
+## [072] Remove moderation, platforms, and automation features
+
+**What**: Deleted all moderation, platforms, and automation code — pages, API routes, service layer, executor, and tests — and dropped the AutomationWorkflow table via Prisma migration.
+**Files**: `app/admin/moderation/`, `app/admin/platforms/`, `app/admin/settings/automation/`, `app/api/reviews/`, `app/api/admin/automation/`, `lib/automation/`, `lib/services/automation-service.ts`, `tests/routes/automation.test.ts`, `tests/routes/reviews.test.ts`, `tests/services/automation-service.test.ts`, `prisma/schema.prisma`, `prisma/migrations/20260601000004_drop_automation_workflow/`
+
 ## [071] Fix review findings for email-notification-on-disable branch
 
 **What**: Resolved all 22 standards violations (ternaries → if-else, short-circuits → explicit assignments, magic values → named constants), 2 security issues (pinned @types/nodemailer, escaped HTML in email intro), and 4 stability issues (race condition via upsert, wrapped response.text() in try-catch, added env var startup validation, added Zod schemas to 3 dispute API routes).

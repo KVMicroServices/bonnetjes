@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { LogOut, Shield, LayoutDashboard, Menu, X, Star, ShieldCheck } from "lucide-react";
+import { LogOut, LayoutDashboard, Menu, X, Settings } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
@@ -11,8 +11,8 @@ import { LanguageSelector } from "@/components/language-selector";
 export function Header() {
   const { data: session } = useSession() || {};
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isAdmin = (session?.user as any)?.role === "admin";
   const t = useTranslations("Header");
+  const isAdmin = (session?.user as any)?.role === "admin";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md">
@@ -37,36 +37,20 @@ export function Header() {
           {session?.user ? (
             <>
               <Link
-                href="/dashboard"
+                href="/admin"
                 className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
               >
                 <LayoutDashboard className="h-4 w-4" />
                 {t("dashboard")}
               </Link>
               {isAdmin && (
-                <>
-                  <Link
-                    href="/admin"
-                    className="flex items-center gap-2 rounded-lg bg-kv-green/10 px-4 py-2 text-sm font-medium text-kv-green transition-colors hover:bg-kv-green/20"
-                  >
-                    <Shield className="h-4 w-4" />
-                    {t("adminPanel")}
-                  </Link>
-                  <Link
-                    href="/admin/moderation"
-                    className="flex items-center gap-2 rounded-lg bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-100"
-                  >
-                    <ShieldCheck className="h-4 w-4" />
-                    {t("moderation")}
-                  </Link>
-                  <Link
-                    href="/admin/platforms"
-                    className="flex items-center gap-2 rounded-lg bg-yellow-50 px-4 py-2 text-sm font-medium text-yellow-700 transition-colors hover:bg-yellow-100"
-                  >
-                    <Star className="h-4 w-4" />
-                    {t("platforms")}
-                  </Link>
-                </>
+                <Link
+                  href="/admin/settings"
+                  className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+                >
+                  <Settings className="h-4 w-4" />
+                  {t("settings")}
+                </Link>
               )}
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
@@ -122,7 +106,7 @@ export function Header() {
               {session?.user ? (
                 <>
                   <Link
-                    href="/dashboard"
+                    href="/admin"
                     className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700"
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -130,32 +114,14 @@ export function Header() {
                     {t("dashboard")}
                   </Link>
                   {isAdmin && (
-                    <>
-                      <Link
-                        href="/admin"
-                        className="flex items-center gap-2 rounded-lg bg-kv-green/10 px-4 py-3 text-sm font-medium text-kv-green"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Shield className="h-4 w-4" />
-                        {t("adminPanel")}
-                      </Link>
-                      <Link
-                        href="/admin/moderation"
-                        className="flex items-center gap-2 rounded-lg bg-orange-50 px-4 py-3 text-sm font-medium text-orange-700"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <ShieldCheck className="h-4 w-4" />
-                        {t("moderation")}
-                      </Link>
-                      <Link
-                        href="/admin/platforms"
-                        className="flex items-center gap-2 rounded-lg bg-yellow-50 px-4 py-3 text-sm font-medium text-yellow-700"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Star className="h-4 w-4" />
-                        {t("platforms")}
-                      </Link>
-                    </>
+                    <Link
+                      href="/admin/settings"
+                      className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Settings className="h-4 w-4" />
+                      {t("settings")}
+                    </Link>
                   )}
                   <button
                     onClick={() => {

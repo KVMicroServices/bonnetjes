@@ -2,16 +2,9 @@
 
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "./theme-provider";
-import { useState, useEffect } from "react";
 import { Toaster } from "./ui/toaster";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   return (
     <SessionProvider>
       <ThemeProvider
@@ -20,7 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         enableSystem
         disableTransitionOnChange
       >
-        {mounted ? children : <div style={{ visibility: "hidden" }}>{children}</div>}
+        {children}
         <Toaster />
       </ThemeProvider>
     </SessionProvider>

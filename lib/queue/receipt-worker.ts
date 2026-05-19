@@ -10,6 +10,7 @@ import {
   detectSuspiciousPatterns,
   calculateFraudRiskScore,
 } from "@/lib/fraud-detection";
+import { isAutoDisableEnabled, isLocationAllowedForAutoDisable } from "@/lib/services/app-settings-service";
 import { logger } from "@/lib/logger";
 
 // ─── KV-Sync Storage Routing ─────────────────────────────────────────────────
@@ -104,9 +105,9 @@ async function processReceiptJob(job: Job<ReceiptProcessingJobData>): Promise<vo
 
     // Auto-disable: if rejected and secondary analysis confirms, enqueue disable job
     if (ocrResult.verificationStatus === "rejected") {
-      const autoDisableEnabled = process.env.RECEIPT_AUTO_DISABLE_ENABLED === "true";
+      const autoDisableEnabled = await isAutoDisableEnabled();
       if (autoDisableEnabled) {
-        await enqueueReviewDisableIfConfirmed(receiptId);
+        await enqueueAutoDisableIfEligible(receiptId);
       }
     }
 
@@ -125,29 +126,45 @@ async function processReceiptJob(job: Job<ReceiptProcessingJobData>): Promise<vo
 
 // ─── Auto-Disable Helper ─────────────────────────────────────────────────────
 
-const SECONDARY_ANALYSIS_CONFIRMED = "Initial analysis valid";
+const SECONDARY_VERDICT_CONFIRMED = "confirmed_rejection";
+const HARD_RULE_FAILURE_REASONS = ["DUPLICATE_RECEIPT", "RECEIPT_TOO_OLD"];
 
 /**
- * Checks if a rejected receipt has confirmed secondary analysis and a linked
- * ReceiptSyncState. If so, creates an audit record and enqueues the disable job.
+ * Checks if a rejected receipt is eligible for auto-disable. Eligible if:
+ * - Hard rule rejection (duplicate or date too old), OR
+ * - Secondary analysis confirmed the rejection
+ *
+ * Then verifies a linked ReceiptSyncState exists and location is allowed.
  */
-async function enqueueReviewDisableIfConfirmed(receiptId: string): Promise<void> {
+async function enqueueAutoDisableIfEligible(receiptId: string): Promise<void> {
   const receipt = await prisma.receipt.findUnique({
     where: { id: receiptId },
-    select: { secondaryAnalysis: true },
+    select: { secondaryAnalysis: true, failureReason: true },
   });
 
   if (!receipt) {
     return;
   }
 
-  const isConfirmed = receipt.secondaryAnalysis
-    && receipt.secondaryAnalysis.includes(SECONDARY_ANALYSIS_CONFIRMED);
+  const isHardRuleRejection = receipt.failureReason !== null
+    && HARD_RULE_FAILURE_REASONS.includes(receipt.failureReason);
 
-  if (!isConfirmed) {
+  let isSecondaryConfirmed = false;
+  if (receipt.secondaryAnalysis) {
+    try {
+      const parsed = JSON.parse(receipt.secondaryAnalysis);
+      if (typeof parsed.verdict === "string") {
+        isSecondaryConfirmed = parsed.verdict === SECONDARY_VERDICT_CONFIRMED;
+      }
+    } catch {
+      isSecondaryConfirmed = receipt.secondaryAnalysis.includes("Initial analysis valid");
+    }
+  }
+
+  if (!isHardRuleRejection && !isSecondaryConfirmed) {
     logger.info(
       { receiptId },
-      "Secondary analysis did not confirm rejection, skipping auto-disable"
+      "Rejection not confirmed by hard rule or secondary analysis, skipping auto-disable"
     );
     return;
   }
@@ -160,6 +177,15 @@ async function enqueueReviewDisableIfConfirmed(receiptId: string): Promise<void>
     logger.info(
       { receiptId },
       "No ReceiptSyncState linked to receipt, skipping auto-disable"
+    );
+    return;
+  }
+
+  const locationAllowed = await isLocationAllowedForAutoDisable(syncState.locationId);
+  if (!locationAllowed) {
+    logger.info(
+      { receiptId, locationId: syncState.locationId },
+      "Location not in auto-disable whitelist, skipping"
     );
     return;
   }

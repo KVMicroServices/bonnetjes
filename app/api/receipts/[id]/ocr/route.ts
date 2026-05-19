@@ -34,6 +34,8 @@ import {
   parseOcrResult,
   determineVerificationStatus,
   runSecondaryAnalysis,
+  FAILURE_REASONS,
+  type FailureReason,
 } from "@/lib/services/ocr-service";
 
 export async function POST(
@@ -119,22 +121,79 @@ export async function POST(
                       ocrResult.extractedDate
                     );
 
-                    // Run secondary analysis on rejections
+                    // Run secondary analysis on all non-verified, non-hard-rule outcomes
                     let secondaryAnalysis: string | null = null;
-                    if (verificationDecision.status === "rejected" && verificationDecision.failureReason) {
-                      secondaryAnalysis = await runSecondaryAnalysis(
+                    let finalStatus = verificationDecision.status;
+                    let finalFailureReason = verificationDecision.failureReason;
+                    let finalShopName = ocrResult.extractedShopName;
+                    let finalDate = ocrResult.extractedDate;
+                    let finalAmount = ocrResult.extractedAmount;
+                    let finalConfidence = ocrResult.confidence;
+                    let finalReadable = ocrResult.receiptReadable;
+
+                    const isHardRuleRejection = verificationDecision.failureReason === "DUPLICATE_RECEIPT"
+                      || verificationDecision.failureReason === "RECEIPT_TOO_OLD";
+                    const needsSecondaryAnalysis = verificationDecision.status !== "verified" && !isHardRuleRejection;
+
+                    if (needsSecondaryAnalysis) {
+                      let primaryFailureReason: string;
+                      if (ocrResult.failureReason) {
+                        primaryFailureReason = ocrResult.failureReason;
+                      } else {
+                        primaryFailureReason = "IMAGE_UNCLEAR";
+                      }
+                      const secondaryResult = await runSecondaryAnalysis(
                         messages,
                         ocrResult,
-                        verificationDecision.failureReason,
+                        primaryFailureReason as FailureReason,
                         config
                       );
+
+                      if (secondaryResult) {
+                        secondaryAnalysis = JSON.stringify(secondaryResult);
+
+                        if (secondaryResult.extractedShopName !== null) {
+                          finalShopName = secondaryResult.extractedShopName;
+                        }
+                        if (secondaryResult.extractedDate !== null) {
+                          finalDate = new Date(secondaryResult.extractedDate);
+                        }
+                        if (secondaryResult.extractedAmount !== null) {
+                          finalAmount = secondaryResult.extractedAmount;
+                        }
+                        finalConfidence = secondaryResult.confidence;
+                        finalReadable = secondaryResult.receiptReadable;
+
+                        if (secondaryResult.verdict === "confirmed_rejection") {
+                          finalStatus = "rejected";
+                          if (secondaryResult.failureReason && FAILURE_REASONS.includes(secondaryResult.failureReason as FailureReason)) {
+                            finalFailureReason = secondaryResult.failureReason as FailureReason;
+                          }
+                        } else if (secondaryResult.verdict === "overturned_to_verified" || secondaryResult.verdict === "requires_review") {
+                          const secondaryDecision = determineVerificationStatus(
+                            {
+                              extractedShopName: finalShopName,
+                              extractedDate: finalDate,
+                              extractedAmount: finalAmount,
+                              receiptReadable: finalReadable,
+                              confidence: finalConfidence,
+                              reasoning: secondaryResult.reasoning,
+                              failureReason: secondaryResult.failureReason as FailureReason | null,
+                            },
+                            receipt.isDuplicate,
+                            finalDate
+                          );
+                          finalStatus = secondaryDecision.status;
+                          finalFailureReason = secondaryDecision.failureReason;
+                        }
+                      }
                     }
 
                     // Update suspicious patterns with extracted data
                     const patternAnalysis = await detectSuspiciousPatterns(
                       receipt.userId,
-                      ocrResult.extractedShopName,
-                      ocrResult.extractedAmount
+                      finalShopName,
+                      finalAmount
                     );
 
                     // Update fraud risk score with OCR confidence
@@ -142,7 +201,7 @@ export async function POST(
                       receipt.isDuplicate,
                       receipt.manipulationScore ?? 0,
                       patternAnalysis.riskScore,
-                      ocrResult.confidence ?? 100
+                      finalConfidence ?? 100
                     );
 
                     let ocrReasoning = ocrResult.reasoning;
@@ -154,36 +213,42 @@ export async function POST(
                     await prisma.receipt.update({
                       where: { id },
                       data: {
-                        extractedShopName: ocrResult.extractedShopName,
-                        extractedDate: ocrResult.extractedDate,
-                        extractedAmount: ocrResult.extractedAmount,
-                        ocrConfidence: ocrResult.confidence,
+                        extractedShopName: finalShopName,
+                        extractedDate: finalDate,
+                        extractedAmount: finalAmount,
+                        ocrConfidence: finalConfidence,
                         ocrReasoning,
-                        receiptReadable: ocrResult.receiptReadable,
-                        failureReason: verificationDecision.failureReason,
+                        receiptReadable: finalReadable,
+                        failureReason: finalFailureReason,
                         secondaryAnalysis,
                         suspiciousPatterns: JSON.stringify(patternAnalysis.patterns),
                         fraudRiskScore: newFraudRiskScore,
-                        verificationStatus: verificationDecision.status,
+                        verificationStatus: finalStatus,
                         processedAt: new Date()
                       }
                     });
 
+                    let extractedDateString: string | null = null;
+                    if (finalDate) {
+                      const isoString = finalDate.toISOString();
+                      extractedDateString = isoString.split("T")[0];
+                    }
+
                     const finalData = JSON.stringify({
                       status: "completed",
                       result: {
-                        extractedShopName: ocrResult.extractedShopName,
-                        extractedDate: ocrResult.extractedDate ? ocrResult.extractedDate.toISOString().split("T")[0] : null,
-                        extractedAmount: ocrResult.extractedAmount,
-                        receiptReadable: ocrResult.receiptReadable,
-                        confidence: ocrResult.confidence,
+                        extractedShopName: finalShopName,
+                        extractedDate: extractedDateString,
+                        extractedAmount: finalAmount,
+                        receiptReadable: finalReadable,
+                        confidence: finalConfidence,
                         reasoning: ocrResult.reasoning,
-                        failureReason: verificationDecision.failureReason,
+                        failureReason: finalFailureReason,
                         secondaryAnalysis,
                         isDateTooOld: verificationDecision.isDateTooOld,
                         dateValidationMessage: verificationDecision.dateValidationMessage,
                         fraudRiskScore: newFraudRiskScore,
-                        verificationStatus: verificationDecision.status
+                        verificationStatus: finalStatus
                       }
                     });
                     controller.enqueue(

@@ -222,7 +222,7 @@ describe("determineVerificationStatus", () => {
     failureReason: null,
   };
 
-  it("returns verified for high confidence, readable, with shop and date", () => {
+  it("returns verified for high confidence, readable, no failure, with shop and date", () => {
     const decision = determineVerificationStatus(
       highConfidenceReadableResult,
       false,
@@ -250,18 +250,6 @@ describe("determineVerificationStatus", () => {
     expect(decision.dateValidationMessage).toContain("older than 6 months");
   });
 
-  it("returns rejected for low confidence", () => {
-    const lowConfidenceResult: ParsedOcrResult = {
-      ...highConfidenceReadableResult,
-      confidence: 20,
-    };
-
-    const decision = determineVerificationStatus(lowConfidenceResult, false, recentDate);
-
-    expect(decision.status).toBe("rejected");
-    expect(decision.failureReason).toBe("IMAGE_UNCLEAR");
-  });
-
   it("returns rejected for duplicate receipt", () => {
     const decision = determineVerificationStatus(highConfidenceReadableResult, true, recentDate);
 
@@ -269,20 +257,78 @@ describe("determineVerificationStatus", () => {
     expect(decision.failureReason).toBe("DUPLICATE_RECEIPT");
   });
 
-  it("returns requires_review for medium confidence", () => {
-    const mediumConfidenceResult: ParsedOcrResult = {
+  it("returns requires_review for low confidence regardless of other fields", () => {
+    const lowConfidenceResult: ParsedOcrResult = {
       ...highConfidenceReadableResult,
-      confidence: 50,
+      confidence: 20,
+    };
+
+    const decision = determineVerificationStatus(lowConfidenceResult, false, recentDate);
+
+    expect(decision.status).toBe("requires_review");
+    expect(decision.failureReason).toBeNull();
+  });
+
+  it("returns requires_review when confidence is high but has failure reason", () => {
+    const highConfidenceFailure: ParsedOcrResult = {
+      ...highConfidenceReadableResult,
+      failureReason: "IMAGE_UNCLEAR",
+    };
+
+    const decision = determineVerificationStatus(highConfidenceFailure, false, recentDate);
+
+    expect(decision.status).toBe("requires_review");
+    expect(decision.failureReason).toBe("IMAGE_UNCLEAR");
+  });
+
+  it("returns requires_review when confidence is high but not readable", () => {
+    const notReadableResult: ParsedOcrResult = {
+      ...highConfidenceReadableResult,
+      receiptReadable: false,
+    };
+
+    const decision = determineVerificationStatus(notReadableResult, false, recentDate);
+
+    expect(decision.status).toBe("requires_review");
+  });
+
+  it("returns requires_review when confidence is high but missing shop name", () => {
+    const missingShopResult: ParsedOcrResult = {
+      ...highConfidenceReadableResult,
       extractedShopName: null,
     };
 
+    const decision = determineVerificationStatus(missingShopResult, false, recentDate);
+
+    expect(decision.status).toBe("requires_review");
+  });
+
+  it("returns requires_review when confidence is high but missing date", () => {
     const decision = determineVerificationStatus(
-      mediumConfidenceResult,
+      highConfidenceReadableResult,
       false,
-      recentDate
+      null
     );
 
     expect(decision.status).toBe("requires_review");
+  });
+
+  it("uses custom threshold from thresholds parameter", () => {
+    const result: ParsedOcrResult = {
+      ...highConfidenceReadableResult,
+      confidence: 60,
+    };
+
+    const decisionWithDefault = determineVerificationStatus(result, false, recentDate);
+    expect(decisionWithDefault.status).toBe("requires_review");
+
+    const decisionWithLowerThreshold = determineVerificationStatus(
+      result,
+      false,
+      recentDate,
+      { highConfidence: 50 }
+    );
+    expect(decisionWithLowerThreshold.status).toBe("verified");
   });
 });
 

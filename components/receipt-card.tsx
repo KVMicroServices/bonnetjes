@@ -248,11 +248,29 @@ export function ReceiptCard({ receipt, onRefresh }: ReceiptCardProps) {
               ⚠️ {t(`failure_${receipt.failureReason}`)}
             </div>
           )}
-          {receipt.secondaryAnalysis && receipt.secondaryAnalysis !== "Initial analysis valid" && (
-            <div className="mt-1 text-xs text-amber-700">
-              {receipt.secondaryAnalysis}
-            </div>
-          )}
+          {receipt.secondaryAnalysis && (() => {
+            try {
+              const parsed = JSON.parse(receipt.secondaryAnalysis);
+              if (parsed.verdict === "confirmed_rejection") {
+                return null;
+              }
+              return (
+                <div className="mt-1 text-xs text-amber-700">
+                  {parsed.reasoning}
+                </div>
+              );
+            } catch {
+              // Legacy string format
+              if (receipt.secondaryAnalysis !== "Initial analysis valid") {
+                return (
+                  <div className="mt-1 text-xs text-amber-700">
+                    {receipt.secondaryAnalysis}
+                  </div>
+                );
+              }
+              return null;
+            }
+          })()}
         </div>
       )}
 

@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { logger } from "@/lib/logger";
 import type { DisputeTokenPayload } from "@/lib/dispute/dispute-token";
+import type { SecondaryAnalysisResult } from "@/lib/services/ocr-service";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -157,7 +158,7 @@ export interface DisputeOcrAdapter {
       failureReason: string | null;
     },
     failureReason: string
-  ): Promise<string>;
+  ): Promise<SecondaryAnalysisResult | null>;
 }
 
 // ─── Service Functions ───────────────────────────────────────────────────────
@@ -217,9 +218,65 @@ export async function verifyDisputeReceipt(
   const decision = ocr.decideStatus(parsed, fraudAnalysis.isDuplicate);
 
   let secondaryAnalysis: string | null = null;
-  if (decision.status === "rejected" && decision.failureReason) {
+  let finalStatus = decision.status;
+  let finalFailureReason = decision.failureReason;
+  let finalShopName = parsed.extractedShopName;
+  let finalDate = parsed.extractedDate;
+  let finalAmount = parsed.extractedAmount;
+  let finalConfidence = parsed.confidence;
+  let finalReadable = parsed.receiptReadable;
+
+  const isHardRuleRejection = decision.failureReason === "DUPLICATE_RECEIPT"
+    || decision.failureReason === "RECEIPT_TOO_OLD";
+  const needsSecondaryAnalysis = decision.status !== "verified" && !isHardRuleRejection;
+
+  if (needsSecondaryAnalysis) {
     try {
-      secondaryAnalysis = await ocr.runSecondary(messages, parsed, decision.failureReason);
+      let primaryFailureReason: string;
+      if (parsed.failureReason) {
+        primaryFailureReason = parsed.failureReason;
+      } else {
+        primaryFailureReason = "IMAGE_UNCLEAR";
+      }
+      const secondaryResult = await ocr.runSecondary(messages, parsed, primaryFailureReason);
+
+      if (secondaryResult) {
+        secondaryAnalysis = JSON.stringify(secondaryResult);
+
+        if (secondaryResult.extractedShopName !== null) {
+          finalShopName = secondaryResult.extractedShopName;
+        }
+        if (secondaryResult.extractedDate !== null) {
+          finalDate = new Date(secondaryResult.extractedDate);
+        }
+        if (secondaryResult.extractedAmount !== null) {
+          finalAmount = secondaryResult.extractedAmount;
+        }
+        finalConfidence = secondaryResult.confidence;
+        finalReadable = secondaryResult.receiptReadable;
+
+        if (secondaryResult.verdict === "confirmed_rejection") {
+          finalStatus = "rejected";
+          if (secondaryResult.failureReason) {
+            finalFailureReason = secondaryResult.failureReason;
+          }
+        } else if (secondaryResult.verdict === "overturned_to_verified" || secondaryResult.verdict === "requires_review") {
+          const secondaryDecision = ocr.decideStatus(
+            {
+              extractedShopName: finalShopName,
+              extractedDate: finalDate,
+              extractedAmount: finalAmount,
+              receiptReadable: finalReadable,
+              confidence: finalConfidence,
+              reasoning: secondaryResult.reasoning,
+              failureReason: secondaryResult.failureReason,
+            },
+            fraudAnalysis.isDuplicate
+          );
+          finalStatus = secondaryDecision.status;
+          finalFailureReason = secondaryDecision.failureReason;
+        }
+      }
     } catch (error) {
       logger.warn(
         { error, reviewId: input.payload.reviewId },
@@ -230,15 +287,15 @@ export async function verifyDisputeReceipt(
 
   const patternAnalysis = await dependencies.fraudDetection.detectSuspiciousPatterns(
     disputeUserId,
-    parsed.extractedShopName,
-    parsed.extractedAmount
+    finalShopName,
+    finalAmount
   );
 
   const finalFraudRiskScore = dependencies.fraudDetection.calculateFraudRiskScore(
     fraudAnalysis.isDuplicate,
     fraudAnalysis.manipulationScore,
     patternAnalysis.riskScore,
-    parsed.confidence
+    finalConfidence
   );
 
   let ocrReasoning = parsed.reasoning;
@@ -256,16 +313,16 @@ export async function verifyDisputeReceipt(
       originalFilename,
       fileType,
       fileSize: input.fileSize ? input.fileSize : 0,
-      verificationStatus: decision.status,
+      verificationStatus: finalStatus,
       processingStatus: "completed",
       processedAt: new Date(),
-      extractedShopName: parsed.extractedShopName,
-      extractedDate: parsed.extractedDate,
-      extractedAmount: parsed.extractedAmount,
-      ocrConfidence: parsed.confidence,
+      extractedShopName: finalShopName,
+      extractedDate: finalDate,
+      extractedAmount: finalAmount,
+      ocrConfidence: finalConfidence,
       ocrReasoning: reasoningWithDispute,
-      receiptReadable: parsed.receiptReadable,
-      failureReason: decision.failureReason,
+      receiptReadable: finalReadable,
+      failureReason: finalFailureReason,
       secondaryAnalysis,
       imageHash: fraudAnalysis.imageHash,
       isDuplicate: fraudAnalysis.isDuplicate,
@@ -283,22 +340,23 @@ export async function verifyDisputeReceipt(
       tenantId: input.payload.tenantId,
       locationId: input.payload.locationId,
       receiptId: receipt.id,
-      status: decision.status,
-      failureReason: decision.failureReason,
+      status: finalStatus,
+      failureReason: finalFailureReason,
     },
   });
 
   let extractedDateString: string | null = null;
-  if (parsed.extractedDate) {
-    extractedDateString = parsed.extractedDate.toISOString().split("T")[0];
+  if (finalDate) {
+    const isoString = finalDate.toISOString();
+    extractedDateString = isoString.split("T")[0];
   }
 
   logger.info(
     {
       receiptId: receipt.id,
       reviewId: input.payload.reviewId,
-      verificationStatus: decision.status,
-      failureReason: decision.failureReason,
+      verificationStatus: finalStatus,
+      failureReason: finalFailureReason,
     },
     "Dispute receipt verified"
   );
@@ -307,12 +365,12 @@ export async function verifyDisputeReceipt(
     success: true,
     receipt: {
       id: receipt.id,
-      verificationStatus: decision.status,
-      failureReason: decision.failureReason,
-      extractedShopName: parsed.extractedShopName,
+      verificationStatus: finalStatus,
+      failureReason: finalFailureReason,
+      extractedShopName: finalShopName,
       extractedDate: extractedDateString,
-      extractedAmount: parsed.extractedAmount,
-      ocrConfidence: parsed.confidence,
+      extractedAmount: finalAmount,
+      ocrConfidence: finalConfidence,
       ocrReasoning,
       secondaryAnalysis,
     },
