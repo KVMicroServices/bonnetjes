@@ -211,7 +211,15 @@
     "roleUpdated": "Rolle aktualisiert",
     "roleUpdatedDescription": "Benutzer ist jetzt {role}",
     "roleUpdateFailed": "Fehler",
-    "roleUpdateFailedDescription": "Rolle konnte nicht aktualisiert werden"
+    "roleUpdateFailedDescription": "Rolle konnte nicht aktualisiert werden",
+    "locationWhitelistLabel": "Standort-Whitelist",
+    "locationWhitelistDescription": "Wenn Standorte hinzugefügt werden, gilt die automatische Deaktivierung nur für Belege dieser Standorte. Leer lassen, um auf alle Standorte anzuwenden.",
+    "locationWhitelistPlaceholder": "Standort-ID eingeben",
+    "locationWhitelistAdd": "Hinzufügen",
+    "locationWhitelistRemove": "Standort entfernen",
+    "locationWhitelistEmpty": "Keine Standorte konfiguriert — automatische Deaktivierung gilt für alle Standorte",
+    "locationAlreadyExists": "Bereits hinzugefügt",
+    "locationAlreadyExistsDescription": "Diese Standort-ID ist bereits in der Whitelist"
   },
   "ReceiptCard": {
     "failureReason": "Ablehnungsgrund",

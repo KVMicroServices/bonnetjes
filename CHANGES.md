@@ -1,5 +1,15 @@
 # Changes
 
+## [082] Add auto-disable location whitelist
+
+**What**: Added a location whitelist setting that restricts auto-disable to specific location IDs only (requires auto-disable to be enabled as prerequisite)
+**Decisions**:
+- Stored as JSON string array in `AppSetting` table (same pattern as other settings)
+- Empty whitelist means all locations are allowed (backwards-compatible default)
+- Whitelist check applied in both `receipt-worker` and `admin/receipts` auto-disable paths
+- UI section only visible when auto-disable toggle is on
+**Files**: `lib/services/app-settings-service.ts`, `app/api/admin/settings/route.ts`, `lib/queue/receipt-worker.ts`, `app/api/admin/receipts/route.ts`, `app/admin/settings/page.tsx`, `messages/*.json`, `tests/services/app-settings-service.test.ts`, `tests/routes/admin-settings.test.ts`
+
 ## [081] Add confidence threshold settings to admin settings page
 
 **What**: Added configurable high/low confidence thresholds to the settings page and wired them into the OCR verification logic. Thresholds are stored in the `AppSetting` table with defaults of 70 (auto-verify) and 30 (auto-reject).

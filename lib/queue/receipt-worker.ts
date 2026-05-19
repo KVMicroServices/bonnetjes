@@ -10,7 +10,7 @@ import {
   detectSuspiciousPatterns,
   calculateFraudRiskScore,
 } from "@/lib/fraud-detection";
-import { isAutoDisableEnabled } from "@/lib/services/app-settings-service";
+import { isAutoDisableEnabled, isLocationAllowedForAutoDisable } from "@/lib/services/app-settings-service";
 import { logger } from "@/lib/logger";
 
 // ─── KV-Sync Storage Routing ─────────────────────────────────────────────────
@@ -161,6 +161,15 @@ async function enqueueReviewDisableIfConfirmed(receiptId: string): Promise<void>
     logger.info(
       { receiptId },
       "No ReceiptSyncState linked to receipt, skipping auto-disable"
+    );
+    return;
+  }
+
+  const locationAllowed = await isLocationAllowedForAutoDisable(syncState.locationId);
+  if (!locationAllowed) {
+    logger.info(
+      { receiptId, locationId: syncState.locationId },
+      "Location not in auto-disable whitelist, skipping"
     );
     return;
   }

@@ -211,7 +211,15 @@
     "roleUpdated": "Indima ibuyekeziwe",
     "roleUpdatedDescription": "Umsebenzisi manje ungu-{role}",
     "roleUpdateFailed": "Iphutha",
-    "roleUpdateFailedDescription": "Yehlulekile ukubuyekeza indima"
+    "roleUpdateFailedDescription": "Yehlulekile ukubuyekeza indima",
+    "locationWhitelistLabel": "Uhlu lwezindawo ezivumelekile",
+    "locationWhitelistDescription": "Uma izindawo zengezwa, ukuvala okuzenzakalelayo kusebenza kuphela kumarisidi avela kulezi zindawo. Shiya kungenalutho ukuze kusebenze kuzo zonke izindawo.",
+    "locationWhitelistPlaceholder": "Faka i-ID yendawo",
+    "locationWhitelistAdd": "Engeza",
+    "locationWhitelistRemove": "Susa indawo",
+    "locationWhitelistEmpty": "Azikho izindawo ezilungisiwe — ukuvala okuzenzakalelayo kusebenza kuzo zonke izindawo",
+    "locationAlreadyExists": "Seyengezwe kakade",
+    "locationAlreadyExistsDescription": "Le-ID yendawo isivele ohlwini"
   },
   "ReceiptCard": {
     "failureReason": "Isizathu sokugatshwa",

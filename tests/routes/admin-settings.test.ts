@@ -87,6 +87,7 @@ describe("GET /api/admin/settings", () => {
     expect(body).toEqual({
       autoVerifyEnabled: false,
       autoDisableEnabled: false,
+      autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
       lowConfidenceThreshold: 30,
     });
@@ -108,6 +109,7 @@ describe("GET /api/admin/settings", () => {
         updatedAt: new Date(),
       })
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
 
     const response = await GET();
@@ -117,6 +119,7 @@ describe("GET /api/admin/settings", () => {
     expect(body).toEqual({
       autoVerifyEnabled: true,
       autoDisableEnabled: true,
+      autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
       lowConfidenceThreshold: 30,
     });
@@ -214,6 +217,7 @@ describe("PATCH /api/admin/settings", () => {
         updatedAt: new Date(),
       })
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
 
     const request = createPatchRequest({ autoDisableEnabled: true });
@@ -251,6 +255,7 @@ describe("PATCH /api/admin/settings", () => {
         updatedAt: new Date(),
       })
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
 
     const request = createPatchRequest({ autoDisableEnabled: false });
@@ -285,6 +290,7 @@ describe("PATCH /api/admin/settings", () => {
       })
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
 
     const request = createPatchRequest({ autoVerifyEnabled: true });
@@ -317,6 +323,7 @@ describe("PATCH /api/admin/settings", () => {
         value: "true",
         updatedAt: new Date(),
       })
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
 
@@ -413,6 +420,7 @@ describe("PATCH /api/admin/settings", () => {
     mockPrisma.appSetting.findUnique
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         key: "high_confidence_threshold",
         value: "80",
@@ -445,6 +453,7 @@ describe("PATCH /api/admin/settings", () => {
     });
 
     mockPrisma.appSetting.findUnique
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)

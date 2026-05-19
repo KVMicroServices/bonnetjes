@@ -8,10 +8,12 @@ import {
   getAppSettings,
   setSettingBoolean,
   setSettingInteger,
+  setSettingStringArray,
   SETTING_AUTO_VERIFY_ENABLED,
   SETTING_AUTO_DISABLE_ENABLED,
   SETTING_HIGH_CONFIDENCE_THRESHOLD,
   SETTING_LOW_CONFIDENCE_THRESHOLD,
+  SETTING_AUTO_DISABLE_LOCATION_WHITELIST,
 } from "@/lib/services/app-settings-service";
 
 const MIN_THRESHOLD = 0;
@@ -94,6 +96,19 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: "lowConfidenceThreshold must be between 0 and 100" }, { status: 400 });
       }
       await setSettingInteger(SETTING_LOW_CONFIDENCE_THRESHOLD, payload.lowConfidenceThreshold);
+    }
+
+    if ("autoDisableLocationWhitelist" in payload) {
+      if (!Array.isArray(payload.autoDisableLocationWhitelist)) {
+        return NextResponse.json({ error: "autoDisableLocationWhitelist must be an array" }, { status: 400 });
+      }
+      const allStrings = payload.autoDisableLocationWhitelist.every(
+        (item: unknown) => typeof item === "string" && item.length > 0
+      );
+      if (!allStrings) {
+        return NextResponse.json({ error: "autoDisableLocationWhitelist must contain non-empty strings" }, { status: 400 });
+      }
+      await setSettingStringArray(SETTING_AUTO_DISABLE_LOCATION_WHITELIST, payload.autoDisableLocationWhitelist as string[]);
     }
 
     const settings = await getAppSettings();

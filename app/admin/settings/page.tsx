@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/header";
-import { Settings, Users, Loader2, Zap, SlidersHorizontal } from "lucide-react";
+import { Settings, Users, Loader2, Zap, SlidersHorizontal, MapPin, Plus, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
@@ -21,6 +21,7 @@ interface UserData {
 interface AppSettings {
   autoVerifyEnabled: boolean;
   autoDisableEnabled: boolean;
+  autoDisableLocationWhitelist: string[];
   highConfidenceThreshold: number;
   lowConfidenceThreshold: number;
 }
@@ -36,12 +37,14 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings>({
     autoVerifyEnabled: false,
     autoDisableEnabled: false,
+    autoDisableLocationWhitelist: [],
     highConfidenceThreshold: 70,
     lowConfidenceThreshold: 30,
   });
   const [updatingSetting, setUpdatingSetting] = useState<string | null>(null);
   const [highThresholdInput, setHighThresholdInput] = useState("70");
   const [lowThresholdInput, setLowThresholdInput] = useState("30");
+  const [newLocationId, setNewLocationId] = useState("");
 
   const isAdmin = (session?.user as any)?.role === "admin";
 
@@ -85,7 +88,7 @@ export default function SettingsPage() {
     }
   }, [status, isAdmin, router, fetchUsers, fetchSettings]);
 
-  const updateSetting = async (key: string, value: boolean | number) => {
+  const updateSetting = async (key: string, value: boolean | number | string[]) => {
     setUpdatingSetting(key);
     try {
       const response = await fetch("/api/admin/settings", {
@@ -135,6 +138,31 @@ export default function SettingsPage() {
     if (parsed !== currentValue) {
       updateSetting(key, parsed);
     }
+  };
+
+  const handleAddLocation = async () => {
+    const trimmed = newLocationId.trim();
+    if (!trimmed) {
+      return;
+    }
+    if (settings.autoDisableLocationWhitelist.includes(trimmed)) {
+      toast({
+        title: t("locationAlreadyExists"),
+        description: t("locationAlreadyExistsDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
+    const updatedList = [...settings.autoDisableLocationWhitelist, trimmed];
+    setNewLocationId("");
+    await updateSetting("autoDisableLocationWhitelist", updatedList);
+  };
+
+  const handleRemoveLocation = async (locationId: string) => {
+    const updatedList = settings.autoDisableLocationWhitelist.filter(
+      (item) => item !== locationId
+    );
+    await updateSetting("autoDisableLocationWhitelist", updatedList);
   };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
@@ -228,6 +256,68 @@ export default function SettingsPage() {
                 disabled={updatingSetting === "autoVerifyEnabled"}
                 aria-label={t("autoVerifyLabel")}
               />
+            </div>
+
+            {/* Location Whitelist */}
+            <div className="rounded-lg border border-gray-200 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-kv-green" />
+                <p className="font-medium text-gray-900">{t("locationWhitelistLabel")}</p>
+              </div>
+              <p className="mb-4 text-sm text-gray-500">{t("locationWhitelistDescription")}</p>
+
+              <div className="mb-3 flex gap-2">
+                <input
+                  type="text"
+                  value={newLocationId}
+                  onChange={(event) => setNewLocationId(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      handleAddLocation();
+                    }
+                  }}
+                  placeholder={t("locationWhitelistPlaceholder")}
+                  disabled={updatingSetting === "autoDisableLocationWhitelist"}
+                  className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 placeholder:text-gray-400 disabled:opacity-50"
+                  aria-label={t("locationWhitelistPlaceholder")}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddLocation}
+                  disabled={updatingSetting === "autoDisableLocationWhitelist" || !newLocationId.trim()}
+                  className="inline-flex items-center gap-1 rounded-lg bg-kv-green px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-kv-green/90 disabled:opacity-50"
+                  aria-label={t("locationWhitelistAdd")}
+                >
+                  <Plus className="h-4 w-4" />
+                  {t("locationWhitelistAdd")}
+                </button>
+              </div>
+
+              {settings.autoDisableLocationWhitelist.length === 0 && (
+                <p className="text-sm italic text-gray-400">{t("locationWhitelistEmpty")}</p>
+              )}
+
+              {settings.autoDisableLocationWhitelist.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {settings.autoDisableLocationWhitelist.map((locationId) => (
+                    <span
+                      key={locationId}
+                      className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700"
+                    >
+                      {locationId}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveLocation(locationId)}
+                        disabled={updatingSetting === "autoDisableLocationWhitelist"}
+                        className="ml-1 rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600 disabled:opacity-50"
+                        aria-label={t("locationWhitelistRemove")}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Auto Disable Toggle */}

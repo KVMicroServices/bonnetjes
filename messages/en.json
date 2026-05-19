@@ -211,7 +211,15 @@
     "roleUpdated": "Role updated",
     "roleUpdatedDescription": "User is now {role}",
     "roleUpdateFailed": "Error",
-    "roleUpdateFailedDescription": "Failed to update role"
+    "roleUpdateFailedDescription": "Failed to update role",
+    "locationWhitelistLabel": "Location whitelist",
+    "locationWhitelistDescription": "When locations are added, auto-disable only applies to receipts from these locations. Leave empty to apply to all locations.",
+    "locationWhitelistPlaceholder": "Enter location ID",
+    "locationWhitelistAdd": "Add",
+    "locationWhitelistRemove": "Remove location",
+    "locationWhitelistEmpty": "No locations configured — auto-disable applies to all locations",
+    "locationAlreadyExists": "Already added",
+    "locationAlreadyExistsDescription": "This location ID is already in the whitelist"
   },
   "ReceiptCard": {
     "failureReason": "Failure Reason",

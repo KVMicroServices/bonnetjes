@@ -211,7 +211,15 @@
     "roleUpdated": "Rol bijgewerkt",
     "roleUpdatedDescription": "Gebruiker is nu {role}",
     "roleUpdateFailed": "Fout",
-    "roleUpdateFailedDescription": "Rol bijwerken mislukt"
+    "roleUpdateFailedDescription": "Rol bijwerken mislukt",
+    "locationWhitelistLabel": "Locatie-whitelist",
+    "locationWhitelistDescription": "Wanneer locaties zijn toegevoegd, geldt automatisch uitschakelen alleen voor bonnetjes van deze locaties. Laat leeg om op alle locaties toe te passen.",
+    "locationWhitelistPlaceholder": "Voer locatie-ID in",
+    "locationWhitelistAdd": "Toevoegen",
+    "locationWhitelistRemove": "Locatie verwijderen",
+    "locationWhitelistEmpty": "Geen locaties geconfigureerd — automatisch uitschakelen geldt voor alle locaties",
+    "locationAlreadyExists": "Al toegevoegd",
+    "locationAlreadyExistsDescription": "Deze locatie-ID staat al in de whitelist"
   },
   "ReceiptCard": {
     "failureReason": "Reden van afwijzing",

@@ -211,7 +211,15 @@
     "roleUpdated": "Rol opgedateer",
     "roleUpdatedDescription": "Gebruiker is nou {role}",
     "roleUpdateFailed": "Fout",
-    "roleUpdateFailedDescription": "Kon nie rol opdateer nie"
+    "roleUpdateFailedDescription": "Kon nie rol opdateer nie",
+    "locationWhitelistLabel": "Ligging-witlys",
+    "locationWhitelistDescription": "Wanneer liggings bygevoeg word, geld outomatiese deaktivering slegs vir kwitansies van hierdie liggings. Laat leeg om op alle liggings toe te pas.",
+    "locationWhitelistPlaceholder": "Voer ligging-ID in",
+    "locationWhitelistAdd": "Voeg by",
+    "locationWhitelistRemove": "Verwyder ligging",
+    "locationWhitelistEmpty": "Geen liggings gekonfigureer nie — outomatiese deaktivering geld vir alle liggings",
+    "locationAlreadyExists": "Reeds bygevoeg",
+    "locationAlreadyExistsDescription": "Hierdie ligging-ID is reeds in die witlys"
   },
   "ReceiptCard": {
     "failureReason": "Rede vir afwysing",

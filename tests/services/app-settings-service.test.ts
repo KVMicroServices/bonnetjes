@@ -373,6 +373,7 @@ describe("getFeatureToggles", () => {
     expect(result).toEqual({
       autoVerifyEnabled: false,
       autoDisableEnabled: false,
+      autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
       lowConfidenceThreshold: 30,
     });
@@ -391,6 +392,7 @@ describe("getFeatureToggles", () => {
         updatedAt: new Date(),
       })
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
 
     const result = await getFeatureToggles();
@@ -398,6 +400,7 @@ describe("getFeatureToggles", () => {
     expect(result).toEqual({
       autoVerifyEnabled: true,
       autoDisableEnabled: false,
+      autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
       lowConfidenceThreshold: 30,
     });

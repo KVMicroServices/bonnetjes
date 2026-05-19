@@ -211,7 +211,15 @@
     "roleUpdated": "Rôle mis à jour",
     "roleUpdatedDescription": "L'utilisateur est maintenant {role}",
     "roleUpdateFailed": "Erreur",
-    "roleUpdateFailedDescription": "Échec de la mise à jour du rôle"
+    "roleUpdateFailedDescription": "Échec de la mise à jour du rôle",
+    "locationWhitelistLabel": "Liste blanche des emplacements",
+    "locationWhitelistDescription": "Lorsque des emplacements sont ajoutés, la désactivation automatique ne s'applique qu'aux reçus de ces emplacements. Laissez vide pour appliquer à tous les emplacements.",
+    "locationWhitelistPlaceholder": "Entrer l'ID de l'emplacement",
+    "locationWhitelistAdd": "Ajouter",
+    "locationWhitelistRemove": "Supprimer l'emplacement",
+    "locationWhitelistEmpty": "Aucun emplacement configuré — la désactivation automatique s'applique à tous les emplacements",
+    "locationAlreadyExists": "Déjà ajouté",
+    "locationAlreadyExistsDescription": "Cet ID d'emplacement est déjà dans la liste blanche"
   },
   "ReceiptCard": {
     "failureReason": "Raison du rejet",

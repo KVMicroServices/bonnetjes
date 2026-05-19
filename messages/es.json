@@ -211,7 +211,15 @@
     "roleUpdated": "Rol actualizado",
     "roleUpdatedDescription": "El usuario ahora es {role}",
     "roleUpdateFailed": "Error",
-    "roleUpdateFailedDescription": "No se pudo actualizar el rol"
+    "roleUpdateFailedDescription": "No se pudo actualizar el rol",
+    "locationWhitelistLabel": "Lista blanca de ubicaciones",
+    "locationWhitelistDescription": "Cuando se agregan ubicaciones, la desactivación automática solo se aplica a recibos de estas ubicaciones. Dejar vacío para aplicar a todas las ubicaciones.",
+    "locationWhitelistPlaceholder": "Ingrese ID de ubicación",
+    "locationWhitelistAdd": "Agregar",
+    "locationWhitelistRemove": "Eliminar ubicación",
+    "locationWhitelistEmpty": "No hay ubicaciones configuradas — la desactivación automática se aplica a todas las ubicaciones",
+    "locationAlreadyExists": "Ya agregado",
+    "locationAlreadyExistsDescription": "Este ID de ubicación ya está en la lista blanca"
   },
   "ReceiptCard": {
     "failureReason": "Motivo del rechazo",
