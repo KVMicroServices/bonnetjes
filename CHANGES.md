@@ -1,5 +1,14 @@
 # Changes
 
+## [081] Add confidence threshold settings to admin settings page
+
+**What**: Added configurable high/low confidence thresholds to the settings page and wired them into the OCR verification logic. Thresholds are stored in the `AppSetting` table with defaults of 70 (auto-verify) and 30 (auto-reject).
+**Decisions**:
+- `determineVerificationStatus` accepts optional thresholds parameter, defaults to module constants when not provided
+- `processReceiptOcr` reads thresholds from DB at call time; streaming OCR route and dispute route use defaults (can be wired later if needed)
+- Input validated server-side: must be number between 0-100
+**Files**: `lib/services/app-settings-service.ts`, `lib/services/ocr-service.ts`, `app/api/admin/settings/route.ts`, `app/admin/settings/page.tsx`, `tests/services/app-settings-service.test.ts`, `tests/routes/admin-settings.test.ts`, `messages/*.json`
+
 ## [080] Add auto-verify and auto-disable toggles to admin settings page
 
 **What**: Added toggle switches to the admin settings page for controlling auto-verify (synced receipts) and auto-disable (rejected reviews) features, backed by a new `AppSetting` database table.

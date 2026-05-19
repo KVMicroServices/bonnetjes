@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/header";
-import { Settings, Users, Loader2, Zap } from "lucide-react";
+import { Settings, Users, Loader2, Zap, SlidersHorizontal } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
@@ -18,9 +18,11 @@ interface UserData {
   _count: { receipts: number };
 }
 
-interface FeatureToggles {
+interface AppSettings {
   autoVerifyEnabled: boolean;
   autoDisableEnabled: boolean;
+  highConfidenceThreshold: number;
+  lowConfidenceThreshold: number;
 }
 
 export default function SettingsPage() {
@@ -31,11 +33,15 @@ export default function SettingsPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-  const [toggles, setToggles] = useState<FeatureToggles>({
+  const [settings, setSettings] = useState<AppSettings>({
     autoVerifyEnabled: false,
     autoDisableEnabled: false,
+    highConfidenceThreshold: 70,
+    lowConfidenceThreshold: 30,
   });
-  const [updatingToggle, setUpdatingToggle] = useState<string | null>(null);
+  const [updatingSetting, setUpdatingSetting] = useState<string | null>(null);
+  const [highThresholdInput, setHighThresholdInput] = useState("70");
+  const [lowThresholdInput, setLowThresholdInput] = useState("30");
 
   const isAdmin = (session?.user as any)?.role === "admin";
 
@@ -51,12 +57,14 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const fetchToggles = useCallback(async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/settings");
       if (response.ok) {
         const data = await response.json();
-        setToggles(data);
+        setSettings(data);
+        setHighThresholdInput(String(data.highConfidenceThreshold));
+        setLowThresholdInput(String(data.lowConfidenceThreshold));
       }
     } catch {
       // Fetch failed silently
@@ -70,15 +78,15 @@ export default function SettingsPage() {
       if (!isAdmin) {
         router.replace("/admin");
       } else {
-        Promise.all([fetchUsers(), fetchToggles()]).finally(() => {
+        Promise.all([fetchUsers(), fetchSettings()]).finally(() => {
           setLoading(false);
         });
       }
     }
-  }, [status, isAdmin, router, fetchUsers, fetchToggles]);
+  }, [status, isAdmin, router, fetchUsers, fetchSettings]);
 
-  const handleToggleChange = async (key: keyof FeatureToggles, value: boolean) => {
-    setUpdatingToggle(key);
+  const updateSetting = async (key: string, value: boolean | number) => {
+    setUpdatingSetting(key);
     try {
       const response = await fetch("/api/admin/settings", {
         method: "PATCH",
@@ -87,8 +95,10 @@ export default function SettingsPage() {
       });
 
       if (response.ok) {
-        const updatedToggles = await response.json();
-        setToggles(updatedToggles);
+        const updatedSettings = await response.json();
+        setSettings(updatedSettings);
+        setHighThresholdInput(String(updatedSettings.highConfidenceThreshold));
+        setLowThresholdInput(String(updatedSettings.lowConfidenceThreshold));
         toast({
           title: t("settingUpdated"),
           description: t("settingUpdatedDescription"),
@@ -107,7 +117,23 @@ export default function SettingsPage() {
         variant: "destructive",
       });
     } finally {
-      setUpdatingToggle(null);
+      setUpdatingSetting(null);
+    }
+  };
+
+  const handleThresholdBlur = (key: string, inputValue: string, currentValue: number) => {
+    const parsed = parseInt(inputValue, 10);
+    if (isNaN(parsed) || parsed < 0 || parsed > 100) {
+      // Reset to current value on invalid input
+      if (key === "highConfidenceThreshold") {
+        setHighThresholdInput(String(currentValue));
+      } else {
+        setLowThresholdInput(String(currentValue));
+      }
+      return;
+    }
+    if (parsed !== currentValue) {
+      updateSetting(key, parsed);
     }
   };
 
@@ -197,9 +223,9 @@ export default function SettingsPage() {
                 <p className="text-sm text-gray-500">{t("autoVerifyDescription")}</p>
               </div>
               <Switch
-                checked={toggles.autoVerifyEnabled}
-                onCheckedChange={(checked) => handleToggleChange("autoVerifyEnabled", checked)}
-                disabled={updatingToggle === "autoVerifyEnabled"}
+                checked={settings.autoVerifyEnabled}
+                onCheckedChange={(checked) => updateSetting("autoVerifyEnabled", checked)}
+                disabled={updatingSetting === "autoVerifyEnabled"}
                 aria-label={t("autoVerifyLabel")}
               />
             </div>
@@ -211,11 +237,69 @@ export default function SettingsPage() {
                 <p className="text-sm text-gray-500">{t("autoDisableDescription")}</p>
               </div>
               <Switch
-                checked={toggles.autoDisableEnabled}
-                onCheckedChange={(checked) => handleToggleChange("autoDisableEnabled", checked)}
-                disabled={updatingToggle === "autoDisableEnabled"}
+                checked={settings.autoDisableEnabled}
+                onCheckedChange={(checked) => updateSetting("autoDisableEnabled", checked)}
+                disabled={updatingSetting === "autoDisableEnabled"}
                 aria-label={t("autoDisableLabel")}
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Confidence Thresholds Section */}
+        <div className="mb-8 rounded-xl bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-2">
+            <SlidersHorizontal className="h-5 w-5 text-kv-green" />
+            <h2 className="text-lg font-semibold text-gray-900">
+              {t("confidenceThresholds")}
+            </h2>
+          </div>
+
+          <p className="mb-6 text-sm text-gray-500">{t("confidenceThresholdsDescription")}</p>
+
+          <div className="space-y-6">
+            {/* High Confidence Threshold */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">{t("highConfidenceLabel")}</p>
+                <p className="text-sm text-gray-500">{t("highConfidenceDescription")}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={highThresholdInput}
+                  onChange={(event) => setHighThresholdInput(event.target.value)}
+                  onBlur={() => handleThresholdBlur("highConfidenceThreshold", highThresholdInput, settings.highConfidenceThreshold)}
+                  disabled={updatingSetting === "highConfidenceThreshold"}
+                  className="w-20 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-center text-sm text-gray-700 disabled:opacity-50"
+                  aria-label={t("highConfidenceLabel")}
+                />
+                <span className="text-sm text-gray-500">%</span>
+              </div>
+            </div>
+
+            {/* Low Confidence Threshold */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">{t("lowConfidenceLabel")}</p>
+                <p className="text-sm text-gray-500">{t("lowConfidenceDescription")}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={lowThresholdInput}
+                  onChange={(event) => setLowThresholdInput(event.target.value)}
+                  onBlur={() => handleThresholdBlur("lowConfidenceThreshold", lowThresholdInput, settings.lowConfidenceThreshold)}
+                  disabled={updatingSetting === "lowConfidenceThreshold"}
+                  className="w-20 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-center text-sm text-gray-700 disabled:opacity-50"
+                  aria-label={t("lowConfidenceLabel")}
+                />
+                <span className="text-sm text-gray-500">%</span>
+              </div>
             </div>
           </div>
         </div>

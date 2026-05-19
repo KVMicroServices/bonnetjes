@@ -87,6 +87,8 @@ describe("GET /api/admin/settings", () => {
     expect(body).toEqual({
       autoVerifyEnabled: false,
       autoDisableEnabled: false,
+      highConfidenceThreshold: 70,
+      lowConfidenceThreshold: 30,
     });
   });
 
@@ -104,7 +106,9 @@ describe("GET /api/admin/settings", () => {
         key: "receipt_auto_disable_enabled",
         value: "true",
         updatedAt: new Date(),
-      });
+      })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
 
     const response = await GET();
     const body = await response.json();
@@ -113,6 +117,8 @@ describe("GET /api/admin/settings", () => {
     expect(body).toEqual({
       autoVerifyEnabled: true,
       autoDisableEnabled: true,
+      highConfidenceThreshold: 70,
+      lowConfidenceThreshold: 30,
     });
   });
 });
@@ -195,7 +201,7 @@ describe("PATCH /api/admin/settings", () => {
       updatedAt: new Date(),
     });
 
-    // After upsert, getFeatureToggles reads back
+    // After upsert, getAppSettings reads back all 4 settings
     mockPrisma.appSetting.findUnique
       .mockResolvedValueOnce({
         key: "receipt_auto_verify_enabled",
@@ -206,7 +212,9 @@ describe("PATCH /api/admin/settings", () => {
         key: "receipt_auto_disable_enabled",
         value: "true",
         updatedAt: new Date(),
-      });
+      })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
 
     const request = createPatchRequest({ autoDisableEnabled: true });
     const response = await PATCH(request);
@@ -215,6 +223,8 @@ describe("PATCH /api/admin/settings", () => {
     expect(response.status).toBe(200);
     expect(body.autoDisableEnabled).toBe(true);
     expect(body.autoVerifyEnabled).toBe(false);
+    expect(body.highConfidenceThreshold).toBe(70);
+    expect(body.lowConfidenceThreshold).toBe(30);
 
     expect(mockPrisma.appSetting.upsert).toHaveBeenCalledWith({
       where: { key: "receipt_auto_disable_enabled" },
@@ -239,7 +249,9 @@ describe("PATCH /api/admin/settings", () => {
         key: "receipt_auto_disable_enabled",
         value: "false",
         updatedAt: new Date(),
-      });
+      })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
 
     const request = createPatchRequest({ autoDisableEnabled: false });
     const response = await PATCH(request);
@@ -271,6 +283,8 @@ describe("PATCH /api/admin/settings", () => {
         value: "true",
         updatedAt: new Date(),
       })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
 
     const request = createPatchRequest({ autoVerifyEnabled: true });
@@ -302,7 +316,9 @@ describe("PATCH /api/admin/settings", () => {
         key: "receipt_auto_disable_enabled",
         value: "true",
         updatedAt: new Date(),
-      });
+      })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
 
     const request = createPatchRequest({
       autoVerifyEnabled: true,
@@ -332,5 +348,123 @@ describe("PATCH /api/admin/settings", () => {
     expect(mockPrisma.appSetting.upsert).not.toHaveBeenCalled();
     expect(body.autoVerifyEnabled).toBe(false);
     expect(body.autoDisableEnabled).toBe(false);
+    expect(body.highConfidenceThreshold).toBe(70);
+    expect(body.lowConfidenceThreshold).toBe(30);
+  });
+
+  it("returns 400 when highConfidenceThreshold is not a number", async () => {
+    const session = createAdminSession();
+    mockGetServerSession.mockResolvedValue(session);
+
+    const request = createPatchRequest({ highConfidenceThreshold: "high" });
+    const response = await PATCH(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("highConfidenceThreshold must be a number");
+  });
+
+  it("returns 400 when lowConfidenceThreshold is not a number", async () => {
+    const session = createAdminSession();
+    mockGetServerSession.mockResolvedValue(session);
+
+    const request = createPatchRequest({ lowConfidenceThreshold: true });
+    const response = await PATCH(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("lowConfidenceThreshold must be a number");
+  });
+
+  it("returns 400 when highConfidenceThreshold exceeds 100", async () => {
+    const session = createAdminSession();
+    mockGetServerSession.mockResolvedValue(session);
+
+    const request = createPatchRequest({ highConfidenceThreshold: 101 });
+    const response = await PATCH(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("highConfidenceThreshold must be between 0 and 100");
+  });
+
+  it("returns 400 when lowConfidenceThreshold is negative", async () => {
+    const session = createAdminSession();
+    mockGetServerSession.mockResolvedValue(session);
+
+    const request = createPatchRequest({ lowConfidenceThreshold: -1 });
+    const response = await PATCH(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("lowConfidenceThreshold must be between 0 and 100");
+  });
+
+  it("updates highConfidenceThreshold and persists to database", async () => {
+    const session = createAdminSession();
+    mockGetServerSession.mockResolvedValue(session);
+
+    mockPrisma.appSetting.upsert.mockResolvedValue({
+      key: "high_confidence_threshold",
+      value: "80",
+      updatedAt: new Date(),
+    });
+
+    mockPrisma.appSetting.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        key: "high_confidence_threshold",
+        value: "80",
+        updatedAt: new Date(),
+      })
+      .mockResolvedValueOnce(null);
+
+    const request = createPatchRequest({ highConfidenceThreshold: 80 });
+    const response = await PATCH(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.highConfidenceThreshold).toBe(80);
+
+    expect(mockPrisma.appSetting.upsert).toHaveBeenCalledWith({
+      where: { key: "high_confidence_threshold" },
+      update: { value: "80" },
+      create: { key: "high_confidence_threshold", value: "80" },
+    });
+  });
+
+  it("updates lowConfidenceThreshold and persists to database", async () => {
+    const session = createAdminSession();
+    mockGetServerSession.mockResolvedValue(session);
+
+    mockPrisma.appSetting.upsert.mockResolvedValue({
+      key: "low_confidence_threshold",
+      value: "20",
+      updatedAt: new Date(),
+    });
+
+    mockPrisma.appSetting.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        key: "low_confidence_threshold",
+        value: "20",
+        updatedAt: new Date(),
+      });
+
+    const request = createPatchRequest({ lowConfidenceThreshold: 20 });
+    const response = await PATCH(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.lowConfidenceThreshold).toBe(20);
+
+    expect(mockPrisma.appSetting.upsert).toHaveBeenCalledWith({
+      where: { key: "low_confidence_threshold" },
+      update: { value: "20" },
+      create: { key: "low_confidence_threshold", value: "20" },
+    });
   });
 });

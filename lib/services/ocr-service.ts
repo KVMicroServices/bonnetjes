@@ -1,6 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import { logger } from "@/lib/logger";
 import { convertPdfToImages } from "@/lib/pdf-to-image";
+import {
+  getHighConfidenceThreshold,
+  getLowConfidenceThreshold,
+} from "@/lib/services/app-settings-service";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -323,8 +327,12 @@ export function parseOcrResult(rawJson: string): ParsedOcrResult {
 export function determineVerificationStatus(
   ocrResult: ParsedOcrResult,
   isDuplicate: boolean,
-  receiptDate: Date | null
+  receiptDate: Date | null,
+  thresholds?: { highConfidence?: number; lowConfidence?: number }
 ): VerificationDecision {
+  const highThreshold = thresholds?.highConfidence ?? HIGH_CONFIDENCE_THRESHOLD;
+  const lowThreshold = thresholds?.lowConfidence ?? LOW_CONFIDENCE_THRESHOLD;
+
   let isDateTooOld = false;
   let dateValidationMessage = "";
 
@@ -345,7 +353,7 @@ export function determineVerificationStatus(
     return { status: "rejected", failureReason: "DUPLICATE_RECEIPT", isDateTooOld, dateValidationMessage };
   }
 
-  const hasHighConfidence = ocrResult.confidence >= HIGH_CONFIDENCE_THRESHOLD;
+  const hasHighConfidence = ocrResult.confidence >= highThreshold;
   const isReadable = ocrResult.receiptReadable;
   const hasShopName = ocrResult.extractedShopName !== null;
   const hasDate = receiptDate !== null;
@@ -354,7 +362,7 @@ export function determineVerificationStatus(
     return { status: "verified", failureReason: null, isDateTooOld, dateValidationMessage };
   }
 
-  const hasLowConfidence = ocrResult.confidence < LOW_CONFIDENCE_THRESHOLD;
+  const hasLowConfidence = ocrResult.confidence < lowThreshold;
 
   if (!isReadable || hasLowConfidence) {
     const failureReason = ocrResult.failureReason || "IMAGE_UNCLEAR";
@@ -478,10 +486,14 @@ export async function processReceiptOcr(
 
   const ocrResult = parseOcrResult(rawContent);
 
+  const highConfidence = await getHighConfidenceThreshold();
+  const lowConfidence = await getLowConfidenceThreshold();
+
   const verificationDecision = determineVerificationStatus(
     ocrResult,
     receipt.isDuplicate,
-    ocrResult.extractedDate
+    ocrResult.extractedDate,
+    { highConfidence, lowConfidence }
   );
 
   let secondaryAnalysis: string | null = null;

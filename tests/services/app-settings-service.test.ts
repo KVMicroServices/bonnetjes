@@ -17,12 +17,18 @@ vi.mock("@/lib/logger", () => ({
 
 import {
   getSettingBoolean,
+  getSettingInteger,
   isAutoVerifyEnabled,
   isAutoDisableEnabled,
+  getHighConfidenceThreshold,
+  getLowConfidenceThreshold,
   setSettingBoolean,
+  setSettingInteger,
   getFeatureToggles,
   SETTING_AUTO_VERIFY_ENABLED,
   SETTING_AUTO_DISABLE_ENABLED,
+  SETTING_HIGH_CONFIDENCE_THRESHOLD,
+  SETTING_LOW_CONFIDENCE_THRESHOLD,
 } from "@/lib/services/app-settings-service";
 
 // ─── Tests: getSettingBoolean ──────────────────────────────────────────────────
@@ -233,6 +239,124 @@ describe("setSettingBoolean", () => {
   });
 });
 
+// ─── Tests: getSettingInteger ──────────────────────────────────────────────────
+
+describe("getSettingInteger", () => {
+  it("returns value from DB when row exists", async () => {
+    mockPrisma.appSetting.findUnique.mockResolvedValue({
+      key: "test_int",
+      value: "42",
+      updatedAt: new Date(),
+    });
+
+    const result = await getSettingInteger("test_int", 10);
+
+    expect(result).toBe(42);
+  });
+
+  it("returns default when no DB row exists", async () => {
+    mockPrisma.appSetting.findUnique.mockResolvedValue(null);
+
+    const result = await getSettingInteger("test_int", 10);
+
+    expect(result).toBe(10);
+  });
+
+  it("returns default when DB value is not a valid integer", async () => {
+    mockPrisma.appSetting.findUnique.mockResolvedValue({
+      key: "test_int",
+      value: "not_a_number",
+      updatedAt: new Date(),
+    });
+
+    const result = await getSettingInteger("test_int", 10);
+
+    expect(result).toBe(10);
+  });
+
+  it("returns default when DB query throws", async () => {
+    mockPrisma.appSetting.findUnique.mockRejectedValue(new Error("DB error"));
+
+    const result = await getSettingInteger("test_int", 10);
+
+    expect(result).toBe(10);
+  });
+});
+
+// ─── Tests: getHighConfidenceThreshold ─────────────────────────────────────────
+
+describe("getHighConfidenceThreshold", () => {
+  it("returns 70 by default when no DB row exists", async () => {
+    mockPrisma.appSetting.findUnique.mockResolvedValue(null);
+
+    const result = await getHighConfidenceThreshold();
+
+    expect(result).toBe(70);
+    expect(mockPrisma.appSetting.findUnique).toHaveBeenCalledWith({
+      where: { key: SETTING_HIGH_CONFIDENCE_THRESHOLD },
+    });
+  });
+
+  it("returns value from DB when set", async () => {
+    mockPrisma.appSetting.findUnique.mockResolvedValue({
+      key: SETTING_HIGH_CONFIDENCE_THRESHOLD,
+      value: "85",
+      updatedAt: new Date(),
+    });
+
+    const result = await getHighConfidenceThreshold();
+
+    expect(result).toBe(85);
+  });
+});
+
+// ─── Tests: getLowConfidenceThreshold ──────────────────────────────────────────
+
+describe("getLowConfidenceThreshold", () => {
+  it("returns 30 by default when no DB row exists", async () => {
+    mockPrisma.appSetting.findUnique.mockResolvedValue(null);
+
+    const result = await getLowConfidenceThreshold();
+
+    expect(result).toBe(30);
+    expect(mockPrisma.appSetting.findUnique).toHaveBeenCalledWith({
+      where: { key: SETTING_LOW_CONFIDENCE_THRESHOLD },
+    });
+  });
+
+  it("returns value from DB when set", async () => {
+    mockPrisma.appSetting.findUnique.mockResolvedValue({
+      key: SETTING_LOW_CONFIDENCE_THRESHOLD,
+      value: "15",
+      updatedAt: new Date(),
+    });
+
+    const result = await getLowConfidenceThreshold();
+
+    expect(result).toBe(15);
+  });
+});
+
+// ─── Tests: setSettingInteger ──────────────────────────────────────────────────
+
+describe("setSettingInteger", () => {
+  it("upserts the setting with the integer value as string", async () => {
+    mockPrisma.appSetting.upsert.mockResolvedValue({
+      key: "test_int",
+      value: "50",
+      updatedAt: new Date(),
+    });
+
+    await setSettingInteger("test_int", 50);
+
+    expect(mockPrisma.appSetting.upsert).toHaveBeenCalledWith({
+      where: { key: "test_int" },
+      update: { value: "50" },
+      create: { key: "test_int", value: "50" },
+    });
+  });
+});
+
 // ─── Tests: getFeatureToggles ──────────────────────────────────────────────────
 
 describe("getFeatureToggles", () => {
@@ -249,6 +373,8 @@ describe("getFeatureToggles", () => {
     expect(result).toEqual({
       autoVerifyEnabled: false,
       autoDisableEnabled: false,
+      highConfidenceThreshold: 70,
+      lowConfidenceThreshold: 30,
     });
   });
 
@@ -263,13 +389,17 @@ describe("getFeatureToggles", () => {
         key: SETTING_AUTO_DISABLE_ENABLED,
         value: "false",
         updatedAt: new Date(),
-      });
+      })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
 
     const result = await getFeatureToggles();
 
     expect(result).toEqual({
       autoVerifyEnabled: true,
       autoDisableEnabled: false,
+      highConfidenceThreshold: 70,
+      lowConfidenceThreshold: 30,
     });
   });
 });
