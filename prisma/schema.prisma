@@ -177,3 +177,9 @@ model ReceiptDispute {
   @@index([receiptId])
   @@index([status])
 }
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

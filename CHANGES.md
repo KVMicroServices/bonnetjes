@@ -1,5 +1,13 @@
 # Changes
 
+## [080] Add auto-verify and auto-disable toggles to admin settings page
+
+**What**: Added toggle switches to the admin settings page for controlling auto-verify (synced receipts) and auto-disable (rejected reviews) features, backed by a new `AppSetting` database table.
+**Decisions**:
+- DB-backed settings with env var fallback — toggles override env vars when set
+- Consumers (`receipt-worker`, `receipt-creator`, `admin/receipts` route) now read from DB at call time
+**Files**: `prisma/schema.prisma`, `prisma/migrations/20260601000005_add_app_setting/`, `lib/services/app-settings-service.ts`, `app/api/admin/settings/route.ts`, `app/admin/settings/page.tsx`, `lib/queue/receipt-worker.ts`, `lib/receipt-sync/receipt-creator.ts`, `app/api/admin/receipts/route.ts`, `messages/*.json`
+
 ## [079] Handle pre-existing database migration failures in entrypoint
 
 **What**: Updated docker-entrypoint.sh to handle P3018 (relation already exists) and P3009 (previously failed migration) in addition to P3005, so deploys to environments with pre-existing tables recover automatically.

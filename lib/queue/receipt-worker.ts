@@ -10,6 +10,7 @@ import {
   detectSuspiciousPatterns,
   calculateFraudRiskScore,
 } from "@/lib/fraud-detection";
+import { isAutoDisableEnabled } from "@/lib/services/app-settings-service";
 import { logger } from "@/lib/logger";
 
 // ─── KV-Sync Storage Routing ─────────────────────────────────────────────────
@@ -104,7 +105,7 @@ async function processReceiptJob(job: Job<ReceiptProcessingJobData>): Promise<vo
 
     // Auto-disable: if rejected and secondary analysis confirms, enqueue disable job
     if (ocrResult.verificationStatus === "rejected") {
-      const autoDisableEnabled = process.env.RECEIPT_AUTO_DISABLE_ENABLED === "true";
+      const autoDisableEnabled = await isAutoDisableEnabled();
       if (autoDisableEnabled) {
         await enqueueReviewDisableIfConfirmed(receiptId);
       }

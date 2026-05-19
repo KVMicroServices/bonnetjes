@@ -4,7 +4,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/header";
-import { Settings, Users, Loader2 } from "lucide-react";
+import { Settings, Users, Loader2, Zap } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
 
@@ -17,6 +18,11 @@ interface UserData {
   _count: { receipts: number };
 }
 
+interface FeatureToggles {
+  autoVerifyEnabled: boolean;
+  autoDisableEnabled: boolean;
+}
+
 export default function SettingsPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
@@ -25,6 +31,11 @@ export default function SettingsPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [toggles, setToggles] = useState<FeatureToggles>({
+    autoVerifyEnabled: false,
+    autoDisableEnabled: false,
+  });
+  const [updatingToggle, setUpdatingToggle] = useState<string | null>(null);
 
   const isAdmin = (session?.user as any)?.role === "admin";
 
@@ -37,8 +48,18 @@ export default function SettingsPage() {
       }
     } catch {
       // Fetch failed silently
-    } finally {
-      setLoading(false);
+    }
+  }, []);
+
+  const fetchToggles = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/settings");
+      if (response.ok) {
+        const data = await response.json();
+        setToggles(data);
+      }
+    } catch {
+      // Fetch failed silently
     }
   }, []);
 
@@ -49,10 +70,46 @@ export default function SettingsPage() {
       if (!isAdmin) {
         router.replace("/admin");
       } else {
-        fetchUsers();
+        Promise.all([fetchUsers(), fetchToggles()]).finally(() => {
+          setLoading(false);
+        });
       }
     }
-  }, [status, isAdmin, router, fetchUsers]);
+  }, [status, isAdmin, router, fetchUsers, fetchToggles]);
+
+  const handleToggleChange = async (key: keyof FeatureToggles, value: boolean) => {
+    setUpdatingToggle(key);
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: value }),
+      });
+
+      if (response.ok) {
+        const updatedToggles = await response.json();
+        setToggles(updatedToggles);
+        toast({
+          title: t("settingUpdated"),
+          description: t("settingUpdatedDescription"),
+        });
+      } else {
+        toast({
+          title: t("settingUpdateFailed"),
+          description: t("settingUpdateFailedDescription"),
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: t("settingUpdateFailed"),
+        description: t("settingUpdateFailedDescription"),
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingToggle(null);
+    }
+  };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     setUpdatingUserId(userId);
@@ -120,6 +177,46 @@ export default function SettingsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
             <p className="text-gray-600">{t("subtitle")}</p>
+          </div>
+        </div>
+
+        {/* Feature Toggles Section */}
+        <div className="mb-8 rounded-xl bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-2">
+            <Zap className="h-5 w-5 text-kv-green" />
+            <h2 className="text-lg font-semibold text-gray-900">
+              {t("featureToggles")}
+            </h2>
+          </div>
+
+          <div className="space-y-6">
+            {/* Auto Verify Toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">{t("autoVerifyLabel")}</p>
+                <p className="text-sm text-gray-500">{t("autoVerifyDescription")}</p>
+              </div>
+              <Switch
+                checked={toggles.autoVerifyEnabled}
+                onCheckedChange={(checked) => handleToggleChange("autoVerifyEnabled", checked)}
+                disabled={updatingToggle === "autoVerifyEnabled"}
+                aria-label={t("autoVerifyLabel")}
+              />
+            </div>
+
+            {/* Auto Disable Toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">{t("autoDisableLabel")}</p>
+                <p className="text-sm text-gray-500">{t("autoDisableDescription")}</p>
+              </div>
+              <Switch
+                checked={toggles.autoDisableEnabled}
+                onCheckedChange={(checked) => handleToggleChange("autoDisableEnabled", checked)}
+                disabled={updatingToggle === "autoDisableEnabled"}
+                aria-label={t("autoDisableLabel")}
+              />
+            </div>
           </div>
         </div>
 

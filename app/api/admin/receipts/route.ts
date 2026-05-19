@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { disableReviewByReceiptId } from "@/lib/review-disable/review-disable-service";
+import { isAutoDisableEnabled } from "@/lib/services/app-settings-service";
 
 export async function GET() {
   try {
@@ -51,7 +52,7 @@ export async function PATCH(request: Request) {
     });
 
     // Check if auto-disable is enabled and receipt was rejected
-    const autoDisableEnabled = process.env.RECEIPT_AUTO_DISABLE_ENABLED === "true";
+    const autoDisableEnabled = await isAutoDisableEnabled();
     if (autoDisableEnabled && verificationStatus === "rejected") {
       disableReviewByReceiptId(id).catch((error) => {
         logger.error({ error, receiptId: id }, "Auto-disable review failed (non-blocking)");
