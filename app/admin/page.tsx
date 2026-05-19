@@ -63,6 +63,29 @@ Met vriendelijke groet, With kind regards,
 
 Deniz, Review adviseur`;
 
+// ─── Confidence Display Helpers ───────────────────────────────────────────────
+
+const CONFIDENCE_HIGH_THRESHOLD = 80;
+const CONFIDENCE_MEDIUM_THRESHOLD = 50;
+
+function getConfidenceColorClass(confidence: number | null | undefined): string {
+  const value = confidence ?? 0;
+  if (value >= CONFIDENCE_HIGH_THRESHOLD) {
+    return "text-green-600";
+  }
+  if (value >= CONFIDENCE_MEDIUM_THRESHOLD) {
+    return "text-orange-600";
+  }
+  return "text-red-600";
+}
+
+function formatConfidenceDisplay(confidence: number | null | undefined): string {
+  if (confidence != null) {
+    return `${confidence}%`;
+  }
+  return "N/A";
+}
+
 interface AdminStats {
   totalReceipts: number;
   pendingCount: number;
@@ -652,17 +675,9 @@ export default function AdminPage() {
                         {/* Confidence */}
                         <td className="px-4 py-3">
                           <span
-                            className={`text-sm font-medium ${
-                              (receipt.ocrConfidence ?? 0) >= 80
-                                ? "text-green-600"
-                                : (receipt.ocrConfidence ?? 0) >= 50
-                                ? "text-orange-600"
-                                : "text-red-600"
-                            }`}
+                            className={`text-sm font-medium ${getConfidenceColorClass(receipt.ocrConfidence)}`}
                           >
-                            {receipt.ocrConfidence != null
-                              ? `${receipt.ocrConfidence}%`
-                              : "N/A"}
+                            {formatConfidenceDisplay(receipt.ocrConfidence)}
                           </span>
                         </td>
                         {/* Risk */}

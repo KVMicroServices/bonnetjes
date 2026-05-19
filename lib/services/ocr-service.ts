@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { convertPdfToImages } from "@/lib/pdf-to-image";
 import {
@@ -185,6 +186,17 @@ export interface SecondaryAnalysisResult {
   confidence: number;
   failureReason: string | null;
 }
+
+const secondaryAnalysisResultSchema = z.object({
+  verdict: z.enum(["confirmed_rejection", "overturned_to_verified", "requires_review"]),
+  reasoning: z.string(),
+  extractedShopName: z.string().nullable(),
+  extractedDate: z.string().nullable(),
+  extractedAmount: z.number().nullable(),
+  receiptReadable: z.boolean(),
+  confidence: z.number().min(0).max(100),
+  failureReason: z.string().nullable(),
+});
 
 export type VerificationStatus = "pending" | "verified" | "rejected" | "requires_review";
 
@@ -383,12 +395,6 @@ export function determineVerificationStatus(
   return { status: "requires_review", failureReason: ocrResult.failureReason, isDateTooOld, dateValidationMessage };
 }
 
-const VALID_SECONDARY_VERDICTS: readonly SecondaryVerdict[] = [
-  "confirmed_rejection",
-  "overturned_to_verified",
-  "requires_review",
-];
-
 /** Run a secondary AI analysis on a rejected receipt to confirm or add nuance. */
 export async function runSecondaryAnalysis(
   messages: ReadonlyArray<OcrMessage>,
@@ -453,12 +459,15 @@ export async function runSecondaryAnalysis(
 
     const llmResponse = await response.json();
     const rawContent: string = llmResponse.choices[0].message.content;
-    const parsed: SecondaryAnalysisResult = JSON.parse(rawContent);
+    const rawParsed = JSON.parse(rawContent);
+    const validationResult = secondaryAnalysisResultSchema.safeParse(rawParsed);
 
-    if (!VALID_SECONDARY_VERDICTS.includes(parsed.verdict)) {
-      logger.warn({ verdict: parsed.verdict }, "Secondary analysis returned invalid verdict");
+    if (!validationResult.success) {
+      logger.warn({ errors: validationResult.error.issues }, "Secondary analysis failed schema validation");
       return null;
     }
+
+    const parsed: SecondaryAnalysisResult = validationResult.data;
 
     return parsed;
   } catch (error) {
@@ -532,7 +541,12 @@ export async function processReceiptOcr(
   const needsSecondaryAnalysis = verificationDecision.status !== "verified" && !isHardRuleRejection;
 
   if (needsSecondaryAnalysis) {
-    const primaryFailureReason = ocrResult.failureReason || "IMAGE_UNCLEAR";
+    let primaryFailureReason: FailureReason;
+    if (ocrResult.failureReason) {
+      primaryFailureReason = ocrResult.failureReason;
+    } else {
+      primaryFailureReason = "IMAGE_UNCLEAR";
+    }
     const secondaryResult = await runSecondaryAnalysis(
       messages,
       ocrResult,

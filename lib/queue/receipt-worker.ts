@@ -153,7 +153,9 @@ async function enqueueAutoDisableIfEligible(receiptId: string): Promise<void> {
   if (receipt.secondaryAnalysis) {
     try {
       const parsed = JSON.parse(receipt.secondaryAnalysis);
-      isSecondaryConfirmed = parsed.verdict === SECONDARY_VERDICT_CONFIRMED;
+      if (typeof parsed.verdict === "string") {
+        isSecondaryConfirmed = parsed.verdict === SECONDARY_VERDICT_CONFIRMED;
+      }
     } catch {
       isSecondaryConfirmed = receipt.secondaryAnalysis.includes("Initial analysis valid");
     }

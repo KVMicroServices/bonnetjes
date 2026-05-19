@@ -1,5 +1,23 @@
 # Changes
 
+## [087] Fix review findings from 26.05.19 code review
+
+**What**: Applied all 10 standards fixes (ternaries → if-else, short-circuits → if-else, chained ops → separate lines, magic numbers → named constants) and 3 security fixes (admin-gate settings nav link, Zod schema validation on secondary analysis LLM output, type guard on parsed verdict).
+**Decisions**:
+- Confidence thresholds extracted to `CONFIDENCE_HIGH_THRESHOLD` / `CONFIDENCE_MEDIUM_THRESHOLD` constants with helper functions
+- Zod schema replaces manual verdict-only check in `runSecondaryAnalysis`, validating all fields including confidence range 0-100
+- Settings link in header gated on `role === "admin"` (both desktop and mobile)
+- Updated header navigation tests to reflect admin-only settings visibility
+**Files**:
+- app/admin/page.tsx
+- app/api/receipts/[id]/ocr/route.ts
+- lib/services/ocr-service.ts
+- lib/services/dispute-service.ts
+- app/admin/settings/page.tsx
+- components/header.tsx
+- lib/queue/receipt-worker.ts
+- tests/pages/header-navigation.test.tsx
+
 ## [086] Add confidence column to review queue table
 
 **What**: Added OCR confidence value as a column before the risk column in the admin review queue table.

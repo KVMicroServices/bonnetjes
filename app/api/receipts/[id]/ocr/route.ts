@@ -136,7 +136,12 @@ export async function POST(
                     const needsSecondaryAnalysis = verificationDecision.status !== "verified" && !isHardRuleRejection;
 
                     if (needsSecondaryAnalysis) {
-                      const primaryFailureReason = ocrResult.failureReason || "IMAGE_UNCLEAR";
+                      let primaryFailureReason: string;
+                      if (ocrResult.failureReason) {
+                        primaryFailureReason = ocrResult.failureReason;
+                      } else {
+                        primaryFailureReason = "IMAGE_UNCLEAR";
+                      }
                       const secondaryResult = await runSecondaryAnalysis(
                         messages,
                         ocrResult,
@@ -223,11 +228,17 @@ export async function POST(
                       }
                     });
 
+                    let extractedDateString: string | null = null;
+                    if (finalDate) {
+                      const isoString = finalDate.toISOString();
+                      extractedDateString = isoString.split("T")[0];
+                    }
+
                     const finalData = JSON.stringify({
                       status: "completed",
                       result: {
                         extractedShopName: finalShopName,
-                        extractedDate: finalDate ? finalDate.toISOString().split("T")[0] : null,
+                        extractedDate: extractedDateString,
                         extractedAmount: finalAmount,
                         receiptReadable: finalReadable,
                         confidence: finalConfidence,

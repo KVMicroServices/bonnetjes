@@ -74,11 +74,21 @@ describe("Header navigation for authenticated users", () => {
     expect(html).toContain('href="/admin"');
   });
 
-  it("renders Settings link", () => {
+  it("renders Settings link for admin users", () => {
+    mockSession = {
+      user: { id: "admin-1", email: "admin@test.com", role: "admin" },
+    };
     const html = renderHeader();
 
     expect(html).toContain("Settings");
     expect(html).toContain('href="/admin/settings"');
+  });
+
+  it("does not render Settings link for non-admin users", () => {
+    const html = renderHeader();
+
+    expect(html).not.toContain("Settings");
+    expect(html).not.toContain('href="/admin/settings"');
   });
 
   it("does not render Admin Panel link", () => {
@@ -99,7 +109,10 @@ describe("Header navigation for authenticated users", () => {
     expect(html).not.toContain("Platforms");
   });
 
-  it("renders exactly Dashboard and Settings as navigation links", () => {
+  it("renders exactly Dashboard and Settings as navigation links for admin", () => {
+    mockSession = {
+      user: { id: "admin-1", email: "admin@test.com", role: "admin" },
+    };
     const html = renderHeader();
 
     // Verify the two expected links exist

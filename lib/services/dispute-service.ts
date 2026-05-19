@@ -232,7 +232,12 @@ export async function verifyDisputeReceipt(
 
   if (needsSecondaryAnalysis) {
     try {
-      const primaryFailureReason = parsed.failureReason || "IMAGE_UNCLEAR";
+      let primaryFailureReason: string;
+      if (parsed.failureReason) {
+        primaryFailureReason = parsed.failureReason;
+      } else {
+        primaryFailureReason = "IMAGE_UNCLEAR";
+      }
       const secondaryResult = await ocr.runSecondary(messages, parsed, primaryFailureReason);
 
       if (secondaryResult) {
@@ -342,7 +347,8 @@ export async function verifyDisputeReceipt(
 
   let extractedDateString: string | null = null;
   if (finalDate) {
-    extractedDateString = finalDate.toISOString().split("T")[0];
+    const isoString = finalDate.toISOString();
+    extractedDateString = isoString.split("T")[0];
   }
 
   logger.info(

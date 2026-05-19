@@ -12,6 +12,7 @@ export function Header() {
   const { data: session } = useSession() || {};
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const t = useTranslations("Header");
+  const isAdmin = (session?.user as any)?.role === "admin";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md">
@@ -42,13 +43,15 @@ export function Header() {
                 <LayoutDashboard className="h-4 w-4" />
                 {t("dashboard")}
               </Link>
-              <Link
-                href="/admin/settings"
-                className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
-              >
-                <Settings className="h-4 w-4" />
-                {t("settings")}
-              </Link>
+              {isAdmin && (
+                <Link
+                  href="/admin/settings"
+                  className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+                >
+                  <Settings className="h-4 w-4" />
+                  {t("settings")}
+                </Link>
+              )}
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 className="flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200"
@@ -110,14 +113,16 @@ export function Header() {
                     <LayoutDashboard className="h-4 w-4" />
                     {t("dashboard")}
                   </Link>
-                  <Link
-                    href="/admin/settings"
-                    className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Settings className="h-4 w-4" />
-                    {t("settings")}
-                  </Link>
+                  {isAdmin && (
+                    <Link
+                      href="/admin/settings"
+                      className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Settings className="h-4 w-4" />
+                      {t("settings")}
+                    </Link>
+                  )}
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);

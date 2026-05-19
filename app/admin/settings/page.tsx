@@ -396,7 +396,7 @@ export default function SettingsPage() {
                 {users.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-sm text-gray-900">
-                      {user.name || "—"}
+                      {user.name ? user.name : "—"}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700">
                       {user.email}
