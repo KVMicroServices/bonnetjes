@@ -1,5 +1,14 @@
 # Changes
 
+## [071] Fix review findings for email-notification-on-disable branch
+
+**What**: Resolved all 22 standards violations (ternaries → if-else, short-circuits → explicit assignments, magic values → named constants), 2 security issues (pinned @types/nodemailer, escaped HTML in email intro), and 4 stability issues (race condition via upsert, wrapped response.text() in try-catch, added env var startup validation, added Zod schemas to 3 dispute API routes).
+**Decisions**:
+- Used `upsert` for `getOrCreateDisputeUserId` to eliminate race condition
+- Startup validation for `DISPUTE_TOKEN_SECRET`/`NEXTAUTH_SECRET` exits the worker process; `APP_URL` only warns
+- Dispute page narrowed `token` with an explicit null-check early return instead of non-null assertion
+**Files**: `components/dispute-uploader.tsx`, `lib/email/email-service.ts`, `lib/email/email-translations.ts`, `lib/email/email-templates.ts`, `lib/review-disable/kiyoh-review-client.ts`, `lib/queue/review-disable-worker.ts`, `lib/services/dispute-service.ts`, `lib/s3.ts`, `app/dispute/page.tsx`, `app/api/admin/reviews/disable/route.ts`, `app/api/dispute/upload/route.ts`, `app/api/dispute/verify/route.ts`, `app/api/dispute/request-review/route.ts`, `scripts/queue-worker.ts`, `package.json`
+
 ## [070] Redesign rejection email with branded card-based template
 
 **What**: Replaced the plain-text-style rejection email with a card-based HTML template matching the Kiyoh/Klantenvertellen brand guidelines — banner image, logo, requirement bullets, dispute CTA, and branded footer with terms link and support email.

@@ -1,15 +1,30 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/db";
 import { requestHumanReview } from "@/lib/services/dispute-service";
 import { resolveDisputeToken } from "@/lib/dispute/dispute-token-http";
 
+const requestReviewSchema = z.object({
+  token: z.string().min(1),
+  receiptId: z.string().min(1),
+});
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { token, receiptId } = body;
+    const parseResult = requestReviewSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: parseResult.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { token, receiptId } = parseResult.data;
 
     const tokenResult = resolveDisputeToken(token);
     if (!tokenResult.success) {

@@ -52,7 +52,12 @@ export async function resolveReviewerEmail(
     const authResult = await authenticateKiyohAdmin();
     bearerToken = authResult.bearerToken;
   } catch (authError) {
-    const errorMessage = authError instanceof Error ? authError.message : String(authError);
+    let errorMessage: string;
+    if (authError instanceof Error) {
+      errorMessage = authError.message;
+    } else {
+      errorMessage = String(authError);
+    }
     logger.error(
       { reviewId, locationId, tenantId, error: errorMessage },
       "Failed to authenticate with Kiyoh for reviewer email resolution"
@@ -78,7 +83,12 @@ export async function resolveReviewerEmail(
       },
     });
   } catch (fetchError) {
-    const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+    let errorMessage: string;
+    if (fetchError instanceof Error) {
+      errorMessage = fetchError.message;
+    } else {
+      errorMessage = String(fetchError);
+    }
     logger.error(
       { url: baseUrl, reviewId, locationId, tenantId, error: errorMessage },
       "Kiyoh review list fetch threw an exception"
@@ -87,7 +97,12 @@ export async function resolveReviewerEmail(
   }
 
   if (!response.ok) {
-    const responseBody = await response.text();
+    let responseBody: string;
+    try {
+      responseBody = await response.text();
+    } catch {
+      responseBody = "(failed to read response body)";
+    }
     logger.error(
       { status: response.status, body: responseBody, reviewId, locationId, tenantId },
       "Kiyoh review list API returned non-OK status"
@@ -107,7 +122,12 @@ export async function resolveReviewerEmail(
     }
     responseData = parsed as ReadonlyArray<ReviewDetailDto>;
   } catch (parseError) {
-    const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+    let errorMessage: string;
+    if (parseError instanceof Error) {
+      errorMessage = parseError.message;
+    } else {
+      errorMessage = String(parseError);
+    }
     logger.error(
       { reviewId, locationId, tenantId, error: errorMessage },
       "Kiyoh review list response was not valid JSON"

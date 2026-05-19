@@ -50,6 +50,13 @@ const ALLOWED_TYPES: ReadonlyArray<string> = [
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 
+function determineFileType(mimeType: string): string {
+  if (mimeType.includes("pdf")) {
+    return "pdf";
+  }
+  return "image";
+}
+
 export function DisputeUploader({ token, reviewId }: DisputeUploaderProps) {
   const translations = useTranslations("Dispute");
   const failureTranslations = useTranslations("ReceiptCard");
@@ -164,7 +171,7 @@ export function DisputeUploader({ token, reviewId }: DisputeUploaderProps) {
           token,
           cloudStoragePath: cloud_storage_path,
           originalFilename: file.name,
-          fileType: file.type.includes("pdf") ? "pdf" : "image",
+          fileType: determineFileType(file.type),
           fileSize: file.size,
         }),
       });
@@ -188,7 +195,12 @@ export function DisputeUploader({ token, reviewId }: DisputeUploaderProps) {
 
       setPhase("rejected");
     } catch (error) {
-      const message = error instanceof Error ? error.message : translations("genericError");
+      let message: string;
+      if (error instanceof Error) {
+        message = error.message;
+      } else {
+        message = translations("genericError");
+      }
       setErrorMessage(message);
       setPhase("error");
     }
@@ -217,7 +229,12 @@ export function DisputeUploader({ token, reviewId }: DisputeUploaderProps) {
         description: translations("reviewRequestedDescription"),
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : translations("genericError");
+      let message: string;
+      if (error instanceof Error) {
+        message = error.message;
+      } else {
+        message = translations("genericError");
+      }
       toast({
         title: translations("requestReviewFailed"),
         description: message,
@@ -270,7 +287,11 @@ export function DisputeUploader({ token, reviewId }: DisputeUploaderProps) {
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
               onChange={(event) => {
-                const selected = event.target.files?.[0] ?? null;
+                const files = event.target.files;
+                let selected: File | null = null;
+                if (files && files[0]) {
+                  selected = files[0];
+                }
                 handleFileSelect(selected);
               }}
               className="absolute inset-0 cursor-pointer opacity-0"

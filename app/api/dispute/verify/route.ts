@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/db";
 import { generateDisputePresignedUploadUrl, getFileAsBuffer } from "@/lib/s3";
@@ -29,10 +30,27 @@ import {
 } from "@/lib/services/dispute-service";
 import { resolveDisputeToken } from "@/lib/dispute/dispute-token-http";
 
+const verifyRequestSchema = z.object({
+  token: z.string().min(1),
+  cloudStoragePath: z.string().min(1),
+  originalFilename: z.string().min(1),
+  fileType: z.string().min(1),
+  fileSize: z.number().int().nonnegative(),
+});
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { token, cloudStoragePath, originalFilename, fileType, fileSize } = body;
+    const parseResult = verifyRequestSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: parseResult.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { token, cloudStoragePath, originalFilename, fileType, fileSize } = parseResult.data;
 
     const tokenResult = resolveDisputeToken(token);
     if (!tokenResult.success) {

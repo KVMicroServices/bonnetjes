@@ -88,11 +88,18 @@ export function loadDisableEmailTranslations(
   locale: string,
   failureReason: string
 ): DisableEmailTranslations {
-  const resolvedLocale = isSupportedLocale(locale) ? locale : DEFAULT_LOCALE;
+  let resolvedLocale: SupportedLocale;
+  if (isSupportedLocale(locale)) {
+    resolvedLocale = locale;
+  } else {
+    resolvedLocale = DEFAULT_LOCALE;
+  }
 
   const localeMessages = loadMessagesForLocale(resolvedLocale);
-  const fallbackMessages =
-    resolvedLocale === DEFAULT_LOCALE ? null : loadMessagesForLocale(DEFAULT_LOCALE);
+  let fallbackMessages: Record<string, string> | null = null;
+  if (resolvedLocale !== DEFAULT_LOCALE) {
+    fallbackMessages = loadMessagesForLocale(DEFAULT_LOCALE);
+  }
 
   const failureReasonKey = FAILURE_REASON_KEY_MAP[failureReason];
   const resolvedFailureReasonKey = failureReasonKey

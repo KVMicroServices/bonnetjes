@@ -97,9 +97,12 @@ async function sendDisableNotificationEmail(
         failureReason = receipt.failureReason;
       }
     } catch (receiptLookupError) {
-      const errorMessage = receiptLookupError instanceof Error
-        ? receiptLookupError.message
-        : String(receiptLookupError);
+      let errorMessage: string;
+      if (receiptLookupError instanceof Error) {
+        errorMessage = receiptLookupError.message;
+      } else {
+        errorMessage = String(receiptLookupError);
+      }
       logger.warn(
         { receiptId, reviewId, error: errorMessage },
         "Failed to look up receipt failureReason, using default"
@@ -122,9 +125,12 @@ async function sendDisableNotificationEmail(
       );
     }
   } catch (notificationError) {
-    const errorMessage = notificationError instanceof Error
-      ? notificationError.message
-      : String(notificationError);
+    let errorMessage: string;
+    if (notificationError instanceof Error) {
+      errorMessage = notificationError.message;
+    } else {
+      errorMessage = String(notificationError);
+    }
     logger.warn(
       { receiptId, reviewId, error: errorMessage },
       "Unexpected error during email notification, skipping"

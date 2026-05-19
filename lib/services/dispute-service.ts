@@ -7,6 +7,7 @@ import type { DisputeTokenPayload } from "@/lib/dispute/dispute-token";
 const DISPUTE_USER_EMAIL = "disputes@receipt-sync.internal";
 const DISPUTE_USER_NAME = "Dispute Submissions";
 const DEFAULT_FILE_TYPE = "image";
+const DEFAULT_ORIGINAL_FILENAME = "dispute-receipt";
 const ALLOWED_CONTENT_TYPES: ReadonlyArray<string> = [
   "image/jpeg",
   "image/png",
@@ -208,8 +209,8 @@ export async function verifyDisputeReceipt(
 
   const fraudAnalysis = await runFraudPipeline(dependencies, fileBuffer, disputeUserId);
 
-  const fileType = input.fileType || DEFAULT_FILE_TYPE;
-  const originalFilename = input.originalFilename || "dispute-receipt";
+  const fileType = input.fileType ? input.fileType : DEFAULT_FILE_TYPE;
+  const originalFilename = input.originalFilename ? input.originalFilename : DEFAULT_ORIGINAL_FILENAME;
 
   const messages = await ocr.buildMessages(fileBuffer, fileType, originalFilename);
   const parsed = await ocr.runOcr(messages);
@@ -254,7 +255,7 @@ export async function verifyDisputeReceipt(
       isPublic: false,
       originalFilename,
       fileType,
-      fileSize: input.fileSize || 0,
+      fileSize: input.fileSize ? input.fileSize : 0,
       verificationStatus: decision.status,
       processingStatus: "completed",
       processedAt: new Date(),
@@ -431,27 +432,19 @@ async function getOrCreateDisputeUserId(database: PrismaClient): Promise<string>
     return cachedDisputeUserId;
   }
 
-  const existing = await database.user.findUnique({
+  const user = await database.user.upsert({
     where: { email: DISPUTE_USER_EMAIL },
-  });
-
-  if (existing) {
-    cachedDisputeUserId = existing.id;
-    return existing.id;
-  }
-
-  const created = await database.user.create({
-    data: {
+    update: {},
+    create: {
       email: DISPUTE_USER_EMAIL,
       name: DISPUTE_USER_NAME,
       role: "user",
     },
   });
 
-  cachedDisputeUserId = created.id;
-  logger.info({ userId: created.id }, "Created dispute submissions system user");
+  cachedDisputeUserId = user.id;
 
-  return created.id;
+  return user.id;
 }
 
 function sanitizeFileName(value: string | undefined | null): string | null {

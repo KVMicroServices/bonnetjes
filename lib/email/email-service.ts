@@ -54,10 +54,12 @@ function getSmtpTransport(): Transporter {
   const user = process.env[SMTP_USER_VAR];
   const pass = process.env[SMTP_PASS_VAR];
 
+  const SECURE_SMTP_PORT = 465;
+
   smtpTransport = createTransport({
     host: host,
     port: port,
-    secure: port === 465,
+    secure: port === SECURE_SMTP_PORT,
     auth: {
       user: user,
       pass: pass,
@@ -89,8 +91,9 @@ function validateSmtpConfig(): EmailResult | null {
 }
 
 function getAppUrl(): string {
-  const rawAppUrl = process.env[APP_URL_VAR] || "";
-  const trimmed = rawAppUrl.trim().replace(/\/$/, "");
+  const rawAppUrl = process.env[APP_URL_VAR];
+  const resolved = rawAppUrl ? rawAppUrl : "";
+  const trimmed = resolved.trim().replace(/\/$/, "");
   if (trimmed.length === 0) {
     return "";
   }
@@ -168,7 +171,12 @@ export async function sendReviewDisableEmail(
 
     return { success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown email transport error";
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = "Unknown email transport error";
+    }
     logger.error(
       { recipientEmail: params.recipientEmail, reviewId: params.reviewId, error: errorMessage },
       "Failed to send review disable notification email"

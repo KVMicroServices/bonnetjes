@@ -13,6 +13,8 @@ import { createS3Client, getBucketConfig } from "./aws-config";
 const s3Client = createS3Client();
 const { bucketName, folderPrefix } = getBucketConfig();
 
+const PRESIGNED_URL_EXPIRY_SECONDS = 3600;
+
 export async function generatePresignedUploadUrl(
   fileName: string,
   contentType: string,
@@ -31,7 +33,7 @@ export async function generatePresignedUploadUrl(
     ...(isPublic && { ContentDisposition: "attachment" })
   });
 
-  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: PRESIGNED_URL_EXPIRY_SECONDS });
 
   return { uploadUrl, cloud_storage_path };
 }
@@ -53,7 +55,7 @@ export async function generateDisputePresignedUploadUrl(
     ContentType: contentType
   });
 
-  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: PRESIGNED_URL_EXPIRY_SECONDS });
 
   return { uploadUrl, cloud_storage_path };
 }
@@ -94,7 +96,7 @@ export async function getPresignedUrlForPart(
     PartNumber: partNumber
   });
 
-  return getSignedUrl(s3Client, command, { expiresIn: 3600 });
+  return getSignedUrl(s3Client, command, { expiresIn: PRESIGNED_URL_EXPIRY_SECONDS });
 }
 
 export async function completeMultipartUpload(
@@ -132,7 +134,7 @@ export async function getFileUrl(
     ResponseContentDisposition: "attachment"
   });
 
-  return getSignedUrl(s3Client, command, { expiresIn: 3600 });
+  return getSignedUrl(s3Client, command, { expiresIn: PRESIGNED_URL_EXPIRY_SECONDS });
 }
 
 export async function deleteFile(cloud_storage_path: string): Promise<void> {

@@ -46,7 +46,33 @@ export default async function DisputePage({ searchParams }: DisputePageProps) {
     );
   }
 
-  const verifiedToken: string = token!;
+  if (!token) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
+        <div className="w-full max-w-md rounded-xl border border-amber-200 bg-white p-8 text-center shadow-sm">
+          <Image
+            src="/kiyoh-logo.png"
+            alt="Kiyoh"
+            width={120}
+            height={40}
+            className="mx-auto mb-6"
+            priority
+          />
+          <h1 className="mb-4 text-2xl font-bold text-gray-900">
+            {translations("title")}
+          </h1>
+          <p className="mb-2 text-amber-700">
+            {translations("invalidLinkMissing")}
+          </p>
+          <p className="text-sm text-gray-600">
+            {translations("invalidLinkBody")}
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  const verifiedToken: string = token;
   const { payload } = verification;
 
   return (

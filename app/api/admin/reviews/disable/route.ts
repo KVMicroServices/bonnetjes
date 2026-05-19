@@ -86,9 +86,12 @@ async function sendDisableNotification(
       );
     }
   } catch (notificationError) {
-    const errorMessage = notificationError instanceof Error
-      ? notificationError.message
-      : String(notificationError);
+    let errorMessage: string;
+    if (notificationError instanceof Error) {
+      errorMessage = notificationError.message;
+    } else {
+      errorMessage = String(notificationError);
+    }
     logger.warn(
       { reviewId, locationId, tenantId, error: errorMessage },
       "Unexpected error during disable notification sending"
@@ -139,7 +142,10 @@ export async function POST(request: Request) {
           where: { id: data.receiptId },
           select: { failureReason: true },
         });
-        const failureReason = receipt?.failureReason || "VERIFICATION_FAILED";
+        let failureReason = "VERIFICATION_FAILED";
+        if (receipt && receipt.failureReason) {
+          failureReason = receipt.failureReason;
+        }
 
         sendDisableNotification(
           result.reviewId,

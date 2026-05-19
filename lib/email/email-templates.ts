@@ -102,7 +102,8 @@ function renderMainCard(data: DisableEmailData): string {
 
   const guidelinesLink = `<a href="${data.brand.termsUrl}" style="color:${PRIMARY_BUTTON_COLOR};font-weight:bold;text-decoration:none;" target="_blank">${escapeHtml(translations.guidelinesLinkText)}</a>`;
 
-  const introParagraph = translations.intro.replace(
+  const escapedIntro = escapeHtml(translations.intro);
+  const introParagraph = escapedIntro.replace(
     "{guidelinesLink}",
     guidelinesLink
   );
