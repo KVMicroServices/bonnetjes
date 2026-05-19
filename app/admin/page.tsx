@@ -20,19 +20,14 @@ import {
   Eye,
   Check,
   X as XIcon,
-  Flag,
   Calendar,
   DollarSign,
   User,
   FileText,
   ChevronLeft,
   ChevronRight,
-  ThumbsUp,
-  ThumbsDown,
   Mail,
   CloudDownload,
-  Ban,
-  ChevronDown,
   Power
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -111,137 +106,7 @@ interface ReceiptData {
   user: { id: string; name: string | null; email: string };
 }
 
-function ManualDisableForm() {
-  const [isOpen, setIsOpen] = useState(false);
-  const td = useTranslations("ReviewDisable");
-  const [reviewId, setReviewId] = useState("");
-  const [locationId, setLocationId] = useState("");
-  const [tenantId, setTenantId] = useState("99");
-  const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setResult(null);
-
-    try {
-      const response = await fetch("/api/admin/reviews/disable", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "disable-manual",
-          reviewId: reviewId.trim(),
-          locationId: locationId.trim(),
-          tenantId: Number(tenantId),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setResult({ success: true, message: td("successMessage") });
-        setReviewId("");
-        setLocationId("");
-        setTenantId("99");
-      } else {
-        setResult({ success: false, message: data.error || td("errorMessage") });
-      }
-    } catch {
-      setResult({ success: false, message: td("networkError") });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const isFormValid = reviewId.trim().length > 0 && locationId.trim().length > 0 && tenantId.trim().length > 0;
-
-  return (
-    <div className="mb-6 rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between px-5 py-4 text-left"
-      >
-        <div className="flex items-center gap-2">
-          <Ban className="h-4 w-4 text-red-500" />
-          <span className="text-sm font-semibold text-gray-900">{td("title")}</span>
-        </div>
-        {isOpen ? (
-          <ChevronDown className="h-4 w-4 text-gray-500" />
-        ) : (
-          <ChevronRight className="h-4 w-4 text-gray-500" />
-        )}
-      </button>
-
-      {isOpen && (
-        <form onSubmit={handleSubmit} className="border-t px-5 pb-5 pt-4">
-          <p className="mb-4 text-xs text-gray-500">
-            {td("description")}
-          </p>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div>
-              <label htmlFor="manual-review-id" className="mb-1 block text-xs font-medium text-gray-700">
-                {td("reviewIdLabel")}
-              </label>
-              <input
-                id="manual-review-id"
-                type="text"
-                value={reviewId}
-                onChange={(event) => setReviewId(event.target.value)}
-                placeholder={td("reviewIdPlaceholder")}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
-              />
-            </div>
-            <div>
-              <label htmlFor="manual-location-id" className="mb-1 block text-xs font-medium text-gray-700">
-                {td("locationIdLabel")}
-              </label>
-              <input
-                id="manual-location-id"
-                type="text"
-                value={locationId}
-                onChange={(event) => setLocationId(event.target.value)}
-                placeholder={td("locationIdPlaceholder")}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
-              />
-            </div>
-            <div>
-              <label htmlFor="manual-tenant-id" className="mb-1 block text-xs font-medium text-gray-700">
-                {td("tenantIdLabel")}
-              </label>
-              <input
-                id="manual-tenant-id"
-                type="text"
-                value={tenantId}
-                onChange={(event) => setTenantId(event.target.value)}
-                placeholder="98"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={submitting || !isFormValid}
-              className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-            >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
-              {td("submitButton")}
-            </button>
-
-            {result && (
-              <span className={`text-sm ${result.success ? "text-green-600" : "text-red-600"}`}>
-                {result.message}
-              </span>
-            )}
-          </div>
-        </form>
-      )}
-    </div>
-  );
-}
 
 export default function AdminPage() {
   const { data: session, status } = useSession() || {};
@@ -252,14 +117,12 @@ export default function AdminPage() {
   const [receipts, setReceipts] = useState<ReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<"queue" | "stats" | "users">("queue");
+  const [activeTab, setActiveTab] = useState<"queue" | "stats">("queue");
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [users, setUsers] = useState<any[]>([]);
-  const [updatingUser, setUpdatingUser] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [disablingReviewId, setDisablingReviewId] = useState<string | null>(null);
   const [reviewDisabledReceipts, setReviewDisabledReceipts] = useState<Set<string>>(new Set());
@@ -335,10 +198,9 @@ export default function AdminPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [statsRes, receiptsRes, usersRes] = await Promise.all([
+      const [statsRes, receiptsRes] = await Promise.all([
         fetch("/api/admin/stats"),
-        fetch("/api/receipts"),
-        fetch("/api/admin/users")
+        fetch("/api/receipts")
       ]);
 
       if (statsRes.ok) {
@@ -354,11 +216,6 @@ export default function AdminPage() {
         setReceipts(receiptsList || []);
       }
 
-      if (usersRes.ok) {
-        const usersData = await usersRes.json();
-        setUsers(usersData);
-      }
-
     } catch (error) {
       console.error("Failed to fetch admin data:", error);
     } finally {
@@ -366,24 +223,6 @@ export default function AdminPage() {
     }
   }, []);
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    setUpdatingUser(userId);
-    try {
-      const res = await fetch("/api/admin/users", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, role: newRole })
-      });
-      if (res.ok) {
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-        toast({ title: t("roleUpdated"), description: t("roleUpdatedDescription", { role: newRole }) });
-      }
-    } catch {
-      toast({ title: t("roleUpdateFailed"), description: t("roleUpdateFailedDescription"), variant: "destructive" });
-    } finally {
-      setUpdatingUser(null);
-    }
-  };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -509,6 +348,13 @@ export default function AdminPage() {
     } catch {
       return dateString;
     }
+  };
+
+  const formatFailureReason = (reason: string | null) => {
+    if (!reason) {
+      return "—";
+    }
+    return reason.replace(/_/g, " ");
   };
 
   const getStatusBadge = (status: string) => {
@@ -648,9 +494,6 @@ export default function AdminPage() {
           </motion.div>
         </div>
 
-        {/* Manual disable form */}
-        <ManualDisableForm />
-
         {/* Tabs */}
         <div className="mb-6 flex gap-2 flex-wrap">
           <button
@@ -668,17 +511,6 @@ export default function AdminPage() {
                 {stats?.pendingCount}
               </span>
             )}
-          </button>
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
-              activeTab === "users"
-                ? "bg-kv-green text-white"
-                : "bg-white text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            {t("users")}
           </button>
           <button
             onClick={() => setActiveTab("stats")}
@@ -740,6 +572,7 @@ export default function AdminPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("date")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("amount")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("risk")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("failureReason")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("status")}</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("actions")}</th>
                     </tr>
@@ -820,6 +653,12 @@ export default function AdminPage() {
                               {receipt.fraudRiskScore ?? 0}%
                             </span>
                           </div>
+                        </td>
+                        {/* Reason */}
+                        <td className="px-4 py-3">
+                          <span className="text-sm text-gray-700">
+                            {formatFailureReason(receipt.failureReason)}
+                          </span>
                         </td>
                         {/* Status */}
                         <td className="px-4 py-3">
@@ -971,73 +810,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {activeTab === "users" && (
-          <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-            <div className="border-b px-6 py-4 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">{t("userManagement")}</h3>
-              <span className="text-sm text-gray-500">{t("usersCount", { count: users.length })}</span>
-            </div>
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gebruiker</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bonnetjes</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lid sinds</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actie</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {users.map(u => (
-                  <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-kv-green/10 text-sm font-semibold text-kv-green">
-                          {(u.name || u.email || "?").charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900 text-sm">{u.name || "—"}</p>
-                          <p className="text-xs text-gray-500">{u.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{u._count?.receipts ?? 0}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString("nl-NL") : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        u.role === "admin" ? "bg-kv-green/10 text-kv-green" : "bg-gray-100 text-gray-600"
-                      }`}>
-                        {u.role === "admin" ? "Admin" : "Gebruiker"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {updatingUser === u.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin ml-auto text-gray-400" />
-                      ) : u.role === "admin" ? (
-                        <button
-                          onClick={() => handleRoleChange(u.id, "user")}
-                          disabled={u.email === "marketing@kiyoh.co.za"}
-                          className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          Maak gebruiker
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleRoleChange(u.id, "admin")}
-                          className="rounded-lg bg-kv-green/10 px-3 py-1 text-xs font-medium text-kv-green hover:bg-kv-green/20"
-                        >
-                          Maak admin
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </main>
 
       {/* Receipt Preview Modal */}

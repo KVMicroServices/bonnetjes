@@ -1,5 +1,46 @@
 # Changes
 
+## [079] Handle pre-existing database migration failures in entrypoint
+
+**What**: Updated docker-entrypoint.sh to handle P3018 (relation already exists) and P3009 (previously failed migration) in addition to P3005, so deploys to environments with pre-existing tables recover automatically.
+**Why**: Deploying to an old environment whose tables predate Prisma migrations caused an unrecoverable failed-migration state.
+**Files**: `scripts/docker-entrypoint.sh`
+
+## [078] Add unit tests for navigation consolidation
+
+**What**: Added unit tests covering settings page auth redirects and role update fetch calls, dashboard redirect behavior, and header navigation link rendering for authenticated/unauthenticated users.
+**Files**: `tests/pages/settings-page.test.ts`, `tests/pages/dashboard-redirect.test.ts`, `tests/pages/header-navigation.test.tsx`
+
+## [077] Update all 8 message files for navigation consolidation
+
+**What**: Removed `Moderation`, `Reviews`, `ReviewDisable`, `Automation` namespaces; updated `Header` to remove `adminPanel`/`moderation`/`platforms`; changed `Admin.title` to "Dashboard" (translated); removed user-management keys from `Admin`; ensured `Settings` namespace has all required keys.
+**Files**: `messages/en.json`, `messages/nl.json`, `messages/de.json`, `messages/fr.json`, `messages/es.json`, `messages/af.json`, `messages/xh.json`, `messages/zu.json`
+
+## [076] Create admin settings page with user management
+
+**What**: Created `app/admin/settings/page.tsx` with admin-only auth check and user management UI (role dropdown per user, fetching from `/api/admin/users`). Added `Settings` translation namespace to all 8 language files.
+**Files**: `app/admin/settings/page.tsx`, `messages/en.json`, `messages/nl.json`, `messages/de.json`, `messages/fr.json`, `messages/es.json`, `messages/af.json`, `messages/xh.json`, `messages/zu.json`
+
+## [075] Simplify admin page: remove users tab, ManualDisableForm, add Reason column
+
+**What**: Removed the "users" tab and ManualDisableForm from the admin page, keeping only queue and stats tabs. Added a "Reason" column to the receipt queue table showing `failureReason` (dash when empty).
+**Files**: `app/admin/page.tsx`
+
+## [074] Replace user dashboard with redirect to /admin
+
+**What**: Replaced the entire user dashboard page with a server component that redirects to `/admin`, ensuring existing bookmarks continue to work.
+**Files**: `app/dashboard/page.tsx`
+
+## [073] Consolidate header navigation to Dashboard and Settings
+
+**What**: Replaced 4 admin nav links with 2 (Dashboard → `/admin`, Settings → `/admin/settings`) for all authenticated users, removing admin-only gating.
+**Files**: `components/header.tsx`, `messages/en.json`, `messages/nl.json`, `messages/de.json`, `messages/fr.json`, `messages/es.json`, `messages/af.json`, `messages/xh.json`, `messages/zu.json`
+
+## [072] Remove moderation, platforms, and automation features
+
+**What**: Deleted all moderation, platforms, and automation code — pages, API routes, service layer, executor, and tests — and dropped the AutomationWorkflow table via Prisma migration.
+**Files**: `app/admin/moderation/`, `app/admin/platforms/`, `app/admin/settings/automation/`, `app/api/reviews/`, `app/api/admin/automation/`, `lib/automation/`, `lib/services/automation-service.ts`, `tests/routes/automation.test.ts`, `tests/routes/reviews.test.ts`, `tests/services/automation-service.test.ts`, `prisma/schema.prisma`, `prisma/migrations/20260601000004_drop_automation_workflow/`
+
 ## [071] Fix review findings for email-notification-on-disable branch
 
 **What**: Resolved all 22 standards violations (ternaries → if-else, short-circuits → explicit assignments, magic values → named constants), 2 security issues (pinned @types/nodemailer, escaped HTML in email intro), and 4 stability issues (race condition via upsert, wrapped response.text() in try-catch, added env var startup validation, added Zod schemas to 3 dispute API routes).
