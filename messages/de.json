@@ -151,6 +151,7 @@
     "user": "Benutzer",
     "date": "Datum",
     "amount": "Betrag",
+    "confidence": "Konfidenz",
     "risk": "Risiko",
     "status": "Status",
     "actions": "Aktionen",

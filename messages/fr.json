@@ -151,6 +151,7 @@
     "user": "Utilisateur",
     "date": "Date",
     "amount": "Montant",
+    "confidence": "Confiance",
     "risk": "Risque",
     "status": "Statut",
     "actions": "Actions",

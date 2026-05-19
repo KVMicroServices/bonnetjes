@@ -587,6 +587,7 @@ export default function AdminPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("user")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("date")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("amount")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("confidence")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("risk")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("failureReason")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("status")}</th>
@@ -647,6 +648,22 @@ export default function AdminPage() {
                                 : "N/A"}
                             </span>
                           </div>
+                        </td>
+                        {/* Confidence */}
+                        <td className="px-4 py-3">
+                          <span
+                            className={`text-sm font-medium ${
+                              (receipt.ocrConfidence ?? 0) >= 80
+                                ? "text-green-600"
+                                : (receipt.ocrConfidence ?? 0) >= 50
+                                ? "text-orange-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {receipt.ocrConfidence != null
+                              ? `${receipt.ocrConfidence}%`
+                              : "N/A"}
+                          </span>
                         </td>
                         {/* Risk */}
                         <td className="px-4 py-3">

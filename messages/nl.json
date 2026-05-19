@@ -151,6 +151,7 @@
     "user": "Gebruiker",
     "date": "Datum",
     "amount": "Bedrag",
+    "confidence": "Betrouwbaarheid",
     "risk": "Risico",
     "status": "Status",
     "actions": "Acties",

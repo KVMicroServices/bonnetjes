@@ -1,5 +1,10 @@
 # Changes
 
+## [086] Add confidence column to review queue table
+
+**What**: Added OCR confidence value as a column before the risk column in the admin review queue table.
+**Files**: `app/admin/page.tsx`, `messages/*.json` (all 8 languages)
+
 ## [085] Simplify confidence logic to single threshold with secondary analysis on all uncertain outcomes
 
 **What**: Replaced the two-threshold system (high/low) with a single confidence threshold. Receipts meeting the threshold with no failure indicators auto-verify; everything else goes through secondary analysis. Removed auto-reject on low confidence.
