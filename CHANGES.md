@@ -1,5 +1,14 @@
 # Changes
 
+## [083] Fix blank page on reload and add receipt queue auto-refresh
+
+**What**: Removed the `mounted` state guard in `Providers` that hid the entire app tree before hydration, and added 15-second polling to the admin receipts queue.
+**Why**: The mounted guard caused a blank page when session resolution raced with the visibility toggle; the queue had no mechanism to show new receipts without a manual reload.
+**Decisions**:
+- `next-themes` already handles hydration internally — the external mounted guard was redundant
+- 15s polling interval balances freshness with network cost
+**Files**: `components/providers.tsx`, `app/admin/page.tsx`
+
 ## [082] Add auto-disable location whitelist
 
 **What**: Added a location whitelist setting that restricts auto-disable to specific location IDs only (requires auto-disable to be enabled as prerequisite)

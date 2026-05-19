@@ -236,6 +236,22 @@ export default function AdminPage() {
     }
   }, [status, isAdmin, router, fetchData]);
 
+  const POLLING_INTERVAL_MS = 15000;
+
+  useEffect(() => {
+    if (status !== "authenticated" || !isAdmin) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, POLLING_INTERVAL_MS);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [status, isAdmin, fetchData]);
+
   const handleViewReceipt = async (receipt: ReceiptData) => {
     setSelectedReceipt(receipt);
     setLoadingPreview(true);
