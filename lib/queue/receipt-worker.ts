@@ -107,7 +107,7 @@ async function processReceiptJob(job: Job<ReceiptProcessingJobData>): Promise<vo
     if (ocrResult.verificationStatus === "rejected") {
       const autoDisableEnabled = await isAutoDisableEnabled();
       if (autoDisableEnabled) {
-        await enqueueReviewDisableIfConfirmed(receiptId);
+        await enqueueAutoDisableIfEligible(receiptId);
       }
     }
 
@@ -127,36 +127,42 @@ async function processReceiptJob(job: Job<ReceiptProcessingJobData>): Promise<vo
 // ─── Auto-Disable Helper ─────────────────────────────────────────────────────
 
 const SECONDARY_VERDICT_CONFIRMED = "confirmed_rejection";
+const HARD_RULE_FAILURE_REASONS = ["DUPLICATE_RECEIPT", "RECEIPT_TOO_OLD"];
 
 /**
- * Checks if a rejected receipt has confirmed secondary analysis and a linked
- * ReceiptSyncState. If so, creates an audit record and enqueues the disable job.
+ * Checks if a rejected receipt is eligible for auto-disable. Eligible if:
+ * - Hard rule rejection (duplicate or date too old), OR
+ * - Secondary analysis confirmed the rejection
+ *
+ * Then verifies a linked ReceiptSyncState exists and location is allowed.
  */
-async function enqueueReviewDisableIfConfirmed(receiptId: string): Promise<void> {
+async function enqueueAutoDisableIfEligible(receiptId: string): Promise<void> {
   const receipt = await prisma.receipt.findUnique({
     where: { id: receiptId },
-    select: { secondaryAnalysis: true },
+    select: { secondaryAnalysis: true, failureReason: true },
   });
 
   if (!receipt) {
     return;
   }
 
-  let isConfirmed = false;
+  const isHardRuleRejection = receipt.failureReason !== null
+    && HARD_RULE_FAILURE_REASONS.includes(receipt.failureReason);
+
+  let isSecondaryConfirmed = false;
   if (receipt.secondaryAnalysis) {
     try {
       const parsed = JSON.parse(receipt.secondaryAnalysis);
-      isConfirmed = parsed.verdict === SECONDARY_VERDICT_CONFIRMED;
+      isSecondaryConfirmed = parsed.verdict === SECONDARY_VERDICT_CONFIRMED;
     } catch {
-      // Legacy format fallback: check for old string-based confirmation
-      isConfirmed = receipt.secondaryAnalysis.includes("Initial analysis valid");
+      isSecondaryConfirmed = receipt.secondaryAnalysis.includes("Initial analysis valid");
     }
   }
 
-  if (!isConfirmed) {
+  if (!isHardRuleRejection && !isSecondaryConfirmed) {
     logger.info(
       { receiptId },
-      "Secondary analysis did not confirm rejection, skipping auto-disable"
+      "Rejection not confirmed by hard rule or secondary analysis, skipping auto-disable"
     );
     return;
   }

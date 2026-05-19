@@ -8,13 +8,14 @@
 - Single threshold gate: ≥ threshold + no failure + readable + fields = verified; everything else = requires_review
 - Secondary analysis runs on ALL non-verified, non-hard-rule outcomes (not just rejections)
 - Hard rules (duplicate, date too old) still reject immediately without secondary analysis
-- Auto-disable only on hard-rule rejections and secondary-confirmed rejections
+- Auto-disable triggers on hard-rule rejections (bypass secondary confirmation) and secondary-confirmed rejections
 - Removed `getLowConfidenceThreshold`, `SETTING_LOW_CONFIDENCE_THRESHOLD`, and all low threshold UI/translations
 - Updated secondary prompt to handle uncertain results (not just rejections)
 **Files**:
 - lib/services/ocr-service.ts
 - lib/services/app-settings-service.ts
 - lib/services/dispute-service.ts
+- lib/queue/receipt-worker.ts
 - app/api/receipts/[id]/ocr/route.ts
 - app/api/admin/settings/route.ts
 - app/admin/settings/page.tsx
