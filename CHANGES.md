@@ -1,5 +1,19 @@
 # Changes
 
+## [099] Replace dashboard metrics with review-required list and add disputes tab
+
+**What**: Removed stat cards from admin dashboard top, replaced with scrollable list of `requires_review` receipts with time range filtering and cursor pagination. Replaced "Statistics" tab with "Disputes" tab showing all `ReceiptDispute` records with receipt preview modal and accept/reject actions.
+**Decisions**:
+- New API endpoint `/api/admin/receipts/review-required` with cursor pagination and date filtering
+- New API endpoint `/api/admin/disputes` (GET + PATCH) for listing and actioning disputes
+- Dispute accept/reject updates both `ReceiptDispute.status` and linked `Receipt.verificationStatus` in a transaction
+- Reused existing receipt download endpoint for dispute receipt previews (disputes store receipts in the same R2 bucket)
+**Files**:
+- app/admin/page.tsx
+- app/api/admin/disputes/route.ts (new)
+- app/api/admin/receipts/review-required/route.ts (new)
+- messages/*.json (all 8 languages)
+
 ## [098] Add notification system with bell dropdown, preferences, and email delivery
 
 **What**: Added global notification feed with bell icon in header (unread badge, dropdown list, mark-all-read), per-user notification preferences on the `/settings` page (none/in-app/email per notification type), and email delivery via existing SMTP for users who opt in.
