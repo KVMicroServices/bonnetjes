@@ -346,6 +346,13 @@ describe("getFeatureToggles", () => {
       autoDisableEnabled: false,
       autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
+      smtp: {
+        smtpHost: null,
+        smtpPort: null,
+        smtpUser: null,
+        smtpPass: null,
+        smtpFrom: null,
+      },
     });
   });
 
@@ -362,6 +369,11 @@ describe("getFeatureToggles", () => {
         updatedAt: new Date(),
       })
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
 
     const result = await getFeatureToggles();
@@ -371,6 +383,13 @@ describe("getFeatureToggles", () => {
       autoDisableEnabled: false,
       autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
+      smtp: {
+        smtpHost: null,
+        smtpPort: null,
+        smtpUser: null,
+        smtpPass: null,
+        smtpFrom: null,
+      },
     });
   });
 });

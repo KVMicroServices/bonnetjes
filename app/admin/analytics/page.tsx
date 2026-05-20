@@ -52,6 +52,18 @@ interface VolumeDataPoint {
 type TabId = "metrics" | "volume" | "audit";
 type Granularity = "hour" | "day" | "week";
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+const MILLISECONDS_PER_WEEK = 7 * MILLISECONDS_PER_DAY;
+const MILLISECONDS_PER_THIRTY_DAYS = 30 * MILLISECONDS_PER_DAY;
+const CHART_BAR_WIDTH_PX = 50;
+const CHART_MIN_WIDTH_PX = 600;
+const ROTATED_LABEL_THRESHOLD = 14;
+const ROTATED_LABEL_ANGLE = -45;
+const ROTATED_LABEL_HEIGHT = 80;
+const DEFAULT_LABEL_HEIGHT = 40;
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
@@ -63,6 +75,8 @@ export default function AnalyticsPage() {
   const [metrics, setMetrics] = useState<AnalyticsMetrics | null>(null);
   const [volumeData, setVolumeData] = useState<ReadonlyArray<VolumeDataPoint>>([]);
   const [granularity, setGranularity] = useState<Granularity>("day");
+  const [volumeDateFrom, setVolumeDateFrom] = useState<string>("");
+  const [volumeDateTo, setVolumeDateTo] = useState<string>("");
   const [loadingMetrics, setLoadingMetrics] = useState(true);
   const [loadingVolume, setLoadingVolume] = useState(true);
 
@@ -95,7 +109,14 @@ export default function AnalyticsPage() {
   const fetchVolume = useCallback(async () => {
     setLoadingVolume(true);
     try {
-      const response = await fetch(`/api/admin/analytics?type=volume&granularity=${granularity}`);
+      let url = `/api/admin/analytics?type=volume&granularity=${granularity}`;
+      if (volumeDateFrom) {
+        url = url + `&from=${volumeDateFrom}T00:00:00`;
+      }
+      if (volumeDateTo) {
+        url = url + `&to=${volumeDateTo}T23:59:59`;
+      }
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setVolumeData(data.data);
@@ -105,7 +126,7 @@ export default function AnalyticsPage() {
     } finally {
       setLoadingVolume(false);
     }
-  }, [granularity]);
+  }, [granularity, volumeDateFrom, volumeDateTo]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -171,6 +192,10 @@ export default function AnalyticsPage() {
             loading={loadingVolume}
             granularity={granularity}
             onGranularityChange={setGranularity}
+            dateFrom={volumeDateFrom}
+            dateTo={volumeDateTo}
+            onDateFromChange={setVolumeDateFrom}
+            onDateToChange={setVolumeDateTo}
           />
         )}
         {activeTab === "audit" && <AuditLogTab />}
@@ -328,36 +353,128 @@ function VolumeTab({
   loading,
   granularity,
   onGranularityChange,
+  dateFrom,
+  dateTo,
+  onDateFromChange,
+  onDateToChange,
 }: {
   data: ReadonlyArray<VolumeDataPoint>;
   loading: boolean;
   granularity: Granularity;
   onGranularityChange: (granularity: Granularity) => void;
+  dateFrom: string;
+  dateTo: string;
+  onDateFromChange: (value: string) => void;
+  onDateToChange: (value: string) => void;
 }) {
   const t = useTranslations("Analytics");
 
+  function handleSetToday() {
+    const todayDate = new Date();
+    const todayString = todayDate.toISOString().split("T")[0];
+    onDateFromChange(todayString);
+    onDateToChange(todayString);
+    onGranularityChange("hour");
+  }
+
+  function handleSetLastSevenDays() {
+    const today = new Date();
+    const sevenDaysAgo = new Date(today.getTime() - MILLISECONDS_PER_WEEK);
+    const todayString = today.toISOString().split("T")[0];
+    const sevenDaysAgoString = sevenDaysAgo.toISOString().split("T")[0];
+    onDateFromChange(sevenDaysAgoString);
+    onDateToChange(todayString);
+    onGranularityChange("day");
+  }
+
+  function handleSetLastThirtyDays() {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - MILLISECONDS_PER_THIRTY_DAYS);
+    const todayString = today.toISOString().split("T")[0];
+    const thirtyDaysAgoString = thirtyDaysAgo.toISOString().split("T")[0];
+    onDateFromChange(thirtyDaysAgoString);
+    onDateToChange(todayString);
+    onGranularityChange("day");
+  }
+
+  function handleClearRange() {
+    onDateFromChange("");
+    onDateToChange("");
+  }
+
   return (
     <div className="space-y-4">
-      {/* Granularity Filter */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-700">{t("groupBy")}:</span>
-        <div className="flex rounded-lg border bg-white p-1">
-          <GranularityButton
-            active={granularity === "hour"}
-            onClick={() => onGranularityChange("hour")}
-            label={t("hourly")}
-          />
-          <GranularityButton
-            active={granularity === "day"}
-            onClick={() => onGranularityChange("day")}
-            label={t("daily")}
-          />
-          <GranularityButton
-            active={granularity === "week"}
-            onClick={() => onGranularityChange("week")}
-            label={t("weekly")}
-          />
+      {/* Controls Row */}
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Granularity Filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">{t("groupBy")}:</span>
+          <div className="flex rounded-lg border bg-white p-1">
+            <GranularityButton
+              active={granularity === "hour"}
+              onClick={() => onGranularityChange("hour")}
+              label={t("hourly")}
+            />
+            <GranularityButton
+              active={granularity === "day"}
+              onClick={() => onGranularityChange("day")}
+              label={t("daily")}
+            />
+            <GranularityButton
+              active={granularity === "week"}
+              onClick={() => onGranularityChange("week")}
+              label={t("weekly")}
+            />
+          </div>
         </div>
+
+        {/* Date Range Inputs */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">{t("dateRange")}:</span>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(event) => onDateFromChange(event.target.value)}
+            className="rounded-lg border bg-white px-3 py-1.5 text-sm text-gray-700"
+          />
+          <span className="text-sm text-gray-500">—</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(event) => onDateToChange(event.target.value)}
+            className="rounded-lg border bg-white px-3 py-1.5 text-sm text-gray-700"
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={handleClearRange}
+              className="rounded-md px-2 py-1.5 text-sm text-gray-500 hover:bg-gray-100"
+            >
+              {t("clearRange")}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Quick Presets */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={handleSetToday}
+          className="rounded-md border bg-white px-3 py-1.5 text-sm text-gray-600 shadow-sm hover:bg-gray-50"
+        >
+          {t("presetToday")}
+        </button>
+        <button
+          onClick={handleSetLastSevenDays}
+          className="rounded-md border bg-white px-3 py-1.5 text-sm text-gray-600 shadow-sm hover:bg-gray-50"
+        >
+          {t("presetLastSevenDays")}
+        </button>
+        <button
+          onClick={handleSetLastThirtyDays}
+          className="rounded-md border bg-white px-3 py-1.5 text-sm text-gray-600 shadow-sm hover:bg-gray-50"
+        >
+          {t("presetLastThirtyDays")}
+        </button>
       </div>
 
       {/* Chart */}
@@ -371,37 +488,44 @@ function VolumeTab({
           <div className="py-16 text-center text-gray-500">{t("noData")}</div>
         )}
         {!loading && data.length > 0 && (
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={data as VolumeDataPoint[]}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 12 }}
-                interval="preserveStartEnd"
-              />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Legend />
-              <Bar
-                dataKey="verified"
-                name={t("legendVerified")}
-                fill="#22c55e"
-                stackId="stack"
-              />
-              <Bar
-                dataKey="pending"
-                name={t("legendPending")}
-                fill="#eab308"
-                stackId="stack"
-              />
-              <Bar
-                dataKey="rejected"
-                name={t("legendRejected")}
-                fill="#ef4444"
-                stackId="stack"
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="overflow-x-auto">
+            <div style={{ minWidth: `${Math.max(data.length * CHART_BAR_WIDTH_PX, CHART_MIN_WIDTH_PX)}px` }}>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={data as VolumeDataPoint[]}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 12 }}
+                    interval={0}
+                    angle={data.length > ROTATED_LABEL_THRESHOLD ? ROTATED_LABEL_ANGLE : 0}
+                    textAnchor={data.length > ROTATED_LABEL_THRESHOLD ? "end" : "middle"}
+                    height={data.length > ROTATED_LABEL_THRESHOLD ? ROTATED_LABEL_HEIGHT : DEFAULT_LABEL_HEIGHT}
+                  />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar
+                    dataKey="verified"
+                    name={t("legendVerified")}
+                    fill="#22c55e"
+                    stackId="stack"
+                  />
+                  <Bar
+                    dataKey="pending"
+                    name={t("legendPending")}
+                    fill="#eab308"
+                    stackId="stack"
+                  />
+                  <Bar
+                    dataKey="rejected"
+                    name={t("legendRejected")}
+                    fill="#ef4444"
+                    stackId="stack"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         )}
       </div>
     </div>

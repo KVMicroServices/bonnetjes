@@ -6,6 +6,7 @@ import { renderDisableEmailHtml, renderDisableEmailSubject } from "@/lib/email/e
 import type { DisableEmailData } from "@/lib/email/email-templates";
 import { resolveBrandConfig } from "@/lib/email/email-brand";
 import { signDisputeToken } from "@/lib/dispute/dispute-token";
+import { getSmtpSettings } from "@/lib/services/app-settings-service";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -25,69 +26,55 @@ export interface EmailResult {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const SMTP_HOST_VAR = "SMTP_HOST";
-const SMTP_PORT_VAR = "SMTP_PORT";
-const SMTP_USER_VAR = "SMTP_USER";
-const SMTP_PASS_VAR = "SMTP_PASS";
-const SMTP_FROM_VAR = "SMTP_FROM";
 const APP_URL_VAR = "APP_URL";
 
-const REQUIRED_SMTP_VARS: readonly string[] = [
-  SMTP_HOST_VAR,
-  SMTP_PORT_VAR,
-  SMTP_USER_VAR,
-  SMTP_PASS_VAR,
-  SMTP_FROM_VAR,
-];
+// ─── Transport Factory ───────────────────────────────────────────────────────
 
-// ─── Singleton Transport ─────────────────────────────────────────────────────
+interface SmtpConfig {
+  readonly host: string;
+  readonly port: number;
+  readonly user: string;
+  readonly pass: string;
+  readonly from: string;
+}
 
-let smtpTransport: Transporter | null = null;
-
-function getSmtpTransport(): Transporter {
-  if (smtpTransport) {
-    return smtpTransport;
-  }
-
-  const host = process.env[SMTP_HOST_VAR];
-  const port = Number(process.env[SMTP_PORT_VAR]);
-  const user = process.env[SMTP_USER_VAR];
-  const pass = process.env[SMTP_PASS_VAR];
-
+function createSmtpTransport(config: SmtpConfig): Transporter {
   const SECURE_SMTP_PORT = 465;
 
-  smtpTransport = createTransport({
-    host: host,
-    port: port,
-    secure: port === SECURE_SMTP_PORT,
+  return createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.port === SECURE_SMTP_PORT,
     auth: {
-      user: user,
-      pass: pass,
+      user: config.user,
+      pass: config.pass,
     },
   });
-
-  return smtpTransport;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function validateSmtpConfig(): EmailResult | null {
-  const missingVars: string[] = [];
+async function resolveSmtpConfig(): Promise<SmtpConfig | null> {
+  const smtp = await getSmtpSettings();
 
-  for (const varName of REQUIRED_SMTP_VARS) {
-    const value = process.env[varName];
-    if (!value || value.trim().length === 0) {
-      missingVars.push(varName);
-    }
+  if (!smtp.smtpHost || !smtp.smtpPort || !smtp.smtpUser || !smtp.smtpPass || !smtp.smtpFrom) {
+    const missingFields: string[] = [];
+    if (!smtp.smtpHost) { missingFields.push("SMTP_HOST"); }
+    if (!smtp.smtpPort) { missingFields.push("SMTP_PORT"); }
+    if (!smtp.smtpUser) { missingFields.push("SMTP_USER"); }
+    if (!smtp.smtpPass) { missingFields.push("SMTP_PASS"); }
+    if (!smtp.smtpFrom) { missingFields.push("SMTP_FROM"); }
+    logger.error({ missingFields }, `Missing required SMTP configuration: ${missingFields.join(", ")}`);
+    return null;
   }
 
-  if (missingVars.length > 0) {
-    const errorMessage = `Missing required SMTP environment variables: ${missingVars.join(", ")}`;
-    logger.error({ missingVars }, errorMessage);
-    return { success: false, error: errorMessage };
-  }
-
-  return null;
+  return {
+    host: smtp.smtpHost,
+    port: Number(smtp.smtpPort),
+    user: smtp.smtpUser,
+    pass: smtp.smtpPass,
+    from: smtp.smtpFrom,
+  };
 }
 
 function getAppUrl(): string {
@@ -126,9 +113,9 @@ export async function sendReviewDisableEmail(
   params: SendDisableEmailParams
 ): Promise<EmailResult> {
   try {
-    const validationFailure = validateSmtpConfig();
-    if (validationFailure) {
-      return validationFailure;
+    const smtpConfig = await resolveSmtpConfig();
+    if (!smtpConfig) {
+      return { success: false, error: "SMTP not configured" };
     }
 
     const appUrl = getAppUrl();
@@ -153,12 +140,11 @@ export async function sendReviewDisableEmail(
 
     const subject = renderDisableEmailSubject(emailData);
     const htmlBody = renderDisableEmailHtml(emailData);
-    const fromAddress = process.env[SMTP_FROM_VAR];
 
-    const transport = getSmtpTransport();
+    const transport = createSmtpTransport(smtpConfig);
 
     await transport.sendMail({
-      from: fromAddress,
+      from: smtpConfig.from,
       to: params.recipientEmail,
       subject: subject,
       html: htmlBody,

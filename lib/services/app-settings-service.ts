@@ -7,10 +7,35 @@ export const SETTING_AUTO_VERIFY_ENABLED = "receipt_auto_verify_enabled";
 export const SETTING_AUTO_DISABLE_ENABLED = "receipt_auto_disable_enabled";
 export const SETTING_HIGH_CONFIDENCE_THRESHOLD = "high_confidence_threshold";
 export const SETTING_AUTO_DISABLE_LOCATION_WHITELIST = "auto_disable_location_whitelist";
+export const SETTING_SMTP_HOST = "smtp_host";
+export const SETTING_SMTP_PORT = "smtp_port";
+export const SETTING_SMTP_USER = "smtp_user";
+export const SETTING_SMTP_PASS = "smtp_pass";
+export const SETTING_SMTP_FROM = "smtp_from";
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
 const DEFAULT_HIGH_CONFIDENCE_THRESHOLD = 70;
+
+// ─── Read (String) ────────────────────────────────────────────────────────────
+
+export async function getSettingString(key: string, fallbackEnvVar: string): Promise<string | null> {
+  try {
+    const setting = await prisma.appSetting.findUnique({ where: { key } });
+    if (setting && setting.value.length > 0) {
+      return setting.value;
+    }
+  } catch (error) {
+    logger.warn({ key, error }, "Failed to read app setting from database, falling back to env var");
+  }
+
+  const envValue = process.env[fallbackEnvVar];
+  if (envValue && envValue.length > 0) {
+    return envValue;
+  }
+
+  return null;
+}
 
 // ─── Read (Boolean) ───────────────────────────────────────────────────────────
 
@@ -98,6 +123,14 @@ export async function isLocationAllowedForAutoDisable(locationId: string): Promi
 
 // ─── Write ────────────────────────────────────────────────────────────────────
 
+export async function setSettingString(key: string, value: string): Promise<void> {
+  await prisma.appSetting.upsert({
+    where: { key },
+    update: { value },
+    create: { key, value },
+  });
+}
+
 export async function setSettingBoolean(key: string, value: boolean): Promise<void> {
   await prisma.appSetting.upsert({
     where: { key },
@@ -124,11 +157,30 @@ export async function setSettingStringArray(key: string, value: readonly string[
 
 // ─── Bulk Read ────────────────────────────────────────────────────────────────
 
+export interface SmtpSettings {
+  smtpHost: string | null;
+  smtpPort: string | null;
+  smtpUser: string | null;
+  smtpPass: string | null;
+  smtpFrom: string | null;
+}
+
 export interface AppSettings {
   autoVerifyEnabled: boolean;
   autoDisableEnabled: boolean;
   autoDisableLocationWhitelist: readonly string[];
   highConfidenceThreshold: number;
+  smtp: SmtpSettings;
+}
+
+export async function getSmtpSettings(): Promise<SmtpSettings> {
+  const smtpHost = await getSettingString(SETTING_SMTP_HOST, "SMTP_HOST");
+  const smtpPort = await getSettingString(SETTING_SMTP_PORT, "SMTP_PORT");
+  const smtpUser = await getSettingString(SETTING_SMTP_USER, "SMTP_USER");
+  const smtpPass = await getSettingString(SETTING_SMTP_PASS, "SMTP_PASS");
+  const smtpFrom = await getSettingString(SETTING_SMTP_FROM, "SMTP_FROM");
+
+  return { smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom };
 }
 
 export async function getAppSettings(): Promise<AppSettings> {
@@ -136,8 +188,9 @@ export async function getAppSettings(): Promise<AppSettings> {
   const autoDisableEnabled = await isAutoDisableEnabled();
   const autoDisableLocationWhitelist = await getAutoDisableLocationWhitelist();
   const highConfidenceThreshold = await getHighConfidenceThreshold();
+  const smtp = await getSmtpSettings();
 
-  return { autoVerifyEnabled, autoDisableEnabled, autoDisableLocationWhitelist, highConfidenceThreshold };
+  return { autoVerifyEnabled, autoDisableEnabled, autoDisableLocationWhitelist, highConfidenceThreshold, smtp };
 }
 
 // ─── Legacy alias ─────────────────────────────────────────────────────────────

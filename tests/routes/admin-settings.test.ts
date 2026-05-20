@@ -94,6 +94,13 @@ describe("GET /api/admin/settings", () => {
       autoDisableEnabled: false,
       autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
+      smtp: {
+        smtpHost: null,
+        smtpPort: null,
+        smtpUser: null,
+        smtpPass: null,
+        smtpFrom: null,
+      },
     });
   });
 
@@ -113,6 +120,11 @@ describe("GET /api/admin/settings", () => {
         updatedAt: new Date(),
       })
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
 
     const response = await GET();
@@ -124,6 +136,13 @@ describe("GET /api/admin/settings", () => {
       autoDisableEnabled: true,
       autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
+      smtp: {
+        smtpHost: null,
+        smtpPort: null,
+        smtpUser: null,
+        smtpPass: null,
+        smtpFrom: null,
+      },
     });
   });
 });

@@ -1,5 +1,153 @@
 # Changes
 
+## [109] Fix review findings from 26.05.20.1-feature-sprint
+
+**What**: Fixed SMTP password exposure in settings API, remediated 30+ banned code patterns (ternaries, magic values, abbreviations, console.error, chained ops), added missing translations, restored admin auth guard, added limit caps and JSON parse guards on API routes.
+**Decisions**:
+- Created `lib/client-logger.ts` for browser-side structured logging (pino is server-only)
+- Used `getFraudRiskColorClass` helper to eliminate repeated fraud score ternaries
+- Relative time functions now accept translation objects to eliminate hardcoded strings
+**Files**:
+- app/api/admin/settings/route.ts
+- app/api/admin/disputes/route.ts
+- app/api/admin/receipts/review-required/route.ts
+- app/admin/page.tsx
+- app/admin/analytics/page.tsx
+- components/comment-thread.tsx
+- components/notification-bell.tsx
+- components/mention-autocomplete.tsx
+- lib/client-logger.ts (new)
+- messages/*.json (all 8 languages)
+
+## [108] Complete Google SSO for login and signup
+
+**What**: Added Google sign-up button to signup page, removed drive.readonly scope (login-only needs profile+email), added startup validation for Google OAuth env vars, removed accessToken from session.
+**Decisions**:
+- Env var validation uses lazy functions (called at module evaluation) to fail fast in production but allow test env override via vitest config
+- Kept `refreshGoogleToken` in auth-service as dead code for now (separate cleanup)
+- Used `allowDangerousEmailAccountLinking: true` so existing email/password users can link Google seamlessly
+**Files**:
+- lib/auth-options.ts
+- app/signup/page.tsx
+- vitest.config.ts
+- .env.example
+- messages/*.json (all 8 languages)
+
+## [107] Add comment thread UI with @-mention autocomplete
+
+**What**: Built CommentThread and MentionAutocomplete components, integrated into admin receipt detail modal, added Comments translation keys to all 8 locale files.
+**Decisions**:
+- Used custom useMentionInput hook for shared mention logic between compose and edit modes
+- Positioned autocomplete dropdown using fixed positioning relative to textarea
+- Comment thread placed below download button in receipt detail panel
+**Files**:
+- components/comment-thread.tsx
+- components/mention-autocomplete.tsx
+- app/admin/page.tsx
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [106] Add unit tests for comment-service
+
+**What**: Added 22 unit tests covering createComment validation, editComment authorization and new-mention notifications, deleteComment authorization, and getComments ordering and deserialization.
+
+## [105] Add comment and user search API routes
+
+**What**: Created API routes for comment CRUD (GET/POST on receipts/[id]/comments, PATCH/DELETE on comments/[commentId]) and user search endpoint for @-mention autocomplete.
+**Decisions**:
+- Thin route handlers delegating to comment-service
+- User search uses Prisma directly (no service layer needed for simple query)
+**Files**:
+- app/api/receipts/[id]/comments/route.ts
+- app/api/receipts/[id]/comments/[commentId]/route.ts
+- app/api/users/search/route.ts
+
+## [104] Add comment service with CRUD and mention notifications
+
+**What**: Created `lib/services/comment-service.ts` with createComment, getComments, editComment, and deleteComment functions including body validation, author-only edit, author-or-admin delete, and fire-and-forget mention notifications for new and newly-added mentions.
+
+## [103] Add Comment model and comment_mention notification type
+
+**What**: Added Prisma Comment model with indexes and cascade relations to User/Receipt, added `comment_mention` to the notification type system.
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260520121706_add_comment_model/migration.sql
+- lib/services/notification-service.ts
+
+## [102] Add manual review disable/enable form to admin page
+
+**What**: Added a "Manual Disable" tab to the admin dashboard with a form for review ID, location ID, and tenant ID that calls the existing `disable-manual`/`enable-manual` API actions.
+**Why**: Restores the previously removed manual testing form for directly disabling/enabling reviews on the platform.
+**Files**:
+- app/admin/page.tsx
+- messages/*.json (all 8 languages)
+
+## [101] Move SMTP configuration from env vars to admin settings page
+
+**What**: SMTP settings (host, port, user, pass, from) are now configurable via the admin settings page with DB persistence, falling back to env vars if not set in the database.
+**Decisions**:
+- Reused existing `AppSetting` key-value table — no migration needed
+- Both email-service and notification-service now read SMTP config via `getSmtpSettings()` (DB-first, env fallback)
+- Removed singleton transport pattern in email-service since settings can change at runtime
+**Files**:
+- lib/services/app-settings-service.ts
+- lib/services/notification-service.ts
+- lib/email/email-service.ts
+- app/api/admin/settings/route.ts
+- app/admin/settings/page.tsx
+- messages/*.json (all 8 languages)
+- tests/services/email-service.test.ts
+- tests/services/app-settings-service.test.ts
+- tests/routes/admin-settings.test.ts
+
+## [100] Add date range picker and scrollable chart to analytics volume tab
+
+**What**: Volume chart now supports custom date ranges via date inputs and quick presets (Today, Last 7 days, Last 30 days). Chart is horizontally scrollable when many data points are shown. Service accepts optional `startDate`/`endDate` and computes bucket count dynamically.
+**Decisions**:
+- "Today" preset auto-switches to hourly granularity for the most useful view
+- Chart container uses `overflow-x-auto` with a min-width based on data point count
+- X-axis labels rotate at 45° when more than 14 bars to prevent overlap
+**Files**:
+- lib/services/analytics-service.ts
+- app/api/admin/analytics/route.ts
+- app/admin/analytics/page.tsx
+- messages/*.json (all 8 languages)
+- tests/services/analytics-service.test.ts
+
+## [099] Replace dashboard metrics with review-required list and add disputes tab
+
+**What**: Removed stat cards from admin dashboard top, replaced with scrollable list of `requires_review` receipts with time range filtering and cursor pagination. Replaced "Statistics" tab with "Disputes" tab showing all `ReceiptDispute` records with receipt preview modal and accept/reject actions.
+**Decisions**:
+- New API endpoint `/api/admin/receipts/review-required` with cursor pagination and date filtering
+- New API endpoint `/api/admin/disputes` (GET + PATCH) for listing and actioning disputes
+- Dispute accept/reject updates both `ReceiptDispute.status` and linked `Receipt.verificationStatus` in a transaction
+- Reused existing receipt download endpoint for dispute receipt previews (disputes store receipts in the same R2 bucket)
+**Files**:
+- app/admin/page.tsx
+- app/api/admin/disputes/route.ts (new)
+- app/api/admin/receipts/review-required/route.ts (new)
+- messages/*.json (all 8 languages)
+
+## [098] Add notification system with bell dropdown, preferences, and email delivery
+
+**What**: Added global notification feed with bell icon in header (unread badge, dropdown list, mark-all-read), per-user notification preferences on the `/settings` page (none/in-app/email per notification type), and email delivery via existing SMTP for users who opt in.
+**Decisions**:
+- Global `Notification` table (no userId) — all users see the same feed
+- Unread tracking via `lastNotificationReadAt` timestamp on User (option B — simpler than per-user read state)
+- `NotificationPreference` table stores per-user channel choice per notification type
+- Email delivery uses existing SMTP config (nodemailer) with a simple HTML template
+- 5 notification types: receipt_requires_review, receipt_processed, review_disabled, dispute_outcome, role_changed
+- Fire-and-forget pattern consistent with audit log service
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260601000007_add_notifications/migration.sql
+- lib/services/notification-service.ts (new)
+- app/api/notifications/route.ts (new)
+- app/api/notifications/preferences/route.ts (new)
+- components/notification-bell.tsx (new)
+- components/header.tsx
+- app/settings/page.tsx
+- messages/*.json (all 8 languages)
+
 ## [097] Fix review findings for analytics feature
 
 **What**: Resolved all 14 banned pattern violations and 1 localization issue from code review 26.05.20-analytics.

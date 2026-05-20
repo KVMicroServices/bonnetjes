@@ -107,7 +107,7 @@ describe("getReceiptVolume", () => {
   it("returns 24 data points for hourly granularity", async () => {
     const database = createMockDatabase({ receipts: [] });
 
-    const result = await getReceiptVolume({ database }, "hour");
+    const result = await getReceiptVolume({ database }, { granularity: "hour" });
 
     if (!result.success) {
       throw new Error("Expected success");
@@ -119,7 +119,7 @@ describe("getReceiptVolume", () => {
   it("returns 30 data points for daily granularity", async () => {
     const database = createMockDatabase({ receipts: [] });
 
-    const result = await getReceiptVolume({ database }, "day");
+    const result = await getReceiptVolume({ database }, { granularity: "day" });
 
     if (!result.success) {
       throw new Error("Expected success");
@@ -131,7 +131,7 @@ describe("getReceiptVolume", () => {
   it("returns 7 data points for weekly granularity", async () => {
     const database = createMockDatabase({ receipts: [] });
 
-    const result = await getReceiptVolume({ database }, "week");
+    const result = await getReceiptVolume({ database }, { granularity: "week" });
 
     if (!result.success) {
       throw new Error("Expected success");
@@ -153,7 +153,7 @@ describe("getReceiptVolume", () => {
 
     const database = createMockDatabase({ receipts });
 
-    const result = await getReceiptVolume({ database }, "hour");
+    const result = await getReceiptVolume({ database }, { granularity: "hour" });
 
     if (!result.success) {
       throw new Error("Expected success");
@@ -166,5 +166,24 @@ describe("getReceiptVolume", () => {
     expect(totalVerified).toBe(2);
     expect(totalRejected).toBe(1);
     expect(totalPending).toBe(1);
+  });
+
+  it("respects custom date range", async () => {
+    const database = createMockDatabase({ receipts: [] });
+
+    const startDate = new Date("2026-05-01T00:00:00");
+    const endDate = new Date("2026-05-01T23:59:59");
+
+    const result = await getReceiptVolume({ database }, {
+      granularity: "hour",
+      startDate,
+      endDate,
+    });
+
+    if (!result.success) {
+      throw new Error("Expected success");
+    }
+
+    expect(result.data).toHaveLength(24);
   });
 });

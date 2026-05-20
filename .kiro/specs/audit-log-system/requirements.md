@@ -67,7 +67,7 @@ A general-purpose audit log system for the receipt verification platform. The sy
 
 ### Requirement 6: Integration with Moderation Actions
 
-**User Story:** As an admin, I want moderation actions logged, so that there is a record of who approved, rejected, or flagged each receipt.
+**User Story:** As a user (support agent), I want moderation actions logged, so that there is a record of who approved, rejected, or flagged each receipt.
 
 #### Acceptance Criteria
 

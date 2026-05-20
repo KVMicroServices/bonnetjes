@@ -97,34 +97,68 @@ export async function getAnalyticsMetrics(
   };
 }
 
+export interface VolumeQueryOptions {
+  granularity: VolumeGranularity;
+  startDate?: Date;
+  endDate?: Date;
+}
+
 /** Fetch receipt volume data grouped by the specified granularity. */
 export async function getReceiptVolume(
   dependencies: AnalyticsServiceDependencies,
-  granularity: VolumeGranularity
+  options: VolumeQueryOptions
 ): Promise<GetVolumeResult> {
   const database = dependencies.database;
 
+  const granularity = options.granularity;
   const now = new Date();
-  let startDate: Date;
-  let bucketCount: number;
 
   const millisecondsPerHour = MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE * MINUTES_PER_HOUR;
   const millisecondsPerDay = millisecondsPerHour * HOURS_PER_DAY;
   const millisecondsPerWeek = millisecondsPerDay * DAYS_IN_WEEK;
 
-  if (granularity === "hour") {
-    startDate = new Date(now.getTime() - HOURS_IN_DAY * millisecondsPerHour);
-    bucketCount = HOURS_IN_DAY;
-  } else if (granularity === "day") {
-    startDate = new Date(now.getTime() - DAYS_IN_MONTH * millisecondsPerDay);
-    bucketCount = DAYS_IN_MONTH;
+  let startDate: Date;
+  let endDate: Date;
+
+  if (options.startDate && options.endDate) {
+    startDate = options.startDate;
+    endDate = options.endDate;
+  } else if (options.startDate) {
+    startDate = options.startDate;
+    endDate = now;
   } else {
-    startDate = new Date(now.getTime() - DAYS_IN_WEEK * millisecondsPerWeek);
-    bucketCount = DAYS_IN_WEEK;
+    endDate = now;
+    if (granularity === "hour") {
+      startDate = new Date(now.getTime() - HOURS_IN_DAY * millisecondsPerHour);
+    } else if (granularity === "day") {
+      startDate = new Date(now.getTime() - DAYS_IN_MONTH * millisecondsPerDay);
+    } else {
+      startDate = new Date(now.getTime() - DAYS_IN_WEEK * millisecondsPerWeek);
+    }
+  }
+
+  const rangeMilliseconds = endDate.getTime() - startDate.getTime();
+  let bucketCount: number;
+
+  if (granularity === "hour") {
+    bucketCount = Math.ceil(rangeMilliseconds / millisecondsPerHour);
+  } else if (granularity === "day") {
+    bucketCount = Math.ceil(rangeMilliseconds / millisecondsPerDay);
+  } else {
+    bucketCount = Math.ceil(rangeMilliseconds / millisecondsPerWeek);
+  }
+
+  if (bucketCount < 1) {
+    bucketCount = 1;
   }
 
   const receipts = await database.receipt.findMany({
-    where: { createdAt: { gte: startDate } },
+    where: {
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+    },
     select: {
       createdAt: true,
       verificationStatus: true,
@@ -132,7 +166,7 @@ export async function getReceiptVolume(
     orderBy: { createdAt: "asc" },
   });
 
-  const dataPoints = buildVolumeDataPoints(receipts, granularity, startDate, now, bucketCount);
+  const dataPoints = buildVolumeDataPoints(receipts, granularity, startDate, endDate, bucketCount);
 
   return { success: true, data: dataPoints };
 }
