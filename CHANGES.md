@@ -1,5 +1,19 @@
 # Changes
 
+## [108] Complete Google SSO for login and signup
+
+**What**: Added Google sign-up button to signup page, removed drive.readonly scope (login-only needs profile+email), added startup validation for Google OAuth env vars, removed accessToken from session.
+**Decisions**:
+- Env var validation uses lazy functions (called at module evaluation) to fail fast in production but allow test env override via vitest config
+- Kept `refreshGoogleToken` in auth-service as dead code for now (separate cleanup)
+- Used `allowDangerousEmailAccountLinking: true` so existing email/password users can link Google seamlessly
+**Files**:
+- lib/auth-options.ts
+- app/signup/page.tsx
+- vitest.config.ts
+- .env.example
+- messages/*.json (all 8 languages)
+
 ## [107] Add comment thread UI with @-mention autocomplete
 
 **What**: Built CommentThread and MentionAutocomplete components, integrated into admin receipt detail modal, added Comments translation keys to all 8 locale files.

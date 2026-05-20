@@ -52,7 +52,9 @@
     "passwordMismatch": "Wagwoorde stem nie ooreen nie",
     "passwordTooShort": "Wagwoord moet ten minste 6 karakters wees",
     "accountCreatedSignInFailed": "Rekening geskep maar kon nie inteken nie",
-    "genericError": "'n Fout het voorgekom. Probeer asseblief weer."
+    "genericError": "'n Fout het voorgekom. Probeer asseblief weer.",
+    "orDivider": "Of",
+    "googleButton": "Registreer met Google"
   },
   "Dashboard": {
     "welcome": "Welkom, {name}",

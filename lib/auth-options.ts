@@ -5,19 +5,35 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./db";
 import bcrypt from "bcryptjs";
 
+function getGoogleClientId(): string {
+  const value = process.env.GOOGLE_CLIENT_ID;
+  if (!value) {
+    throw new Error("Missing GOOGLE_CLIENT_ID environment variable");
+  }
+  return value;
+}
+
+function getGoogleClientSecret(): string {
+  const value = process.env.GOOGLE_CLIENT_SECRET;
+  if (!value) {
+    throw new Error("Missing GOOGLE_CLIENT_SECRET environment variable");
+  }
+  return value;
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "placeholder",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "placeholder",
+      clientId: getGoogleClientId(),
+      clientSecret: getGoogleClientSecret(),
       allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
-          scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.readonly"
+          scope: "openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email"
         }
       }
     }),
@@ -83,10 +99,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
       }
-      // Store access token for Google Drive API calls
       if (account) {
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
         token.provider = account.provider;
       }
       // Always fetch fresh role from DB (so changes take effect without re-login)
@@ -116,7 +129,6 @@ export const authOptions: NextAuthOptions = {
       if (session?.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
-        (session.user as any).accessToken = token.accessToken;
         (session.user as any).provider = token.provider;
       }
       return session;

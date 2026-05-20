@@ -52,7 +52,9 @@
     "passwordMismatch": "Passwords do not match",
     "passwordTooShort": "Password must be at least 6 characters",
     "accountCreatedSignInFailed": "Account created but failed to sign in",
-    "genericError": "An error occurred. Please try again."
+    "genericError": "An error occurred. Please try again.",
+    "orDivider": "Or",
+    "googleButton": "Sign up with Google"
   },
   "Dashboard": {
     "welcome": "Welcome, {name}",

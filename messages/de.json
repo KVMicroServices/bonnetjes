@@ -52,7 +52,9 @@
     "passwordMismatch": "Passwörter stimmen nicht überein",
     "passwordTooShort": "Passwort muss mindestens 6 Zeichen lang sein",
     "accountCreatedSignInFailed": "Konto erstellt, aber Anmeldung fehlgeschlagen",
-    "genericError": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
+    "genericError": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+    "orDivider": "Oder",
+    "googleButton": "Mit Google registrieren"
   },
   "Dashboard": {
     "welcome": "Willkommen, {name}",

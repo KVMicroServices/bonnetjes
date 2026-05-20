@@ -52,7 +52,9 @@
     "passwordMismatch": "Iiphasiwedi azifani",
     "passwordTooShort": "Iphasiwedi kufuneka ibe nobuncinane boonobumba abayi-6",
     "accountCreatedSignInFailed": "I-akhawunti yenziwe kodwa ukungena akuphumelelanga",
-    "genericError": "Kwenzeke impazamo. Nceda uzame kwakhona."
+    "genericError": "Kwenzeke impazamo. Nceda uzame kwakhona.",
+    "orDivider": "Okanye",
+    "googleButton": "Bhalisa nge-Google"
   },
   "Dashboard": {
     "welcome": "Wamkelekile, {name}",

@@ -52,7 +52,9 @@
     "passwordMismatch": "Wachtwoorden komen niet overeen",
     "passwordTooShort": "Wachtwoord moet minimaal 6 tekens bevatten",
     "accountCreatedSignInFailed": "Account aangemaakt maar inloggen mislukt",
-    "genericError": "Er is een fout opgetreden. Probeer het opnieuw."
+    "genericError": "Er is een fout opgetreden. Probeer het opnieuw.",
+    "orDivider": "Of",
+    "googleButton": "Registreren met Google"
   },
   "Dashboard": {
     "welcome": "Welkom, {name}",

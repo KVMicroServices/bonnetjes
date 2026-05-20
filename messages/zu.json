@@ -52,7 +52,9 @@
     "passwordMismatch": "Amaphasiwedi awafani",
     "passwordTooShort": "Iphasiwedi kumele ibe nobuncane bezinhlamvu ezingu-6",
     "accountCreatedSignInFailed": "I-akhawunti idalwe kodwa ukungena akuphumelelanga",
-    "genericError": "Kwenzeke iphutha. Sicela uzame futhi."
+    "genericError": "Kwenzeke iphutha. Sicela uzame futhi.",
+    "orDivider": "Noma",
+    "googleButton": "Bhalisa nge-Google"
   },
   "Dashboard": {
     "welcome": "Siyakwamukela, {name}",

@@ -52,7 +52,9 @@
     "passwordMismatch": "Las contraseñas no coinciden",
     "passwordTooShort": "La contraseña debe tener al menos 6 caracteres",
     "accountCreatedSignInFailed": "Cuenta creada pero no se pudo iniciar sesión",
-    "genericError": "Ocurrió un error. Por favor, inténtalo de nuevo."
+    "genericError": "Ocurrió un error. Por favor, inténtalo de nuevo.",
+    "orDivider": "O",
+    "googleButton": "Registrarse con Google"
   },
   "Dashboard": {
     "welcome": "Bienvenido, {name}",
