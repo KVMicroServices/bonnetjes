@@ -460,6 +460,8 @@
     "daysAgo": "{count}d edlulileyo"
   },
   "Comments": {
+    "activityLog": "Imisebenzi",
+    "noActivity": "Akukho misebenzi okwangoku",
     "comments": "Izimvo",
     "noComments": "Akukho zimvo okwangoku",
     "writeComment": "Bhala isimvo...",
@@ -475,6 +477,20 @@
     "justNow": "ngoku",
     "minutesAgo": "{count}m edlulileyo",
     "hoursAgo": "{count}h edlulileyo",
-    "daysAgo": "{count}d edlulileyo"
+    "daysAgo": "{count}d edlulileyo",
+    "auditCategoryAiJudgement": "Isigwebo se-AI",
+    "auditCategorySecondaryAnalysis": "Uhlalutyo lwesibini",
+    "auditCategoryModeration": "Ukulawula",
+    "auditCategorySystem": "Inkqubo",
+    "auditActionVerified": "Iphawulwe njengengqinisekisiwe",
+    "auditActionRejected": "Iphawulwe njengengatyiswanga",
+    "auditActionPending": "Ibekwe njengelindileyo",
+    "auditActionRequiresReview": "Iphawulwe ukuhlolwa",
+    "auditActionAutoDisableEnqueued": "Ukucima ngokuzenzekelayo kulungiselelwe",
+    "auditActionReceiptSynced": "Irisithi ivumelaniswe kwiplatfom",
+    "auditActionDisputeProcessed": "Impikiswano iqhutyiwe",
+    "auditActionDisableReview": "Uphononongo lucinyiwe",
+    "auditActionEnableReview": "Uphononongo luvuliwe kwakhona",
+    "auditActionGeneric": "{action}"
   }
 }

@@ -460,6 +460,8 @@
     "daysAgo": "{count}d edlule"
   },
   "Comments": {
+    "activityLog": "Imisebenzi",
+    "noActivity": "Ayikho imisebenzi okwamanje",
     "comments": "Amazwana",
     "noComments": "Awekho amazwana okwamanje",
     "writeComment": "Bhala amazwana...",
@@ -475,6 +477,20 @@
     "justNow": "manje nje",
     "minutesAgo": "{count}m edlule",
     "hoursAgo": "{count}h edlule",
-    "daysAgo": "{count}d edlule"
+    "daysAgo": "{count}d edlule",
+    "auditCategoryAiJudgement": "Isinqumo se-AI",
+    "auditCategorySecondaryAnalysis": "Ukuhlaziywa kwesibili",
+    "auditCategoryModeration": "Ukulawula",
+    "auditCategorySystem": "Isistimu",
+    "auditActionVerified": "Kuphawulwe njengokuqinisekisiwe",
+    "auditActionRejected": "Kuphawulwe njengokunqatshiwe",
+    "auditActionPending": "Kubekwe njengokulindile",
+    "auditActionRequiresReview": "Kuphawulwe ukubuyekezwa",
+    "auditActionAutoDisableEnqueued": "Ukuvala ngokuzenzakalelayo kuhleliwe",
+    "auditActionReceiptSynced": "Irisidi ivumelaniswe kusuka kuplatifomi",
+    "auditActionDisputeProcessed": "Ukuphikisana kusetshenzwe",
+    "auditActionDisableReview": "Ukubuyekeza kuvalwe",
+    "auditActionEnableReview": "Ukubuyekeza kuvulwe kabusha",
+    "auditActionGeneric": "{action}"
   }
 }

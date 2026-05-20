@@ -73,6 +73,38 @@ export function recordAuditEvent(
 // ─── Query ───────────────────────────────────────────────────────────────────
 
 /**
+ * Fetches audit log entries for a specific receipt by searching the metadata JSON.
+ * Orders by createdAt ascending (oldest first) for timeline display.
+ */
+export async function getAuditLogsForReceipt(receiptId: string): Promise<ReadonlyArray<AuditLogEntry>> {
+  const entries = await prisma.auditLog.findMany({
+    where: {
+      metadata: {
+        contains: receiptId,
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const filtered: AuditLogEntry[] = [];
+  for (const entry of entries) {
+    if (!entry.metadata) {
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(entry.metadata) as Record<string, unknown>;
+      if (parsed.receiptId === receiptId) {
+        filtered.push(entry);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return filtered;
+}
+
+/**
  * Fetches audit log entries with cursor-based pagination.
  * Orders by createdAt descending (newest first).
  */

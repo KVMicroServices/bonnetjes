@@ -460,6 +460,8 @@
     "daysAgo": "{count}d gelede"
   },
   "Comments": {
+    "activityLog": "Aktiwiteit",
+    "noActivity": "Nog geen aktiwiteit nie",
     "comments": "Opmerkings",
     "noComments": "Nog geen opmerkings nie",
     "writeComment": "Skryf n opmerking...",
@@ -475,6 +477,20 @@
     "justNow": "sopas",
     "minutesAgo": "{count}m gelede",
     "hoursAgo": "{count}u gelede",
-    "daysAgo": "{count}d gelede"
+    "daysAgo": "{count}d gelede",
+    "auditCategoryAiJudgement": "KI-beoordeling",
+    "auditCategorySecondaryAnalysis": "Sekondere analise",
+    "auditCategoryModeration": "Moderering",
+    "auditCategorySystem": "Stelsel",
+    "auditActionVerified": "Gemerk as geverifieer",
+    "auditActionRejected": "Gemerk as afgekeur",
+    "auditActionPending": "Gestel op hangende",
+    "auditActionRequiresReview": "Gemerk vir hersiening",
+    "auditActionAutoDisableEnqueued": "Outomatiese deaktivering ingeskeduleer",
+    "auditActionReceiptSynced": "Kwitansie gesinkroniseer vanaf platform",
+    "auditActionDisputeProcessed": "Beswaar verwerk",
+    "auditActionDisableReview": "Resensie gedeaktiveer",
+    "auditActionEnableReview": "Resensie heraktiveer",
+    "auditActionGeneric": "{action}"
   }
 }

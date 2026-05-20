@@ -1,5 +1,18 @@
 # Changes
 
+## [112] Wire audit logs into receipt activity timeline
+
+**What**: Merged existing audit log entries for a receipt into the comment thread as a unified activity timeline, showing both comments and system events chronologically.
+**Decisions**:
+- Added `getAuditLogsForReceipt` that filters by receiptId inside metadata JSON
+- Reused CommentThread component rather than creating a separate one — audit entries render with distinct system-event styling
+- Header changed from "Comments" to "Activity" to reflect the combined timeline
+**Files**:
+- lib/services/audit-log-service.ts
+- app/api/receipts/[id]/activity/route.ts (new)
+- components/comment-thread.tsx
+- messages/*.json (all 8 languages)
+
 ## [111] Fix build failure from env var validation at module load time
 
 **What**: Replaced throwing helper functions for GOOGLE_CLIENT_ID/SECRET with fallback empty strings so `next build` doesn't crash when env vars aren't available at build time (Railway injects them at runtime only).

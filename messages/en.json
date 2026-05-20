@@ -460,6 +460,8 @@
     "summaryReceipt": "Receipt {receiptId}"
   },
   "Comments": {
+    "activityLog": "Activity",
+    "noActivity": "No activity yet",
     "comments": "Comments",
     "noComments": "No comments yet",
     "writeComment": "Write a comment...",
@@ -475,6 +477,20 @@
     "justNow": "just now",
     "minutesAgo": "{count}m ago",
     "hoursAgo": "{count}h ago",
-    "daysAgo": "{count}d ago"
+    "daysAgo": "{count}d ago",
+    "auditCategoryAiJudgement": "AI Judgement",
+    "auditCategorySecondaryAnalysis": "Secondary Analysis",
+    "auditCategoryModeration": "Moderation",
+    "auditCategorySystem": "System",
+    "auditActionVerified": "Marked as verified",
+    "auditActionRejected": "Marked as rejected",
+    "auditActionPending": "Set to pending",
+    "auditActionRequiresReview": "Flagged for review",
+    "auditActionAutoDisableEnqueued": "Auto-disable queued",
+    "auditActionReceiptSynced": "Receipt synced from platform",
+    "auditActionDisputeProcessed": "Dispute processed",
+    "auditActionDisableReview": "Review disabled",
+    "auditActionEnableReview": "Review re-enabled",
+    "auditActionGeneric": "{action}"
   }
 }

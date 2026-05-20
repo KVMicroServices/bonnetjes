@@ -460,6 +460,8 @@
     "daysAgo": "vor {count}d"
   },
   "Comments": {
+    "activityLog": "Aktivitaet",
+    "noActivity": "Noch keine Aktivitaet",
     "comments": "Kommentare",
     "noComments": "Noch keine Kommentare",
     "writeComment": "Kommentar schreiben...",
@@ -475,6 +477,20 @@
     "justNow": "gerade eben",
     "minutesAgo": "vor {count}m",
     "hoursAgo": "vor {count}h",
-    "daysAgo": "vor {count}d"
+    "daysAgo": "vor {count}d",
+    "auditCategoryAiJudgement": "KI-Beurteilung",
+    "auditCategorySecondaryAnalysis": "Sekundaeranalyse",
+    "auditCategoryModeration": "Moderation",
+    "auditCategorySystem": "System",
+    "auditActionVerified": "Als verifiziert markiert",
+    "auditActionRejected": "Als abgelehnt markiert",
+    "auditActionPending": "Auf ausstehend gesetzt",
+    "auditActionRequiresReview": "Zur Ueberpruefung markiert",
+    "auditActionAutoDisableEnqueued": "Automatische Deaktivierung eingeplant",
+    "auditActionReceiptSynced": "Beleg von Plattform synchronisiert",
+    "auditActionDisputeProcessed": "Einspruch verarbeitet",
+    "auditActionDisableReview": "Bewertung deaktiviert",
+    "auditActionEnableReview": "Bewertung wieder aktiviert",
+    "auditActionGeneric": "{action}"
   }
 }

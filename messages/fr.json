@@ -460,6 +460,8 @@
     "daysAgo": "il y a {count}j"
   },
   "Comments": {
+    "activityLog": "Activite",
+    "noActivity": "Aucune activite",
     "comments": "Commentaires",
     "noComments": "Aucun commentaire",
     "writeComment": "Ecrire un commentaire...",
@@ -475,6 +477,20 @@
     "justNow": "à l'instant",
     "minutesAgo": "il y a {count}m",
     "hoursAgo": "il y a {count}h",
-    "daysAgo": "il y a {count}j"
+    "daysAgo": "il y a {count}j",
+    "auditCategoryAiJudgement": "Jugement IA",
+    "auditCategorySecondaryAnalysis": "Analyse secondaire",
+    "auditCategoryModeration": "Moderation",
+    "auditCategorySystem": "Systeme",
+    "auditActionVerified": "Marque comme verifie",
+    "auditActionRejected": "Marque comme rejete",
+    "auditActionPending": "Mis en attente",
+    "auditActionRequiresReview": "Signale pour examen",
+    "auditActionAutoDisableEnqueued": "Desactivation automatique planifiee",
+    "auditActionReceiptSynced": "Recu synchronise depuis la plateforme",
+    "auditActionDisputeProcessed": "Contestation traitee",
+    "auditActionDisableReview": "Avis desactive",
+    "auditActionEnableReview": "Avis reactive",
+    "auditActionGeneric": "{action}"
   }
 }

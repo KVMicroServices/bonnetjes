@@ -460,6 +460,8 @@
     "daysAgo": "{count}d geleden"
   },
   "Comments": {
+    "activityLog": "Activiteit",
+    "noActivity": "Nog geen activiteit",
     "comments": "Opmerkingen",
     "noComments": "Nog geen opmerkingen",
     "writeComment": "Schrijf een opmerking...",
@@ -475,6 +477,20 @@
     "justNow": "zojuist",
     "minutesAgo": "{count}m geleden",
     "hoursAgo": "{count}u geleden",
-    "daysAgo": "{count}d geleden"
+    "daysAgo": "{count}d geleden",
+    "auditCategoryAiJudgement": "AI-beoordeling",
+    "auditCategorySecondaryAnalysis": "Secundaire analyse",
+    "auditCategoryModeration": "Moderatie",
+    "auditCategorySystem": "Systeem",
+    "auditActionVerified": "Gemarkeerd als geverifieerd",
+    "auditActionRejected": "Gemarkeerd als afgewezen",
+    "auditActionPending": "Ingesteld op in behandeling",
+    "auditActionRequiresReview": "Gemarkeerd voor beoordeling",
+    "auditActionAutoDisableEnqueued": "Automatisch uitschakelen ingepland",
+    "auditActionReceiptSynced": "Bon gesynchroniseerd van platform",
+    "auditActionDisputeProcessed": "Bezwaar verwerkt",
+    "auditActionDisableReview": "Review uitgeschakeld",
+    "auditActionEnableReview": "Review opnieuw ingeschakeld",
+    "auditActionGeneric": "{action}"
   }
 }

@@ -460,6 +460,8 @@
     "daysAgo": "hace {count}d"
   },
   "Comments": {
+    "activityLog": "Actividad",
+    "noActivity": "Sin actividad",
     "comments": "Comentarios",
     "noComments": "Sin comentarios",
     "writeComment": "Escribe un comentario...",
@@ -475,6 +477,20 @@
     "justNow": "ahora mismo",
     "minutesAgo": "hace {count}m",
     "hoursAgo": "hace {count}h",
-    "daysAgo": "hace {count}d"
+    "daysAgo": "hace {count}d",
+    "auditCategoryAiJudgement": "Juicio IA",
+    "auditCategorySecondaryAnalysis": "Analisis secundario",
+    "auditCategoryModeration": "Moderacion",
+    "auditCategorySystem": "Sistema",
+    "auditActionVerified": "Marcado como verificado",
+    "auditActionRejected": "Marcado como rechazado",
+    "auditActionPending": "Establecido como pendiente",
+    "auditActionRequiresReview": "Marcado para revision",
+    "auditActionAutoDisableEnqueued": "Desactivacion automatica programada",
+    "auditActionReceiptSynced": "Recibo sincronizado desde la plataforma",
+    "auditActionDisputeProcessed": "Disputa procesada",
+    "auditActionDisableReview": "Resena desactivada",
+    "auditActionEnableReview": "Resena reactivada",
+    "auditActionGeneric": "{action}"
   }
 }
