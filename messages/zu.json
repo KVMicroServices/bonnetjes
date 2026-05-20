@@ -372,6 +372,27 @@
   },
   "UserSettings": {
     "title": "Izilungiselelo",
-    "comingSoon": "Izilungiselelo zomsebenzisi zizotholakala ekuvuselelweni okuzayo."
+    "subtitle": "Phatha izinqumo zakho zomuntu siqu",
+    "notificationsTitle": "Izinqumo Zezaziso",
+    "notificationsDescription": "Khetha indlela ofuna ukwaziswa ngayo mayelana nomsebenzi wenkundla.",
+    "type_receipt_requires_review": "Irisidi idinga ukubuyekezwa",
+    "typeDescription_receipt_requires_review": "Irisidi entsha ifakwe emgqeni futhi idinga ukubuyekezwa ngumuntu",
+    "type_receipt_processed": "Irisidi iqediwe",
+    "typeDescription_receipt_processed": "Irisidi iqede ukusetshenzwa kwe-AI ngesinqumo",
+    "type_review_disabled": "Ukubuyekezwa kukhutshazwe",
+    "typeDescription_review_disabled": "Ukubuyekezwa kwekhasimende kukhutshazwe enkundleni",
+    "type_dispute_outcome": "Umphumela wengxabano",
+    "typeDescription_dispute_outcome": "Ingxabano yekhasimende iqediwe",
+    "type_role_changed": "Indima ishintshiwe",
+    "typeDescription_role_changed": "Indima yakho yomsebenzisi ishintshwe umlawuli",
+    "channel_none": "Lutho",
+    "channel_in_app": "Ku-app",
+    "channel_email": "I-imeyili"
+  },
+  "Notifications": {
+    "bellLabel": "Izaziso",
+    "title": "Izaziso",
+    "markAllRead": "Phawula konke njengokufundiwe",
+    "empty": "Azikho izaziso okwamanje"
   }
 }

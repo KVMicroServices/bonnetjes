@@ -372,6 +372,27 @@
   },
   "UserSettings": {
     "title": "Instellings",
-    "comingSoon": "Gebruikerinstellings sal beskikbaar wees in 'n toekomstige opdatering."
+    "subtitle": "Bestuur jou persoonlike voorkeure",
+    "notificationsTitle": "Kennisgewingvoorkeure",
+    "notificationsDescription": "Kies hoe jy in kennis gestel wil word oor platformaktiwiteit.",
+    "type_receipt_requires_review": "Kwitansie vereis hersiening",
+    "typeDescription_receipt_requires_review": "'n Nuwe kwitansie is in die tou geplaas en benodig menslike hersiening",
+    "type_receipt_processed": "Kwitansie verwerk",
+    "typeDescription_receipt_processed": "'n Kwitansie het KI-verwerking voltooi met 'n uitspraak",
+    "type_review_disabled": "Resensie gedeaktiveer",
+    "typeDescription_review_disabled": "'n Kliënt se resensie is op die platform gedeaktiveer",
+    "type_dispute_outcome": "Beswaar-uitkoms",
+    "typeDescription_dispute_outcome": "'n Kliënt se beswaar is verwerk",
+    "type_role_changed": "Rol verander",
+    "typeDescription_role_changed": "Jou gebruikersrol is deur 'n administrateur verander",
+    "channel_none": "Geen",
+    "channel_in_app": "In-app",
+    "channel_email": "E-pos"
+  },
+  "Notifications": {
+    "bellLabel": "Kennisgewings",
+    "title": "Kennisgewings",
+    "markAllRead": "Merk alles as gelees",
+    "empty": "Nog geen kennisgewings nie"
   }
 }

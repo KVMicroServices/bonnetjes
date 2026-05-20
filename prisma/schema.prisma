@@ -16,6 +16,7 @@ model User {
   image         String?   // Profile image from OAuth provider
   emailVerified DateTime? // Email verification timestamp for OAuth
   role          String    @default("user") // "user" or "admin"
+  lastNotificationReadAt DateTime? // Notifications newer than this are unread
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   receipts      Receipt[]
@@ -196,4 +197,25 @@ model AuditLog {
   @@index([category, createdAt])
   @@index([actorId])
   @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // receipt_requires_review, receipt_processed, review_disabled, dispute_outcome, role_changed
+  title     String
+  body      String
+  metadata  String?  @db.Text // JSON blob with action-specific context (receiptId, etc.)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model NotificationPreference {
+  id       String @id @default(cuid())
+  userId   String
+  type     String // notification type (matches Notification.type)
+  channel  String @default("in_app") // none, in_app, email
+
+  @@unique([userId, type])
+  @@index([userId])
 }

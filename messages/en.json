@@ -228,7 +228,28 @@
   },
   "UserSettings": {
     "title": "Settings",
-    "comingSoon": "User settings will be available in a future update."
+    "subtitle": "Manage your personal preferences",
+    "notificationsTitle": "Notification Preferences",
+    "notificationsDescription": "Choose how you want to be notified about platform activity.",
+    "type_receipt_requires_review": "Receipt requires review",
+    "typeDescription_receipt_requires_review": "A new receipt has been queued and needs human review",
+    "type_receipt_processed": "Receipt processed",
+    "typeDescription_receipt_processed": "A receipt has finished AI processing with a verdict",
+    "type_review_disabled": "Review disabled",
+    "typeDescription_review_disabled": "A customer's review was disabled on the platform",
+    "type_dispute_outcome": "Dispute outcome",
+    "typeDescription_dispute_outcome": "A customer's dispute has been processed",
+    "type_role_changed": "Role changed",
+    "typeDescription_role_changed": "Your user role has been changed by an admin",
+    "channel_none": "None",
+    "channel_in_app": "In-app",
+    "channel_email": "Email"
+  },
+  "Notifications": {
+    "bellLabel": "Notifications",
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications yet"
   },
   "ReceiptCard": {
     "failureReason": "Failure Reason",

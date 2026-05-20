@@ -372,6 +372,27 @@
   },
   "UserSettings": {
     "title": "Instellingen",
-    "comingSoon": "Gebruikersinstellingen worden beschikbaar in een toekomstige update."
+    "subtitle": "Beheer je persoonlijke voorkeuren",
+    "notificationsTitle": "Meldingsvoorkeuren",
+    "notificationsDescription": "Kies hoe je op de hoogte wilt worden gehouden van platformactiviteit.",
+    "type_receipt_requires_review": "Bon vereist beoordeling",
+    "typeDescription_receipt_requires_review": "Een nieuwe bon staat in de wachtrij en heeft menselijke beoordeling nodig",
+    "type_receipt_processed": "Bon verwerkt",
+    "typeDescription_receipt_processed": "Een bon is klaar met AI-verwerking met een uitspraak",
+    "type_review_disabled": "Review uitgeschakeld",
+    "typeDescription_review_disabled": "Een review van een klant is uitgeschakeld op het platform",
+    "type_dispute_outcome": "Bezwaar uitkomst",
+    "typeDescription_dispute_outcome": "Een bezwaar van een klant is verwerkt",
+    "type_role_changed": "Rol gewijzigd",
+    "typeDescription_role_changed": "Je gebruikersrol is gewijzigd door een beheerder",
+    "channel_none": "Geen",
+    "channel_in_app": "In-app",
+    "channel_email": "E-mail"
+  },
+  "Notifications": {
+    "bellLabel": "Meldingen",
+    "title": "Meldingen",
+    "markAllRead": "Alles als gelezen markeren",
+    "empty": "Nog geen meldingen"
   }
 }

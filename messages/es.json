@@ -372,6 +372,27 @@
   },
   "UserSettings": {
     "title": "Configuración",
-    "comingSoon": "La configuración de usuario estará disponible en una actualización futura."
+    "subtitle": "Administra tus preferencias personales",
+    "notificationsTitle": "Preferencias de notificación",
+    "notificationsDescription": "Elige cómo quieres ser notificado sobre la actividad de la plataforma.",
+    "type_receipt_requires_review": "Recibo requiere revisión",
+    "typeDescription_receipt_requires_review": "Un nuevo recibo ha sido puesto en cola y necesita revisión humana",
+    "type_receipt_processed": "Recibo procesado",
+    "typeDescription_receipt_processed": "Un recibo ha terminado el procesamiento de IA con un veredicto",
+    "type_review_disabled": "Reseña desactivada",
+    "typeDescription_review_disabled": "La reseña de un cliente fue desactivada en la plataforma",
+    "type_dispute_outcome": "Resultado de disputa",
+    "typeDescription_dispute_outcome": "La disputa de un cliente ha sido procesada",
+    "type_role_changed": "Rol cambiado",
+    "typeDescription_role_changed": "Tu rol de usuario ha sido cambiado por un administrador",
+    "channel_none": "Ninguna",
+    "channel_in_app": "En la app",
+    "channel_email": "Correo electrónico"
+  },
+  "Notifications": {
+    "bellLabel": "Notificaciones",
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todo como leído",
+    "empty": "Aún no hay notificaciones"
   }
 }

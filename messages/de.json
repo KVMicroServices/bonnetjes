@@ -372,6 +372,27 @@
   },
   "UserSettings": {
     "title": "Einstellungen",
-    "comingSoon": "Benutzereinstellungen werden in einem zukünftigen Update verfügbar sein."
+    "subtitle": "Verwalte deine persönlichen Einstellungen",
+    "notificationsTitle": "Benachrichtigungseinstellungen",
+    "notificationsDescription": "Wähle, wie du über Plattformaktivitäten benachrichtigt werden möchtest.",
+    "type_receipt_requires_review": "Beleg erfordert Überprüfung",
+    "typeDescription_receipt_requires_review": "Ein neuer Beleg wurde eingereiht und benötigt menschliche Überprüfung",
+    "type_receipt_processed": "Beleg verarbeitet",
+    "typeDescription_receipt_processed": "Ein Beleg wurde mit KI-Verarbeitung abgeschlossen",
+    "type_review_disabled": "Bewertung deaktiviert",
+    "typeDescription_review_disabled": "Eine Kundenbewertung wurde auf der Plattform deaktiviert",
+    "type_dispute_outcome": "Einspruch-Ergebnis",
+    "typeDescription_dispute_outcome": "Ein Kundeneinspruch wurde bearbeitet",
+    "type_role_changed": "Rolle geändert",
+    "typeDescription_role_changed": "Deine Benutzerrolle wurde von einem Administrator geändert",
+    "channel_none": "Keine",
+    "channel_in_app": "In-App",
+    "channel_email": "E-Mail"
+  },
+  "Notifications": {
+    "bellLabel": "Benachrichtigungen",
+    "title": "Benachrichtigungen",
+    "markAllRead": "Alle als gelesen markieren",
+    "empty": "Noch keine Benachrichtigungen"
   }
 }

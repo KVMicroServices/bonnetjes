@@ -1,5 +1,26 @@
 # Changes
 
+## [098] Add notification system with bell dropdown, preferences, and email delivery
+
+**What**: Added global notification feed with bell icon in header (unread badge, dropdown list, mark-all-read), per-user notification preferences on the `/settings` page (none/in-app/email per notification type), and email delivery via existing SMTP for users who opt in.
+**Decisions**:
+- Global `Notification` table (no userId) — all users see the same feed
+- Unread tracking via `lastNotificationReadAt` timestamp on User (option B — simpler than per-user read state)
+- `NotificationPreference` table stores per-user channel choice per notification type
+- Email delivery uses existing SMTP config (nodemailer) with a simple HTML template
+- 5 notification types: receipt_requires_review, receipt_processed, review_disabled, dispute_outcome, role_changed
+- Fire-and-forget pattern consistent with audit log service
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260601000007_add_notifications/migration.sql
+- lib/services/notification-service.ts (new)
+- app/api/notifications/route.ts (new)
+- app/api/notifications/preferences/route.ts (new)
+- components/notification-bell.tsx (new)
+- components/header.tsx
+- app/settings/page.tsx
+- messages/*.json (all 8 languages)
+
 ## [097] Fix review findings for analytics feature
 
 **What**: Resolved all 14 banned pattern violations and 1 localization issue from code review 26.05.20-analytics.

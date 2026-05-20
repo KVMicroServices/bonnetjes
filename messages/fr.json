@@ -372,6 +372,27 @@
   },
   "UserSettings": {
     "title": "Paramètres",
-    "comingSoon": "Les paramètres utilisateur seront disponibles dans une mise à jour future."
+    "subtitle": "Gérez vos préférences personnelles",
+    "notificationsTitle": "Préférences de notification",
+    "notificationsDescription": "Choisissez comment vous souhaitez être informé de l'activité de la plateforme.",
+    "type_receipt_requires_review": "Reçu nécessite une vérification",
+    "typeDescription_receipt_requires_review": "Un nouveau reçu a été mis en file d'attente et nécessite une vérification humaine",
+    "type_receipt_processed": "Reçu traité",
+    "typeDescription_receipt_processed": "Un reçu a terminé le traitement IA avec un verdict",
+    "type_review_disabled": "Avis désactivé",
+    "typeDescription_review_disabled": "L'avis d'un client a été désactivé sur la plateforme",
+    "type_dispute_outcome": "Résultat de la contestation",
+    "typeDescription_dispute_outcome": "La contestation d'un client a été traitée",
+    "type_role_changed": "Rôle modifié",
+    "typeDescription_role_changed": "Votre rôle utilisateur a été modifié par un administrateur",
+    "channel_none": "Aucune",
+    "channel_in_app": "In-app",
+    "channel_email": "E-mail"
+  },
+  "Notifications": {
+    "bellLabel": "Notifications",
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "empty": "Pas encore de notifications"
   }
 }
