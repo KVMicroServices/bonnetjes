@@ -1,5 +1,26 @@
 # Changes
 
+## [090] Show queued/processed dates in admin table, move user/date/amount to modal
+
+**What**: Replaced User, Date, and Amount columns in the admin review queue table with Queued and Processed timestamp columns. The removed data is already visible in the receipt detail modal.
+
+## [089] Add queuedAt timestamp to Receipt model
+
+**What**: Track when a receipt is pulled into the processing queue via a new `queuedAt` field, complementing the existing `processedAt` timestamp. Display both timestamps on user and admin receipt cards.
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260520000000_add_queued_at_to_receipt/migration.sql
+- lib/queue/receipt-queue.ts
+- lib/services/receipt-service.ts
+- components/receipt-card.tsx
+- components/admin-receipt-card.tsx
+- app/admin/page.tsx
+- messages/*.json (all 8 languages)
+- tests/routes/receipts.test.ts
+- tests/routes/admin.test.ts
+- tests/services/ocr-service.test.ts
+- tests/services/receipt-service.test.ts
+
 ## [088] Add analytics page with metrics, volume chart, and audit log tab
 
 **What**: Added admin-only analytics page at `/admin/analytics` with three tabs: metrics overview (receipt counts, approval/rejection rates), receipt volume stacked bar chart (filterable by hour/day/week using Recharts), and a placeholder audit log tab for future implementation.

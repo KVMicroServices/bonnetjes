@@ -108,7 +108,9 @@
     "reviewToggleFailed": "Review toggle mislukt",
     "reviewToggleFailedDescription": "Kon reviewstatus niet bijwerken",
     "disableReview": "Review uitschakelen op platform",
-    "enableReview": "Review weer inschakelen op platform"
+    "enableReview": "Review weer inschakelen op platform",
+    "queuedAt": "In wachtrij",
+    "processedAt": "Verwerkt"
   },
   "Archive": {
     "backToDashboard": "Terug naar Dashboard",
@@ -184,7 +186,9 @@
     "reviewToggleFailed": "Review toggle mislukt",
     "reviewToggleFailedDescription": "Kon reviewstatus niet bijwerken",
     "disableReview": "Review uitschakelen op platform",
-    "enableReview": "Review weer inschakelen op platform"
+    "enableReview": "Review weer inschakelen op platform",
+    "queuedAt": "In wachtrij",
+    "processedAt": "Verwerkt"
   },
   "Settings": {
     "title": "Instellingen",
@@ -239,7 +243,9 @@
     "failure_RECEIPT_TOO_OLD": "Bon te oud",
     "failure_SUSPECTED_FRAUD": "Vermoeden van fraude",
     "failure_UNREADABLE_TEXT": "Onleesbare tekst",
-    "failure_MISSING_KEY_FIELDS": "Ontbrekende velden"
+    "failure_MISSING_KEY_FIELDS": "Ontbrekende velden",
+    "queuedAt": "In wachtrij",
+    "processedAt": "Verwerkt"
   },
   "ReviewDisableEmail": {
     "subject": "Update over je beoordeling — aankoopbewijs afgewezen",

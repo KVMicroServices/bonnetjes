@@ -108,7 +108,9 @@
     "reviewToggleFailed": "Error al cambiar reseña",
     "reviewToggleFailedDescription": "No se pudo actualizar el estado de la reseña",
     "disableReview": "Desactivar reseña en la plataforma",
-    "enableReview": "Reactivar reseña en la plataforma"
+    "enableReview": "Reactivar reseña en la plataforma",
+    "queuedAt": "En cola",
+    "processedAt": "Procesado"
   },
   "Archive": {
     "backToDashboard": "Volver al panel",
@@ -184,7 +186,9 @@
     "reviewToggleFailed": "Error al cambiar reseña",
     "reviewToggleFailedDescription": "No se pudo actualizar el estado de la reseña",
     "disableReview": "Desactivar reseña en la plataforma",
-    "enableReview": "Reactivar reseña en la plataforma"
+    "enableReview": "Reactivar reseña en la plataforma",
+    "queuedAt": "En cola",
+    "processedAt": "Procesado"
   },
   "Settings": {
     "title": "Configuración",
@@ -239,7 +243,9 @@
     "failure_RECEIPT_TOO_OLD": "Recibo demasiado antiguo",
     "failure_SUSPECTED_FRAUD": "Sospecha de fraude",
     "failure_UNREADABLE_TEXT": "Texto ilegible",
-    "failure_MISSING_KEY_FIELDS": "Campos obligatorios faltantes"
+    "failure_MISSING_KEY_FIELDS": "Campos obligatorios faltantes",
+    "queuedAt": "En cola",
+    "processedAt": "Procesado"
   },
   "ReviewDisableEmail": {
     "subject": "Actualización sobre tu reseña — comprobante de compra rechazado",

@@ -108,7 +108,9 @@
     "reviewToggleFailed": "Resensie wissel misluk",
     "reviewToggleFailedDescription": "Kon nie resensiestatus opdateer nie",
     "disableReview": "Deaktiveer resensie op platform",
-    "enableReview": "Heraktiveer resensie op platform"
+    "enableReview": "Heraktiveer resensie op platform",
+    "queuedAt": "In tou",
+    "processedAt": "Verwerk"
   },
   "Archive": {
     "backToDashboard": "Terug na Dashboard",
@@ -184,7 +186,9 @@
     "reviewToggleFailed": "Resensie wissel misluk",
     "reviewToggleFailedDescription": "Kon nie resensiestatus opdateer nie",
     "disableReview": "Deaktiveer resensie op platform",
-    "enableReview": "Heraktiveer resensie op platform"
+    "enableReview": "Heraktiveer resensie op platform",
+    "queuedAt": "In tou",
+    "processedAt": "Verwerk"
   },
   "Settings": {
     "title": "Instellings",
@@ -239,7 +243,9 @@
     "failure_RECEIPT_TOO_OLD": "Kwitansie te oud",
     "failure_SUSPECTED_FRAUD": "Vermoedelike bedrog",
     "failure_UNREADABLE_TEXT": "Onleesbare teks",
-    "failure_MISSING_KEY_FIELDS": "Ontbrekende velde"
+    "failure_MISSING_KEY_FIELDS": "Ontbrekende velde",
+    "queuedAt": "In tou",
+    "processedAt": "Verwerk"
   },
   "ReviewDisableEmail": {
     "subject": "Opdatering oor jou resensie — aankoopbewys afgekeur",

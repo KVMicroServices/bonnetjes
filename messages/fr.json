@@ -108,7 +108,9 @@
     "reviewToggleFailed": "Échec du basculement",
     "reviewToggleFailedDescription": "Impossible de mettre à jour le statut de l'avis",
     "disableReview": "Désactiver l'avis sur la plateforme",
-    "enableReview": "Réactiver l'avis sur la plateforme"
+    "enableReview": "Réactiver l'avis sur la plateforme",
+    "queuedAt": "En file d'attente",
+    "processedAt": "Traité"
   },
   "Archive": {
     "backToDashboard": "Retour au tableau de bord",
@@ -184,7 +186,9 @@
     "reviewToggleFailed": "Échec du basculement",
     "reviewToggleFailedDescription": "Impossible de mettre à jour le statut de l'avis",
     "disableReview": "Désactiver l'avis sur la plateforme",
-    "enableReview": "Réactiver l'avis sur la plateforme"
+    "enableReview": "Réactiver l'avis sur la plateforme",
+    "queuedAt": "En file d'attente",
+    "processedAt": "Traité"
   },
   "Settings": {
     "title": "Paramètres",
@@ -239,7 +243,9 @@
     "failure_RECEIPT_TOO_OLD": "Reçu trop ancien",
     "failure_SUSPECTED_FRAUD": "Suspicion de fraude",
     "failure_UNREADABLE_TEXT": "Texte illisible",
-    "failure_MISSING_KEY_FIELDS": "Champs obligatoires manquants"
+    "failure_MISSING_KEY_FIELDS": "Champs obligatoires manquants",
+    "queuedAt": "Mis en file",
+    "processedAt": "Traité"
   },
   "ReviewDisableEmail": {
     "subject": "Mise à jour de votre avis — preuve d'achat refusée",

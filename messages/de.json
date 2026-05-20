@@ -108,7 +108,9 @@
     "reviewToggleFailed": "Bewertung umschalten fehlgeschlagen",
     "reviewToggleFailedDescription": "Bewertungsstatus konnte nicht aktualisiert werden",
     "disableReview": "Bewertung auf Plattform deaktivieren",
-    "enableReview": "Bewertung auf Plattform wieder aktivieren"
+    "enableReview": "Bewertung auf Plattform wieder aktivieren",
+    "queuedAt": "Eingereiht",
+    "processedAt": "Verarbeitet"
   },
   "Archive": {
     "backToDashboard": "Zurück zum Dashboard",
@@ -184,7 +186,9 @@
     "reviewToggleFailed": "Bewertung umschalten fehlgeschlagen",
     "reviewToggleFailedDescription": "Bewertungsstatus konnte nicht aktualisiert werden",
     "disableReview": "Bewertung auf Plattform deaktivieren",
-    "enableReview": "Bewertung auf Plattform wieder aktivieren"
+    "enableReview": "Bewertung auf Plattform wieder aktivieren",
+    "queuedAt": "Eingereiht",
+    "processedAt": "Verarbeitet"
   },
   "Settings": {
     "title": "Einstellungen",
@@ -239,7 +243,9 @@
     "failure_RECEIPT_TOO_OLD": "Beleg zu alt",
     "failure_SUSPECTED_FRAUD": "Betrugsverdacht",
     "failure_UNREADABLE_TEXT": "Unlesbarer Text",
-    "failure_MISSING_KEY_FIELDS": "Fehlende Pflichtfelder"
+    "failure_MISSING_KEY_FIELDS": "Fehlende Pflichtfelder",
+    "queuedAt": "Eingereiht",
+    "processedAt": "Verarbeitet"
   },
   "ReviewDisableEmail": {
     "subject": "Update zu Ihrer Bewertung — Kaufnachweis abgelehnt",

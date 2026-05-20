@@ -108,7 +108,9 @@
     "reviewToggleFailed": "Ukushintsha isibuyekezo kwehlulekile",
     "reviewToggleFailedDescription": "Ayikwazanga ukuvuselela isimo sesibuyekezo",
     "disableReview": "Cisha isibuyekezo ku-platform",
-    "enableReview": "Vula isibuyekezo ku-platform"
+    "enableReview": "Vula isibuyekezo ku-platform",
+    "queuedAt": "Ohlwini lokulinda",
+    "processedAt": "Kusetshenzwe"
   },
   "Archive": {
     "backToDashboard": "Buyela kuDeshibhodi",
@@ -184,7 +186,9 @@
     "reviewToggleFailed": "Ukushintsha isibuyekezo kwehlulekile",
     "reviewToggleFailedDescription": "Ayikwazanga ukuvuselela isimo sesibuyekezo",
     "disableReview": "Cisha isibuyekezo ku-platform",
-    "enableReview": "Vula isibuyekezo ku-platform"
+    "enableReview": "Vula isibuyekezo ku-platform",
+    "queuedAt": "Ohlwini lokulinda",
+    "processedAt": "Kusetshenzwe"
   },
   "Settings": {
     "title": "Izilungiselelo",
@@ -239,7 +243,9 @@
     "failure_RECEIPT_TOO_OLD": "Irisidi indala kakhulu",
     "failure_SUSPECTED_FRAUD": "Ukukhwabanisa okusolwayo",
     "failure_UNREADABLE_TEXT": "Umbhalo ongafundeki",
-    "failure_MISSING_KEY_FIELDS": "Izindawo ezingekho"
+    "failure_MISSING_KEY_FIELDS": "Izindawo ezingekho",
+    "queuedAt": "Ifakwe emgqeni",
+    "processedAt": "Isicutshiwe"
   },
   "ReviewDisableEmail": {
     "subject": "Isibuyekezo sokubuyekezwa kwakho — ubufakazi bokuthenga abuvunyiwe",

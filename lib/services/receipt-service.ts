@@ -88,6 +88,7 @@ interface ReceiptWithUser {
   fraudRiskScore: number | null;
   createdAt: Date;
   updatedAt: Date;
+  queuedAt: Date | null;
   processedAt: Date | null;
   user: ReceiptUser;
 }

@@ -10,6 +10,5 @@
     "type": "askAgent",
     "prompt": "List the files in `docs/reviews/` and find the most recent review file (by date in filename, highest increment if multiple on same date). Read that review file.\n\nFor each finding in the review (Standards, Security, Localization & Stability sections), implement the suggested fix in the codebase. Follow the fix instructions exactly as described in the review.\n\nIMPORTANT RULES:\n- Do NOT modify the content of the review file itself (no rewording, no removing findings, no changing verdicts)\n- The ONLY change allowed to the review file is updating the `**Status**:` line from `Pending` to `Done`\n- If the review verdict is PASS with no issues, just update the status to Done\n- After all fixes are applied, update the review file's status line from `Pending` to `Done`"
   },
-  "workspaceFolderName": "KiyohMobileUI",
   "shortName": "fix-review"
 }

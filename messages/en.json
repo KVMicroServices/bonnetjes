@@ -108,7 +108,9 @@
     "reviewToggleFailed": "Review Toggle Failed",
     "reviewToggleFailedDescription": "Could not update review status",
     "disableReview": "Disable review on platform",
-    "enableReview": "Re-enable review on platform"
+    "enableReview": "Re-enable review on platform",
+    "queuedAt": "Queued",
+    "processedAt": "Processed"
   },
   "Archive": {
     "backToDashboard": "Back to Dashboard",
@@ -184,7 +186,9 @@
     "reviewToggleFailed": "Review Toggle Failed",
     "reviewToggleFailedDescription": "Could not update review status",
     "disableReview": "Disable review on platform",
-    "enableReview": "Re-enable review on platform"
+    "enableReview": "Re-enable review on platform",
+    "queuedAt": "Queued",
+    "processedAt": "Processed"
   },
   "Settings": {
     "title": "Settings",
@@ -239,7 +243,9 @@
     "failure_RECEIPT_TOO_OLD": "Receipt Too Old",
     "failure_SUSPECTED_FRAUD": "Suspected Fraud",
     "failure_UNREADABLE_TEXT": "Unreadable Text",
-    "failure_MISSING_KEY_FIELDS": "Missing Key Fields"
+    "failure_MISSING_KEY_FIELDS": "Missing Key Fields",
+    "queuedAt": "Queued",
+    "processedAt": "Processed"
   },
   "ReviewDisableEmail": {
     "subject": "Update on your review — proof of purchase rejected",

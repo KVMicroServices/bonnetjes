@@ -79,6 +79,7 @@ const SAMPLE_RECEIPT = {
   archivedAt: null,
   createdAt: new Date("2024-01-15T10:00:00Z"),
   updatedAt: new Date("2024-01-15T10:00:00Z"),
+  queuedAt: null,
   processedAt: null,
 };
 
