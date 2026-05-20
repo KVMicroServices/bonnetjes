@@ -36,6 +36,10 @@ vi.mock("@/components/language-selector", () => ({
   LanguageSelector: () => React.createElement("div", { "data-testid": "language-selector" }),
 }));
 
+vi.mock("@/components/notification-bell", () => ({
+  NotificationBell: () => React.createElement("div", { "data-testid": "notification-bell" }),
+}));
+
 vi.mock("next/link", () => ({
   default: ({ children, href, ...props }: any) =>
     React.createElement("a", { href, ...props }, children),

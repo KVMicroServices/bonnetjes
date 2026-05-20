@@ -366,7 +366,12 @@
     "legendRejected": "Abgelehnt",
     "auditLogTitle": "Prüfprotokoll",
     "auditLogDescription": "Die Prüfprotokoll-Funktion wird in einem zukünftigen Update verfügbar sein.",
-    "failedToLoad": "Analysedaten konnten nicht geladen werden"
+    "failedToLoad": "Analysedaten konnten nicht geladen werden",
+    "dateRange": "Zeitraum",
+    "clearRange": "Löschen",
+    "presetToday": "Heute (stündlich)",
+    "presetLastSevenDays": "Letzte 7 Tage",
+    "presetLastThirtyDays": "Letzte 30 Tage"
   },
   "AuditLog": {
     "columnTime": "Zeit",

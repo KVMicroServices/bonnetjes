@@ -366,7 +366,12 @@
     "legendRejected": "Rechazado",
     "auditLogTitle": "Registro de auditoría",
     "auditLogDescription": "La funcionalidad del registro de auditoría estará disponible en una actualización futura.",
-    "failedToLoad": "No se pudieron cargar los datos analíticos"
+    "failedToLoad": "No se pudieron cargar los datos analíticos",
+    "dateRange": "Rango de fechas",
+    "clearRange": "Borrar",
+    "presetToday": "Hoy (por hora)",
+    "presetLastSevenDays": "Últimos 7 días",
+    "presetLastThirtyDays": "Últimos 30 días"
   },
   "AuditLog": {
     "columnTime": "Hora",

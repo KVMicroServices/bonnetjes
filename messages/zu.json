@@ -366,7 +366,12 @@
     "legendRejected": "Yenqatshiwe",
     "auditLogTitle": "Ilog yokuhlola",
     "auditLogDescription": "Ukusebenza kwelog yokuhlola kuzotholakala ku-update ezayo.",
-    "failedToLoad": "Yehlulekile ukulayisha idatha yokuhlaziya"
+    "failedToLoad": "Yehlulekile ukulayisha idatha yokuhlaziya",
+    "dateRange": "Ububanzi bosuku",
+    "clearRange": "Sula",
+    "presetToday": "Namuhla (ngehora)",
+    "presetLastSevenDays": "Izinsuku ezi-7 ezedlule",
+    "presetLastThirtyDays": "Izinsuku ezingu-30 ezedlule"
   },
   "AuditLog": {
     "columnTime": "Isikhathi",

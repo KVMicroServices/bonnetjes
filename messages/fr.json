@@ -366,7 +366,12 @@
     "legendRejected": "Rejeté",
     "auditLogTitle": "Journal d'audit",
     "auditLogDescription": "La fonctionnalité du journal d'audit sera disponible dans une mise à jour future.",
-    "failedToLoad": "Impossible de charger les données analytiques"
+    "failedToLoad": "Impossible de charger les données analytiques",
+    "dateRange": "Période",
+    "clearRange": "Effacer",
+    "presetToday": "Aujourd'hui (par heure)",
+    "presetLastSevenDays": "7 derniers jours",
+    "presetLastThirtyDays": "30 derniers jours"
   },
   "AuditLog": {
     "columnTime": "Heure",

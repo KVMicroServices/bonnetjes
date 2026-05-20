@@ -1,5 +1,19 @@
 # Changes
 
+## [100] Add date range picker and scrollable chart to analytics volume tab
+
+**What**: Volume chart now supports custom date ranges via date inputs and quick presets (Today, Last 7 days, Last 30 days). Chart is horizontally scrollable when many data points are shown. Service accepts optional `startDate`/`endDate` and computes bucket count dynamically.
+**Decisions**:
+- "Today" preset auto-switches to hourly granularity for the most useful view
+- Chart container uses `overflow-x-auto` with a min-width based on data point count
+- X-axis labels rotate at 45° when more than 14 bars to prevent overlap
+**Files**:
+- lib/services/analytics-service.ts
+- app/api/admin/analytics/route.ts
+- app/admin/analytics/page.tsx
+- messages/*.json (all 8 languages)
+- tests/services/analytics-service.test.ts
+
 ## [099] Replace dashboard metrics with review-required list and add disputes tab
 
 **What**: Removed stat cards from admin dashboard top, replaced with scrollable list of `requires_review` receipts with time range filtering and cursor pagination. Replaced "Statistics" tab with "Disputes" tab showing all `ReceiptDispute` records with receipt preview modal and accept/reject actions.

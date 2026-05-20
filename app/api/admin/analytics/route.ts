@@ -9,6 +9,7 @@ import {
   getAnalyticsMetrics,
   getReceiptVolume,
   VolumeGranularity,
+  VolumeQueryOptions,
 } from "@/lib/services/analytics-service";
 import {
   getAuditLogs,
@@ -64,9 +65,30 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      const fromParam = searchParams.get("from");
+      const toParam = searchParams.get("to");
+
+      const volumeOptions: VolumeQueryOptions = {
+        granularity: granularity as VolumeGranularity,
+      };
+
+      if (fromParam) {
+        const fromDate = new Date(fromParam);
+        if (!isNaN(fromDate.getTime())) {
+          volumeOptions.startDate = fromDate;
+        }
+      }
+
+      if (toParam) {
+        const toDate = new Date(toParam);
+        if (!isNaN(toDate.getTime())) {
+          volumeOptions.endDate = toDate;
+        }
+      }
+
       const result = await getReceiptVolume(
         { database: prisma },
-        granularity as VolumeGranularity
+        volumeOptions
       );
 
       if (!result.success) {

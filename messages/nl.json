@@ -366,7 +366,12 @@
     "legendRejected": "Afgewezen",
     "auditLogTitle": "Auditlog",
     "auditLogDescription": "Auditlog functionaliteit wordt beschikbaar in een toekomstige update.",
-    "failedToLoad": "Kan analysegegevens niet laden"
+    "failedToLoad": "Kan analysegegevens niet laden",
+    "dateRange": "Datumbereik",
+    "clearRange": "Wissen",
+    "presetToday": "Vandaag (per uur)",
+    "presetLastSevenDays": "Laatste 7 dagen",
+    "presetLastThirtyDays": "Laatste 30 dagen"
   },
   "AuditLog": {
     "columnTime": "Tijd",

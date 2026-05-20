@@ -366,7 +366,12 @@
     "legendRejected": "Afgekeur",
     "auditLogTitle": "Ouditlog",
     "auditLogDescription": "Ouditlog-funksionaliteit sal beskikbaar wees in 'n toekomstige opdatering.",
-    "failedToLoad": "Kon nie analise-data laai nie"
+    "failedToLoad": "Kon nie analise-data laai nie",
+    "dateRange": "Datumreeks",
+    "clearRange": "Maak skoon",
+    "presetToday": "Vandag (per uur)",
+    "presetLastSevenDays": "Laaste 7 dae",
+    "presetLastThirtyDays": "Laaste 30 dae"
   },
   "AuditLog": {
     "columnTime": "Tyd",
