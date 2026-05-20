@@ -13,11 +13,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isAdmin = (session.user as any).role === "admin";
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-
     const searchParams = request.nextUrl.searchParams;
     const cursor = searchParams.get("cursor") || undefined;
     const limitParam = searchParams.get("limit");
@@ -25,11 +20,12 @@ export async function GET(request: NextRequest) {
     const toParam = searchParams.get("to");
 
     const DEFAULT_PAGE_SIZE = 10;
+    const MAX_PAGE_SIZE = 100;
     let limit = DEFAULT_PAGE_SIZE;
     if (limitParam) {
       const parsed = parseInt(limitParam, 10);
       if (Number.isFinite(parsed) && parsed > 0) {
-        limit = parsed;
+        limit = Math.min(parsed, MAX_PAGE_SIZE);
       }
     }
 

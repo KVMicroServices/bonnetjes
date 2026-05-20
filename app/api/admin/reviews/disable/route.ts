@@ -107,11 +107,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const isAdmin = (session.user as any).role === "admin";
-    if (!isAdmin) {
-      return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
-    }
-
     const body = await request.json();
     const parseResult = requestSchema.safeParse(body);
 

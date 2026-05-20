@@ -225,7 +225,10 @@
     "manualDisableButton": "Deaktiveer resensie",
     "manualEnableButton": "Aktiveer resensie",
     "manualDisableValidationError": "Validasiefout",
-    "manualDisableValidationDescription": "Vul asseblief alle velde in. Huurder-ID moet 'n positiewe getal wees."
+    "manualDisableValidationDescription": "Vul asseblief alle velde in. Huurder-ID moet 'n positiewe getal wees.",
+    "shop": "Winkel",
+    "aiAnalysis": "KI-analise",
+    "failedToLoadPreview": "Kon nie voorskou laai nie"
   },
   "Settings": {
     "title": "Instellings",
@@ -450,7 +453,11 @@
     "bellLabel": "Kennisgewings",
     "title": "Kennisgewings",
     "markAllRead": "Merk alles as gelees",
-    "empty": "Nog geen kennisgewings nie"
+    "empty": "Nog geen kennisgewings nie",
+    "justNow": "sopas",
+    "minutesAgo": "{count}m gelede",
+    "hoursAgo": "{count}u gelede",
+    "daysAgo": "{count}d gelede"
   },
   "Comments": {
     "comments": "Opmerkings",
@@ -463,6 +470,11 @@
     "cancel": "Kanselleer",
     "edited": "gewysig",
     "deleteConfirmTitle": "Verwyder opmerking",
-    "deleteConfirmMessage": "Is jy seker jy wil hierdie opmerking verwyder? Hierdie aksie kan nie ongedaan gemaak word nie."
+    "deleteConfirmMessage": "Is jy seker jy wil hierdie opmerking verwyder? Hierdie aksie kan nie ongedaan gemaak word nie.",
+    "searching": "Soek...",
+    "justNow": "sopas",
+    "minutesAgo": "{count}m gelede",
+    "hoursAgo": "{count}u gelede",
+    "daysAgo": "{count}d gelede"
   }
 }

@@ -225,7 +225,10 @@
     "manualDisableButton": "Cima uphononongo",
     "manualEnableButton": "Vula uphononongo",
     "manualDisableValidationError": "Impazamo yokuqinisekisa",
-    "manualDisableValidationDescription": "Nceda uzalise zonke iindawo. I-ID yomqeshi kufuneka ibe linani elipositifu."
+    "manualDisableValidationDescription": "Nceda uzalise zonke iindawo. I-ID yomqeshi kufuneka ibe linani elipositifu.",
+    "shop": "Ivenkile",
+    "aiAnalysis": "Uhlalutyo lwe-AI",
+    "failedToLoadPreview": "Ayikwazanga ukulayisha imboniso"
   },
   "Settings": {
     "title": "Izicwangciso",
@@ -450,7 +453,11 @@
     "bellLabel": "Izaziso",
     "title": "Izaziso",
     "markAllRead": "Phawula konke njengokufundiweyo",
-    "empty": "Akukho zaziso okwangoku"
+    "empty": "Akukho zaziso okwangoku",
+    "justNow": "ngoku",
+    "minutesAgo": "{count}m edlulileyo",
+    "hoursAgo": "{count}h edlulileyo",
+    "daysAgo": "{count}d edlulileyo"
   },
   "Comments": {
     "comments": "Izimvo",
@@ -463,6 +470,11 @@
     "cancel": "Rhoxisa",
     "edited": "ihleliwe",
     "deleteConfirmTitle": "Cima isimvo",
-    "deleteConfirmMessage": "Uqinisekile ukuba ufuna ukucima esi simvo? Esi senzo asinakubuyiswa."
+    "deleteConfirmMessage": "Uqinisekile ukuba ufuna ukucima esi simvo? Esi senzo asinakubuyiswa.",
+    "searching": "Iyakhangela...",
+    "justNow": "ngoku",
+    "minutesAgo": "{count}m edlulileyo",
+    "hoursAgo": "{count}h edlulileyo",
+    "daysAgo": "{count}d edlulileyo"
   }
 }

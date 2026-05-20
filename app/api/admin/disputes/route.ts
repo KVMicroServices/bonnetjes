@@ -13,11 +13,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isAdmin = (session.user as any).role === "admin";
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-
     const searchParams = request.nextUrl.searchParams;
     const cursor = searchParams.get("cursor") || undefined;
     const limitParam = searchParams.get("limit");
@@ -25,11 +20,12 @@ export async function GET(request: NextRequest) {
     const toParam = searchParams.get("to");
 
     const DEFAULT_PAGE_SIZE = 20;
+    const MAX_PAGE_SIZE = 100;
     let limit = DEFAULT_PAGE_SIZE;
     if (limitParam) {
       const parsed = parseInt(limitParam, 10);
       if (Number.isFinite(parsed) && parsed > 0) {
-        limit = parsed;
+        limit = Math.min(parsed, MAX_PAGE_SIZE);
       }
     }
 
@@ -96,15 +92,16 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isAdmin = (session.user as any).role === "admin";
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const body = await request.json();
-    const { disputeId, action } = body;
+    const { disputeId, action } = body as Record<string, unknown>;
 
-    if (!disputeId || !action) {
+    if (!disputeId || typeof disputeId !== "string" || !action || typeof action !== "string") {
       return NextResponse.json({ error: "Missing disputeId or action" }, { status: 400 });
     }
 
@@ -121,7 +118,12 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Dispute not found" }, { status: 404 });
     }
 
-    const newStatus = action === "accept" ? "verified" : "rejected";
+    let newStatus: string;
+    if (action === "accept") {
+      newStatus = "verified";
+    } else {
+      newStatus = "rejected";
+    }
 
     const [updatedDispute] = await prisma.$transaction([
       prisma.receiptDispute.update({

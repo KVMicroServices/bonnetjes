@@ -34,6 +34,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
 import { CommentThread } from "@/components/comment-thread";
+import { clientLogger } from "@/lib/client-logger";
 
 const REJECTION_EMAIL_TEMPLATE = `Beste heer/mevrouw,
 
@@ -70,6 +71,19 @@ const CONFIDENCE_MEDIUM_THRESHOLD = 50;
 const POLLING_INTERVAL_MS = 15000;
 const REVIEW_REQUIRED_PAGE_SIZE = 10;
 const DISPUTES_PAGE_SIZE = 20;
+const FRAUD_HIGH_THRESHOLD = 50;
+const FRAUD_MEDIUM_THRESHOLD = 30;
+
+function getFraudRiskColorClass(score: number | null | undefined): string {
+  const value = score ?? 0;
+  if (value >= FRAUD_HIGH_THRESHOLD) {
+    return "text-red-600";
+  }
+  if (value >= FRAUD_MEDIUM_THRESHOLD) {
+    return "text-orange-600";
+  }
+  return "text-green-600";
+}
 
 function getConfidenceColorClass(confidence: number | null | undefined): string {
   const value = confidence ?? 0;
@@ -361,7 +375,7 @@ export default function AdminPage() {
         setReceipts(receiptsList || []);
       }
     } catch (error) {
-      console.error("Failed to fetch admin data:", error);
+      clientLogger.error({ error }, "Failed to fetch admin data");
     } finally {
       setLoading(false);
     }
@@ -396,7 +410,7 @@ export default function AdminPage() {
         setReviewRequiredHasMore(data.hasMore);
       }
     } catch (error) {
-      console.error("Failed to fetch review-required receipts:", error);
+      clientLogger.error({ error }, "Failed to fetch review-required receipts");
     } finally {
       setReviewRequiredLoading(false);
     }
@@ -430,7 +444,7 @@ export default function AdminPage() {
         setDisputesHasMore(data.hasMore);
       }
     } catch (error) {
-      console.error("Failed to fetch disputes:", error);
+      clientLogger.error({ error }, "Failed to fetch disputes");
     } finally {
       setDisputesLoading(false);
     }
@@ -531,7 +545,7 @@ export default function AdminPage() {
         setPreviewUrl(downloadUrl);
       }
     } catch (error) {
-      console.error("Failed to load preview:", error);
+      clientLogger.error({ error }, "Failed to load preview");
       toast({
         title: "Error",
         description: t("failedToLoad"),
@@ -560,7 +574,7 @@ export default function AdminPage() {
         setDisputePreviewUrl(downloadUrl);
       }
     } catch (error) {
-      console.error("Failed to load dispute preview:", error);
+      clientLogger.error({ error }, "Failed to load dispute preview");
     } finally {
       setDisputePreviewLoading(false);
     }
@@ -592,7 +606,7 @@ export default function AdminPage() {
         }
       }
     } catch (error) {
-      console.error("Failed to update receipt:", error);
+      clientLogger.error({ error }, "Failed to update receipt");
       toast({
         title: "Error",
         description: t("failedToUpdate"),
@@ -614,7 +628,7 @@ export default function AdminPage() {
         anchor.click();
       }
     } catch (error) {
-      console.error("Download error:", error);
+      clientLogger.error({ error }, "Download error");
     }
   };
 
@@ -830,7 +844,12 @@ export default function AdminPage() {
                             className="rounded-lg p-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
                             title={t("approve")}
                           >
-                            {updatingId === receipt.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                            {(() => {
+                              if (updatingId === receipt.id) {
+                                return <Loader2 className="h-4 w-4 animate-spin" />;
+                              }
+                              return <Check className="h-4 w-4" />;
+                            })()}
                           </button>
                           <button
                             onClick={() => handleStatusUpdate(receipt.id, "rejected")}
@@ -854,7 +873,12 @@ export default function AdminPage() {
                   disabled={reviewRequiredLoading}
                   className="text-sm font-medium text-kv-green hover:text-kv-green/80 disabled:opacity-50"
                 >
-                  {reviewRequiredLoading ? <Loader2 className="inline h-4 w-4 animate-spin" /> : t("loadMore")}
+                  {(() => {
+                    if (reviewRequiredLoading) {
+                      return <Loader2 className="inline h-4 w-4 animate-spin" />;
+                    }
+                    return t("loadMore");
+                  })()}
                 </button>
               </div>
             )}
@@ -995,11 +1019,7 @@ export default function AdminPage() {
                                 Dup
                               </span>
                             )}
-                            <span className={`text-sm font-medium ${
-                              (receipt.fraudRiskScore ?? 0) >= 50 ? "text-red-600"
-                              : (receipt.fraudRiskScore ?? 0) >= 30 ? "text-orange-600"
-                              : "text-green-600"
-                            }`}>
+                            <span className={`text-sm font-medium ${getFraudRiskColorClass(receipt.fraudRiskScore)}`}>
                               {receipt.fraudRiskScore ?? 0}%
                             </span>
                           </div>
@@ -1025,7 +1045,12 @@ export default function AdminPage() {
                               className="rounded-lg p-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
                               title={t("approve")}
                             >
-                              {updatingId === receipt.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                              {(() => {
+                                if (updatingId === receipt.id) {
+                                  return <Loader2 className="h-4 w-4 animate-spin" />;
+                                }
+                                return <Check className="h-4 w-4" />;
+                              })()}
                             </button>
                             <button
                               onClick={() => handleStatusUpdate(receipt.id, "rejected")}
@@ -1045,11 +1070,26 @@ export default function AdminPage() {
                                 onClick={() => handleToggleReview(receipt.id)}
                                 disabled={disablingReviewId === receipt.id}
                                 className={`rounded-lg p-2 disabled:opacity-50 ${
-                                  reviewDisabledReceipts.has(receipt.id) ? "text-green-600 hover:bg-green-50" : "text-orange-600 hover:bg-orange-50"
+                                  (() => {
+                                    if (reviewDisabledReceipts.has(receipt.id)) {
+                                      return "text-green-600 hover:bg-green-50";
+                                    }
+                                    return "text-orange-600 hover:bg-orange-50";
+                                  })()
                                 }`}
-                                title={reviewDisabledReceipts.has(receipt.id) ? t("enableReview") : t("disableReview")}
+                                title={(() => {
+                                  if (reviewDisabledReceipts.has(receipt.id)) {
+                                    return t("enableReview");
+                                  }
+                                  return t("disableReview");
+                                })()}
                               >
-                                {disablingReviewId === receipt.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+                                {(() => {
+                                  if (disablingReviewId === receipt.id) {
+                                    return <Loader2 className="h-4 w-4 animate-spin" />;
+                                  }
+                                  return <Power className="h-4 w-4" />;
+                                })()}
                               </button>
                             )}
                           </div>
@@ -1146,7 +1186,12 @@ export default function AdminPage() {
                               className="rounded-lg p-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
                               title={t("disputeAccept")}
                             >
-                              {updatingDisputeId === dispute.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                              {(() => {
+                                if (updatingDisputeId === dispute.id) {
+                                  return <Loader2 className="h-4 w-4 animate-spin" />;
+                                }
+                                return <Check className="h-4 w-4" />;
+                              })()}
                             </button>
                             <button
                               onClick={() => handleDisputeAction(dispute.id, "reject")}
@@ -1170,7 +1215,12 @@ export default function AdminPage() {
                       disabled={disputesLoading}
                       className="text-sm font-medium text-kv-green hover:text-kv-green/80 disabled:opacity-50"
                     >
-                      {disputesLoading ? <Loader2 className="inline h-4 w-4 animate-spin" /> : t("loadMore")}
+                      {(() => {
+                        if (disputesLoading) {
+                          return <Loader2 className="inline h-4 w-4 animate-spin" />;
+                        }
+                        return t("loadMore");
+                      })()}
                     </button>
                   </div>
                 )}
@@ -1236,7 +1286,12 @@ export default function AdminPage() {
                   disabled={manualDisableLoading}
                   className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
                 >
-                  {manualDisableLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+                  {(() => {
+                    if (manualDisableLoading) {
+                      return <Loader2 className="h-4 w-4 animate-spin" />;
+                    }
+                    return <Power className="h-4 w-4" />;
+                  })()}
                   {t("manualDisableButton")}
                 </button>
                 <button
@@ -1244,7 +1299,12 @@ export default function AdminPage() {
                   disabled={manualDisableLoading}
                   className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
                 >
-                  {manualDisableLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+                  {(() => {
+                    if (manualDisableLoading) {
+                      return <Loader2 className="h-4 w-4 animate-spin" />;
+                    }
+                    return <Power className="h-4 w-4" />;
+                  })()}
                   {t("manualEnableButton")}
                 </button>
               </div>
@@ -1300,7 +1360,7 @@ export default function AdminPage() {
                     </div>
                   )
                 ) : (
-                  <p className="text-gray-500">Failed to load preview</p>
+                  <p className="text-gray-500">{t("failedToLoadPreview")}</p>
                 )}
               </div>
 
@@ -1337,11 +1397,7 @@ export default function AdminPage() {
                   <div className="rounded-lg bg-gray-50 p-3">
                     <p className="text-xs text-gray-500 flex items-center gap-1"><Shield className="h-3 w-3" /> Fraud Risk Score</p>
                     <div className="flex items-center gap-2">
-                      <p className={`text-xl font-bold ${
-                        (selectedReceipt.fraudRiskScore ?? 0) >= 50 ? "text-red-600"
-                        : (selectedReceipt.fraudRiskScore ?? 0) >= 30 ? "text-orange-600"
-                        : "text-green-600"
-                      }`}>
+                      <p className={`text-xl font-bold ${getFraudRiskColorClass(selectedReceipt.fraudRiskScore)}`}>
                         {selectedReceipt.fraudRiskScore ?? 0}%
                       </p>
                       {selectedReceipt.isDuplicate && (
@@ -1354,7 +1410,7 @@ export default function AdminPage() {
 
                   {selectedReceipt.ocrReasoning && (
                     <div className="rounded-lg bg-blue-50 p-3">
-                      <p className="text-xs font-medium text-blue-700 mb-1">AI Analysis</p>
+                      <p className="text-xs font-medium text-blue-700 mb-1">{t("aiAnalysis")}</p>
                       <p className="text-sm text-blue-900">{selectedReceipt.ocrReasoning}</p>
                     </div>
                   )}
@@ -1379,7 +1435,12 @@ export default function AdminPage() {
                       disabled={updatingId === selectedReceipt.id || selectedReceipt.verificationStatus === "verified"}
                       className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
                     >
-                      {updatingId === selectedReceipt.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      {(() => {
+                        if (updatingId === selectedReceipt.id) {
+                          return <Loader2 className="h-4 w-4 animate-spin" />;
+                        }
+                        return <Check className="h-4 w-4" />;
+                      })()}
                       {t("approve")}
                     </button>
                     <button
@@ -1450,7 +1511,7 @@ export default function AdminPage() {
                     </div>
                   )
                 ) : (
-                  <p className="text-gray-500">Failed to load preview</p>
+                  <p className="text-gray-500">{t("failedToLoadPreview")}</p>
                 )}
               </div>
 
@@ -1492,12 +1553,12 @@ export default function AdminPage() {
                         </div>
                         {selectedDispute.receipt.extractedShopName && (
                           <div className="rounded-lg bg-gray-50 p-3">
-                            <p className="text-xs text-gray-500">Shop</p>
+                            <p className="text-xs text-gray-500">{t("shop")}</p>
                             <p className="font-medium text-gray-900">{selectedDispute.receipt.extractedShopName}</p>
                           </div>
                         )}
                         <div className="rounded-lg bg-gray-50 p-3">
-                          <p className="text-xs text-gray-500 flex items-center gap-1"><DollarSign className="h-3 w-3" /> Amount</p>
+                          <p className="text-xs text-gray-500 flex items-center gap-1"><DollarSign className="h-3 w-3" /> {t("amount")}</p>
                           <p className="font-medium text-gray-900">
                             {selectedDispute.receipt.extractedAmount != null ? `$${selectedDispute.receipt.extractedAmount.toFixed(2)}` : "N/A"}
                           </p>
@@ -1505,7 +1566,7 @@ export default function AdminPage() {
                       </div>
 
                       <div className="rounded-lg bg-gray-50 p-3">
-                        <p className="text-xs text-gray-500">Confidence</p>
+                        <p className="text-xs text-gray-500">{t("confidence")}</p>
                         <span className={`text-lg font-bold ${getConfidenceColorClass(selectedDispute.receipt.ocrConfidence)}`}>
                           {formatConfidenceDisplay(selectedDispute.receipt.ocrConfidence)}
                         </span>
@@ -1513,7 +1574,7 @@ export default function AdminPage() {
 
                       {selectedDispute.receipt.ocrReasoning && (
                         <div className="rounded-lg bg-blue-50 p-3">
-                          <p className="text-xs font-medium text-blue-700 mb-1">AI Analysis</p>
+                          <p className="text-xs font-medium text-blue-700 mb-1">{t("aiAnalysis")}</p>
                           <p className="text-sm text-blue-900">{selectedDispute.receipt.ocrReasoning}</p>
                         </div>
                       )}
@@ -1533,7 +1594,12 @@ export default function AdminPage() {
                       disabled={updatingDisputeId === selectedDispute.id || selectedDispute.status === "verified"}
                       className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
                     >
-                      {updatingDisputeId === selectedDispute.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      {(() => {
+                        if (updatingDisputeId === selectedDispute.id) {
+                          return <Loader2 className="h-4 w-4 animate-spin" />;
+                        }
+                        return <Check className="h-4 w-4" />;
+                      })()}
                       {t("disputeAccept")}
                     </button>
                     <button

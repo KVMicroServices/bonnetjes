@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslations } from "next-intl";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ interface MentionAutocompleteProps {
 
 const DEBOUNCE_DELAY_MS = 300;
 const MINIMUM_QUERY_LENGTH = 2;
+const DROPDOWN_MIN_SPACE_PX = 200;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -32,6 +34,7 @@ export function MentionAutocomplete({
   onDismiss,
   anchorElement,
 }: MentionAutocompleteProps) {
+  const t = useTranslations("Comments");
   const [users, setUsers] = useState<UserResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -138,7 +141,7 @@ export function MentionAutocomplete({
     const anchorRect = anchorElement.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
     const spaceBelow = viewportHeight - anchorRect.bottom;
-    const showAbove = spaceBelow < 200;
+    const showAbove = spaceBelow < DROPDOWN_MIN_SPACE_PX;
 
     if (showAbove) {
       setPosition({
@@ -172,7 +175,7 @@ export function MentionAutocomplete({
           left: `${position.left}px`,
         }}
       >
-        <div className="px-3 py-2 text-sm text-gray-500">Searching...</div>
+        <div className="px-3 py-2 text-sm text-gray-500">{t("searching")}</div>
       </div>
     );
   }
@@ -191,27 +194,34 @@ export function MentionAutocomplete({
         left: `${position.left}px`,
       }}
     >
-      {users.map((user, index) => (
-        <button
-          key={user.id}
-          type="button"
-          className={`flex w-full flex-col px-3 py-2 text-left transition-colors ${
-            index === activeIndex ? "bg-blue-50" : "hover:bg-gray-50"
-          }`}
-          onMouseDown={(event) => {
-            event.preventDefault();
-            onSelect(user);
-          }}
-          onMouseEnter={() => setActiveIndex(index)}
-        >
-          <span className="text-sm font-medium text-gray-900">
-            {user.name ? user.name : user.email}
-          </span>
-          {user.name && (
-            <span className="text-xs text-gray-500">{user.email}</span>
-          )}
-        </button>
-      ))}
+      {users.map((user, index) => {
+        let itemClassName = "flex w-full flex-col px-3 py-2 text-left transition-colors ";
+        if (index === activeIndex) {
+          itemClassName = itemClassName + "bg-blue-50";
+        } else {
+          itemClassName = itemClassName + "hover:bg-gray-50";
+        }
+
+        return (
+          <button
+            key={user.id}
+            type="button"
+            className={itemClassName}
+            onMouseDown={(event) => {
+              event.preventDefault();
+              onSelect(user);
+            }}
+            onMouseEnter={() => setActiveIndex(index)}
+          >
+            <span className="text-sm font-medium text-gray-900">
+              {user.name ? user.name : user.email}
+            </span>
+            {user.name && (
+              <span className="text-xs text-gray-500">{user.email}</span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

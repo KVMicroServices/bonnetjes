@@ -52,6 +52,18 @@ interface VolumeDataPoint {
 type TabId = "metrics" | "volume" | "audit";
 type Granularity = "hour" | "day" | "week";
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+const MILLISECONDS_PER_WEEK = 7 * MILLISECONDS_PER_DAY;
+const MILLISECONDS_PER_THIRTY_DAYS = 30 * MILLISECONDS_PER_DAY;
+const CHART_BAR_WIDTH_PX = 50;
+const CHART_MIN_WIDTH_PX = 600;
+const ROTATED_LABEL_THRESHOLD = 14;
+const ROTATED_LABEL_ANGLE = -45;
+const ROTATED_LABEL_HEIGHT = 80;
+const DEFAULT_LABEL_HEIGHT = 40;
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
@@ -358,25 +370,30 @@ function VolumeTab({
   const t = useTranslations("Analytics");
 
   function handleSetToday() {
-    const today = new Date().toISOString().split("T")[0];
-    onDateFromChange(today);
-    onDateToChange(today);
+    const todayDate = new Date();
+    const todayString = todayDate.toISOString().split("T")[0];
+    onDateFromChange(todayString);
+    onDateToChange(todayString);
     onGranularityChange("hour");
   }
 
   function handleSetLastSevenDays() {
     const today = new Date();
-    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    onDateFromChange(sevenDaysAgo.toISOString().split("T")[0]);
-    onDateToChange(today.toISOString().split("T")[0]);
+    const sevenDaysAgo = new Date(today.getTime() - MILLISECONDS_PER_WEEK);
+    const todayString = today.toISOString().split("T")[0];
+    const sevenDaysAgoString = sevenDaysAgo.toISOString().split("T")[0];
+    onDateFromChange(sevenDaysAgoString);
+    onDateToChange(todayString);
     onGranularityChange("day");
   }
 
   function handleSetLastThirtyDays() {
     const today = new Date();
-    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    onDateFromChange(thirtyDaysAgo.toISOString().split("T")[0]);
-    onDateToChange(today.toISOString().split("T")[0]);
+    const thirtyDaysAgo = new Date(today.getTime() - MILLISECONDS_PER_THIRTY_DAYS);
+    const todayString = today.toISOString().split("T")[0];
+    const thirtyDaysAgoString = thirtyDaysAgo.toISOString().split("T")[0];
+    onDateFromChange(thirtyDaysAgoString);
+    onDateToChange(todayString);
     onGranularityChange("day");
   }
 
@@ -472,7 +489,7 @@ function VolumeTab({
         )}
         {!loading && data.length > 0 && (
           <div className="overflow-x-auto">
-            <div style={{ minWidth: `${Math.max(data.length * 50, 600)}px` }}>
+            <div style={{ minWidth: `${Math.max(data.length * CHART_BAR_WIDTH_PX, CHART_MIN_WIDTH_PX)}px` }}>
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={data as VolumeDataPoint[]}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -480,9 +497,9 @@ function VolumeTab({
                     dataKey="label"
                     tick={{ fontSize: 12 }}
                     interval={0}
-                    angle={data.length > 14 ? -45 : 0}
-                    textAnchor={data.length > 14 ? "end" : "middle"}
-                    height={data.length > 14 ? 80 : 40}
+                    angle={data.length > ROTATED_LABEL_THRESHOLD ? ROTATED_LABEL_ANGLE : 0}
+                    textAnchor={data.length > ROTATED_LABEL_THRESHOLD ? "end" : "middle"}
+                    height={data.length > ROTATED_LABEL_THRESHOLD ? ROTATED_LABEL_HEIGHT : DEFAULT_LABEL_HEIGHT}
                   />
                   <YAxis allowDecimals={false} />
                   <Tooltip />

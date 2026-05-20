@@ -225,7 +225,10 @@
     "manualDisableButton": "Desactivar reseña",
     "manualEnableButton": "Activar reseña",
     "manualDisableValidationError": "Error de validación",
-    "manualDisableValidationDescription": "Complete todos los campos. El ID de inquilino debe ser un número positivo."
+    "manualDisableValidationDescription": "Complete todos los campos. El ID de inquilino debe ser un número positivo.",
+    "shop": "Tienda",
+    "aiAnalysis": "Análisis IA",
+    "failedToLoadPreview": "Error al cargar la vista previa"
   },
   "Settings": {
     "title": "Configuración",
@@ -450,7 +453,11 @@
     "bellLabel": "Notificaciones",
     "title": "Notificaciones",
     "markAllRead": "Marcar todo como leído",
-    "empty": "Aún no hay notificaciones"
+    "empty": "Aún no hay notificaciones",
+    "justNow": "ahora mismo",
+    "minutesAgo": "hace {count}m",
+    "hoursAgo": "hace {count}h",
+    "daysAgo": "hace {count}d"
   },
   "Comments": {
     "comments": "Comentarios",
@@ -463,6 +470,11 @@
     "cancel": "Cancelar",
     "edited": "editado",
     "deleteConfirmTitle": "Eliminar comentario",
-    "deleteConfirmMessage": "Estas seguro de que quieres eliminar este comentario? Esta accion no se puede deshacer."
+    "deleteConfirmMessage": "Estas seguro de que quieres eliminar este comentario? Esta accion no se puede deshacer.",
+    "searching": "Buscando...",
+    "justNow": "ahora mismo",
+    "minutesAgo": "hace {count}m",
+    "hoursAgo": "hace {count}h",
+    "daysAgo": "hace {count}d"
   }
 }

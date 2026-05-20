@@ -225,7 +225,10 @@
     "manualDisableButton": "Vala ukubuyekezwa",
     "manualEnableButton": "Vula ukubuyekezwa",
     "manualDisableValidationError": "Iphutha lokuqinisekisa",
-    "manualDisableValidationDescription": "Sicela ugcwalise zonke izindawo. I-ID yomqashi kufuneka ibe yinombolo enhle."
+    "manualDisableValidationDescription": "Sicela ugcwalise zonke izindawo. I-ID yomqashi kufuneka ibe yinombolo enhle.",
+    "shop": "Isitolo",
+    "aiAnalysis": "Ukuhlaziywa kwe-AI",
+    "failedToLoadPreview": "Yehlulekile ukulayisha ukubuka kuqala"
   },
   "Settings": {
     "title": "Izilungiselelo",
@@ -450,7 +453,11 @@
     "bellLabel": "Izaziso",
     "title": "Izaziso",
     "markAllRead": "Phawula konke njengokufundiwe",
-    "empty": "Azikho izaziso okwamanje"
+    "empty": "Azikho izaziso okwamanje",
+    "justNow": "manje nje",
+    "minutesAgo": "{count}m edlule",
+    "hoursAgo": "{count}h edlule",
+    "daysAgo": "{count}d edlule"
   },
   "Comments": {
     "comments": "Amazwana",
@@ -463,6 +470,11 @@
     "cancel": "Khansela",
     "edited": "kuhleliwe",
     "deleteConfirmTitle": "Susa amazwana",
-    "deleteConfirmMessage": "Uqinisekile ukuthi ufuna ukususa la mazwana? Lesi senzo asinakubuyiswa."
+    "deleteConfirmMessage": "Uqinisekile ukuthi ufuna ukususa la mazwana? Lesi senzo asinakubuyiswa.",
+    "searching": "Iyasesha...",
+    "justNow": "manje nje",
+    "minutesAgo": "{count}m edlule",
+    "hoursAgo": "{count}h edlule",
+    "daysAgo": "{count}d edlule"
   }
 }

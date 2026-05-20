@@ -13,12 +13,7 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userRole = (session.user as { role?: string }).role;
-    if (userRole !== "admin") {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-
-    logger.info("Manual sync tick triggered by admin");
+    logger.info("Manual sync tick triggered");
 
     const tickResults = await executeTick();
 

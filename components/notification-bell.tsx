@@ -18,9 +18,11 @@ interface NotificationItem {
 
 const POLL_INTERVAL_MILLISECONDS = 30000;
 const MAX_DROPDOWN_ITEMS = 10;
+const MAX_DISPLAYED_COUNT = 99;
 const SECONDS_PER_MINUTE = 60;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
+const MILLISECONDS_PER_SECOND = 1000;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -30,6 +32,13 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const relativeTimeTranslations: RelativeTimeTranslations = {
+    justNow: t("justNow"),
+    minutesAgo: (minutes: number) => t("minutesAgo", { count: String(minutes) }),
+    hoursAgo: (hours: number) => t("hoursAgo", { count: String(hours) }),
+    daysAgo: (days: number) => t("daysAgo", { count: String(days) }),
+  };
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -120,7 +129,12 @@ export function NotificationBell() {
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-            {unreadCount > 99 ? "99+" : unreadCount}
+            {(() => {
+              if (unreadCount > MAX_DISPLAYED_COUNT) {
+                return `${MAX_DISPLAYED_COUNT}+`;
+              }
+              return unreadCount;
+            })()}
           </span>
         )}
       </button>
@@ -163,7 +177,7 @@ export function NotificationBell() {
                     {notification.body}
                   </p>
                   <p className="mt-1 text-xs text-gray-400">
-                    {formatRelativeTime(notification.createdAt)}
+                    {formatRelativeTime(notification.createdAt, relativeTimeTranslations)}
                   </p>
                 </div>
               </div>
@@ -177,25 +191,33 @@ export function NotificationBell() {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatRelativeTime(dateString: string): string {
+interface RelativeTimeTranslations {
+  justNow: string;
+  minutesAgo: (minutes: number) => string;
+  hoursAgo: (hours: number) => string;
+  daysAgo: (days: number) => string;
+}
+
+function formatRelativeTime(dateString: string, translations: RelativeTimeTranslations): string {
   const date = new Date(dateString);
   const now = new Date();
-  const diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const elapsedMilliseconds = now.getTime() - date.getTime();
+  const differenceSeconds = Math.floor(elapsedMilliseconds / MILLISECONDS_PER_SECOND);
 
-  if (diffSeconds < SECONDS_PER_MINUTE) {
-    return "just now";
+  if (differenceSeconds < SECONDS_PER_MINUTE) {
+    return translations.justNow;
   }
 
-  const diffMinutes = Math.floor(diffSeconds / SECONDS_PER_MINUTE);
-  if (diffMinutes < MINUTES_PER_HOUR) {
-    return `${diffMinutes}m ago`;
+  const differenceMinutes = Math.floor(differenceSeconds / SECONDS_PER_MINUTE);
+  if (differenceMinutes < MINUTES_PER_HOUR) {
+    return translations.minutesAgo(differenceMinutes);
   }
 
-  const diffHours = Math.floor(diffMinutes / MINUTES_PER_HOUR);
-  if (diffHours < HOURS_PER_DAY) {
-    return `${diffHours}h ago`;
+  const differenceHours = Math.floor(differenceMinutes / MINUTES_PER_HOUR);
+  if (differenceHours < HOURS_PER_DAY) {
+    return translations.hoursAgo(differenceHours);
   }
 
-  const diffDays = Math.floor(diffHours / HOURS_PER_DAY);
-  return `${diffDays}d ago`;
+  const differenceDays = Math.floor(differenceHours / HOURS_PER_DAY);
+  return translations.daysAgo(differenceDays);
 }

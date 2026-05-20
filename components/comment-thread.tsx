@@ -49,31 +49,37 @@ interface MentionEntry {
 const RELATIVE_TIME_MINUTE_MS = 60000;
 const RELATIVE_TIME_HOUR_MS = 3600000;
 const RELATIVE_TIME_DAY_MS = 86400000;
+const EDIT_THRESHOLD_MS = 1000;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatRelativeTime(dateString: string): string {
+function formatRelativeTime(dateString: string, translations: {
+  justNow: string;
+  minutesAgo: (minutes: number) => string;
+  hoursAgo: (hours: number) => string;
+  daysAgo: (days: number) => string;
+}): string {
   const date = new Date(dateString);
   const now = new Date();
-  const differenceMs = now.getTime() - date.getTime();
+  const differenceMilliseconds = now.getTime() - date.getTime();
 
-  if (differenceMs < RELATIVE_TIME_MINUTE_MS) {
-    return "just now";
+  if (differenceMilliseconds < RELATIVE_TIME_MINUTE_MS) {
+    return translations.justNow;
   }
 
-  const minutes = Math.floor(differenceMs / RELATIVE_TIME_MINUTE_MS);
+  const minutes = Math.floor(differenceMilliseconds / RELATIVE_TIME_MINUTE_MS);
   if (minutes < 60) {
-    return `${minutes}m ago`;
+    return translations.minutesAgo(minutes);
   }
 
-  const hours = Math.floor(differenceMs / RELATIVE_TIME_HOUR_MS);
+  const hours = Math.floor(differenceMilliseconds / RELATIVE_TIME_HOUR_MS);
   if (hours < 24) {
-    return `${hours}h ago`;
+    return translations.hoursAgo(hours);
   }
 
-  const days = Math.floor(differenceMs / RELATIVE_TIME_DAY_MS);
+  const days = Math.floor(differenceMilliseconds / RELATIVE_TIME_DAY_MS);
   if (days < 30) {
-    return `${days}d ago`;
+    return translations.daysAgo(days);
   }
 
   return date.toLocaleDateString();
@@ -82,7 +88,7 @@ function formatRelativeTime(dateString: string): string {
 function isCommentEdited(createdAt: string, updatedAt: string): boolean {
   const created = new Date(createdAt).getTime();
   const updated = new Date(updatedAt).getTime();
-  return updated - created > 1000;
+  return updated - created > EDIT_THRESHOLD_MS;
 }
 
 
@@ -223,6 +229,14 @@ export function CommentThread({ receiptId, currentUserId, isAdmin }: CommentThre
 
   // Edit mention state
   const editMention = useMentionInput();
+
+  // Translation helpers for relative time
+  const relativeTimeTranslations = {
+    justNow: t("justNow"),
+    minutesAgo: (minutes: number) => t("minutesAgo", { count: String(minutes) }),
+    hoursAgo: (hours: number) => t("hoursAgo", { count: String(hours) }),
+    daysAgo: (days: number) => t("daysAgo", { count: String(days) }),
+  };
 
   // ─── Fetch Comments ──────────────────────────────────────────────────────────
 
@@ -434,10 +448,15 @@ export function CommentThread({ receiptId, currentUserId, isAdmin }: CommentThre
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-gray-900">
-                      {comment.author.name ? comment.author.name : comment.author.email}
+                      {(() => {
+                        if (comment.author.name) {
+                          return comment.author.name;
+                        }
+                        return comment.author.email;
+                      })()}
                     </span>
                     <span className="text-xs text-gray-400">
-                      {formatRelativeTime(comment.createdAt)}
+                      {formatRelativeTime(comment.createdAt, relativeTimeTranslations)}
                     </span>
                     {isCommentEdited(comment.createdAt, comment.updatedAt) && (
                       <span className="text-xs text-gray-400 italic">

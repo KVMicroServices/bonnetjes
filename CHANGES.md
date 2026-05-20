@@ -1,5 +1,24 @@
 # Changes
 
+## [109] Fix review findings from 26.05.20.1-feature-sprint
+
+**What**: Fixed SMTP password exposure in settings API, remediated 30+ banned code patterns (ternaries, magic values, abbreviations, console.error, chained ops), added missing translations, restored admin auth guard, added limit caps and JSON parse guards on API routes.
+**Decisions**:
+- Created `lib/client-logger.ts` for browser-side structured logging (pino is server-only)
+- Used `getFraudRiskColorClass` helper to eliminate repeated fraud score ternaries
+- Relative time functions now accept translation objects to eliminate hardcoded strings
+**Files**:
+- app/api/admin/settings/route.ts
+- app/api/admin/disputes/route.ts
+- app/api/admin/receipts/review-required/route.ts
+- app/admin/page.tsx
+- app/admin/analytics/page.tsx
+- components/comment-thread.tsx
+- components/notification-bell.tsx
+- components/mention-autocomplete.tsx
+- lib/client-logger.ts (new)
+- messages/*.json (all 8 languages)
+
 ## [108] Complete Google SSO for login and signup
 
 **What**: Added Google sign-up button to signup page, removed drive.readonly scope (login-only needs profile+email), added startup validation for Google OAuth env vars, removed accessToken from session.

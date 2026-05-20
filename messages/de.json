@@ -225,7 +225,10 @@
     "manualDisableButton": "Bewertung deaktivieren",
     "manualEnableButton": "Bewertung aktivieren",
     "manualDisableValidationError": "Validierungsfehler",
-    "manualDisableValidationDescription": "Bitte füllen Sie alle Felder aus. Mandanten-ID muss eine positive Zahl sein."
+    "manualDisableValidationDescription": "Bitte füllen Sie alle Felder aus. Mandanten-ID muss eine positive Zahl sein.",
+    "shop": "Geschäft",
+    "aiAnalysis": "KI-Analyse",
+    "failedToLoadPreview": "Vorschau konnte nicht geladen werden"
   },
   "Settings": {
     "title": "Einstellungen",
@@ -450,7 +453,11 @@
     "bellLabel": "Benachrichtigungen",
     "title": "Benachrichtigungen",
     "markAllRead": "Alle als gelesen markieren",
-    "empty": "Noch keine Benachrichtigungen"
+    "empty": "Noch keine Benachrichtigungen",
+    "justNow": "gerade eben",
+    "minutesAgo": "vor {count}m",
+    "hoursAgo": "vor {count}h",
+    "daysAgo": "vor {count}d"
   },
   "Comments": {
     "comments": "Kommentare",
@@ -463,6 +470,11 @@
     "cancel": "Abbrechen",
     "edited": "bearbeitet",
     "deleteConfirmTitle": "Kommentar loeschen",
-    "deleteConfirmMessage": "Moechten Sie diesen Kommentar wirklich loeschen? Diese Aktion kann nicht rueckgaengig gemacht werden."
+    "deleteConfirmMessage": "Moechten Sie diesen Kommentar wirklich loeschen? Diese Aktion kann nicht rueckgaengig gemacht werden.",
+    "searching": "Suche...",
+    "justNow": "gerade eben",
+    "minutesAgo": "vor {count}m",
+    "hoursAgo": "vor {count}h",
+    "daysAgo": "vor {count}d"
   }
 }

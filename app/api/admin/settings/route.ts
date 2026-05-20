@@ -38,7 +38,14 @@ export async function GET() {
     }
 
     const settings = await getAppSettings();
-    return NextResponse.json(settings);
+    const redactedSettings = {
+      ...settings,
+      smtp: {
+        ...settings.smtp,
+        smtpPass: settings.smtp?.smtpPass ? "***" : null,
+      },
+    };
+    return NextResponse.json(redactedSettings);
   } catch (error) {
     logger.error({ error }, "Failed to fetch app settings");
     return NextResponse.json({ error: "Failed to fetch settings" }, { status: 500 });
@@ -143,7 +150,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     const settings = await getAppSettings();
-    logger.info({ settings, admin: session.user.email }, "App settings updated");
+    const redactedForLog = {
+      ...settings,
+      smtp: {
+        ...settings.smtp,
+        smtpPass: "[REDACTED]",
+      },
+    };
+    logger.info({ settings: redactedForLog, admin: session.user.email }, "App settings updated");
 
     recordAuditEvent("settings", "settings_updated", (session.user as any).id, {
       changedKeys: Object.keys(payload),

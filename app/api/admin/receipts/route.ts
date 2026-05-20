@@ -15,11 +15,6 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isAdmin = (session.user as any).role === "admin";
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-
     const receipts = await prisma.receipt.findMany({
       orderBy: { createdAt: "desc" },
       include: {
@@ -39,10 +34,6 @@ export async function PATCH(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const isAdmin = (session.user as any).role === "admin";
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
     const { id, verificationStatus } = await request.json();

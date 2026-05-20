@@ -225,7 +225,10 @@
     "manualDisableButton": "Désactiver l'avis",
     "manualEnableButton": "Activer l'avis",
     "manualDisableValidationError": "Erreur de validation",
-    "manualDisableValidationDescription": "Veuillez remplir tous les champs. L'ID du locataire doit être un nombre positif."
+    "manualDisableValidationDescription": "Veuillez remplir tous les champs. L'ID du locataire doit être un nombre positif.",
+    "shop": "Magasin",
+    "aiAnalysis": "Analyse IA",
+    "failedToLoadPreview": "Échec du chargement de l'aperçu"
   },
   "Settings": {
     "title": "Paramètres",
@@ -450,7 +453,11 @@
     "bellLabel": "Notifications",
     "title": "Notifications",
     "markAllRead": "Tout marquer comme lu",
-    "empty": "Pas encore de notifications"
+    "empty": "Pas encore de notifications",
+    "justNow": "à l'instant",
+    "minutesAgo": "il y a {count}m",
+    "hoursAgo": "il y a {count}h",
+    "daysAgo": "il y a {count}j"
   },
   "Comments": {
     "comments": "Commentaires",
@@ -463,6 +470,11 @@
     "cancel": "Annuler",
     "edited": "modifie",
     "deleteConfirmTitle": "Supprimer le commentaire",
-    "deleteConfirmMessage": "Etes-vous sur de vouloir supprimer ce commentaire ? Cette action est irreversible."
+    "deleteConfirmMessage": "Etes-vous sur de vouloir supprimer ce commentaire ? Cette action est irreversible.",
+    "searching": "Recherche...",
+    "justNow": "à l'instant",
+    "minutesAgo": "il y a {count}m",
+    "hoursAgo": "il y a {count}h",
+    "daysAgo": "il y a {count}j"
   }
 }

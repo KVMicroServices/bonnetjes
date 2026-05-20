@@ -225,7 +225,10 @@
     "manualDisableButton": "Review uitschakelen",
     "manualEnableButton": "Review inschakelen",
     "manualDisableValidationError": "Validatiefout",
-    "manualDisableValidationDescription": "Vul alle velden in. Tenant ID moet een positief getal zijn."
+    "manualDisableValidationDescription": "Vul alle velden in. Tenant ID moet een positief getal zijn.",
+    "shop": "Winkel",
+    "aiAnalysis": "AI-analyse",
+    "failedToLoadPreview": "Voorbeeld laden mislukt"
   },
   "Settings": {
     "title": "Instellingen",
@@ -450,7 +453,11 @@
     "bellLabel": "Meldingen",
     "title": "Meldingen",
     "markAllRead": "Alles als gelezen markeren",
-    "empty": "Nog geen meldingen"
+    "empty": "Nog geen meldingen",
+    "justNow": "zojuist",
+    "minutesAgo": "{count}m geleden",
+    "hoursAgo": "{count}u geleden",
+    "daysAgo": "{count}d geleden"
   },
   "Comments": {
     "comments": "Opmerkingen",
@@ -463,6 +470,11 @@
     "cancel": "Annuleren",
     "edited": "bewerkt",
     "deleteConfirmTitle": "Opmerking verwijderen",
-    "deleteConfirmMessage": "Weet je zeker dat je deze opmerking wilt verwijderen? Dit kan niet ongedaan worden gemaakt."
+    "deleteConfirmMessage": "Weet je zeker dat je deze opmerking wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
+    "searching": "Zoeken...",
+    "justNow": "zojuist",
+    "minutesAgo": "{count}m geleden",
+    "hoursAgo": "{count}u geleden",
+    "daysAgo": "{count}d geleden"
   }
 }
