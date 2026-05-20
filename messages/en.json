@@ -289,6 +289,8 @@
     "typeDescription_dispute_outcome": "A customer's dispute has been processed",
     "type_role_changed": "Role changed",
     "typeDescription_role_changed": "Your user role has been changed by an admin",
+    "type_comment_mention": "Comment mention",
+    "typeDescription_comment_mention": "Someone mentioned you in a comment on a receipt",
     "channel_none": "None",
     "channel_in_app": "In-app",
     "channel_email": "Email"
@@ -447,5 +449,18 @@
     "summaryRoleChanged": "Role changed to {role}",
     "summaryUpdated": "Updated: {keys}",
     "summaryReceipt": "Receipt {receiptId}"
+  },
+  "Comments": {
+    "comments": "Comments",
+    "noComments": "No comments yet",
+    "writeComment": "Write a comment...",
+    "submit": "Submit",
+    "delete": "Delete",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edited": "edited",
+    "deleteConfirmTitle": "Delete comment",
+    "deleteConfirmMessage": "Are you sure you want to delete this comment? This action cannot be undone."
   }
 }

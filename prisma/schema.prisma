@@ -22,6 +22,7 @@ model User {
   receipts      Receipt[]
   adminActions  AdminAction[]
   accounts      Account[]
+  comments      Comment[]
 }
 
 model Account {
@@ -90,6 +91,9 @@ model Receipt {
   
   // Admin actions
   adminActions        AdminAction[]
+
+  // Comments
+  comments            Comment[]
 }
 
 model AdminAction {
@@ -201,7 +205,7 @@ model AuditLog {
 
 model Notification {
   id        String   @id @default(cuid())
-  type      String   // receipt_requires_review, receipt_processed, review_disabled, dispute_outcome, role_changed
+  type      String   // receipt_requires_review, receipt_processed, review_disabled, dispute_outcome, role_changed, comment_mention
   title     String
   body      String
   metadata  String?  @db.Text // JSON blob with action-specific context (receiptId, etc.)
@@ -218,4 +222,19 @@ model NotificationPreference {
 
   @@unique([userId, type])
   @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  body      String   @db.Text
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  receiptId String
+  receipt   Receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  mentions  String?  @db.Text // JSON array of mentioned user IDs
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([receiptId, createdAt])
+  @@index([authorId])
 }

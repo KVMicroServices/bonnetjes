@@ -438,6 +438,8 @@
     "typeDescription_dispute_outcome": "'n Kliënt se beswaar is verwerk",
     "type_role_changed": "Rol verander",
     "typeDescription_role_changed": "Jou gebruikersrol is deur 'n administrateur verander",
+    "type_comment_mention": "Kommentaar-vermelding",
+    "typeDescription_comment_mention": "Iemand het jou in 'n kommentaar op 'n kwitansie vermeld",
     "channel_none": "Geen",
     "channel_in_app": "In-app",
     "channel_email": "E-pos"
@@ -447,5 +449,18 @@
     "title": "Kennisgewings",
     "markAllRead": "Merk alles as gelees",
     "empty": "Nog geen kennisgewings nie"
+  },
+  "Comments": {
+    "comments": "Opmerkings",
+    "noComments": "Nog geen opmerkings nie",
+    "writeComment": "Skryf n opmerking...",
+    "submit": "Stuur",
+    "delete": "Verwyder",
+    "edit": "Wysig",
+    "save": "Stoor",
+    "cancel": "Kanselleer",
+    "edited": "gewysig",
+    "deleteConfirmTitle": "Verwyder opmerking",
+    "deleteConfirmMessage": "Is jy seker jy wil hierdie opmerking verwyder? Hierdie aksie kan nie ongedaan gemaak word nie."
   }
 }

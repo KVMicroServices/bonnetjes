@@ -33,6 +33,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
+import { CommentThread } from "@/components/comment-thread";
 
 const REJECTION_EMAIL_TEMPLATE = `Beste heer/mevrouw,
 
@@ -485,17 +486,13 @@ export default function AdminPage() {
     if (status === "unauthenticated") {
       router.replace("/login");
     } else if (status === "authenticated") {
-      if (!isAdmin) {
-        router.replace("/dashboard");
-      } else {
-        fetchData();
-        fetchReviewRequired(true);
-      }
+      fetchData();
+      fetchReviewRequired(true);
     }
-  }, [status, isAdmin, router, fetchData, fetchReviewRequired]);
+  }, [status, router, fetchData, fetchReviewRequired]);
 
   useEffect(() => {
-    if (status !== "authenticated" || !isAdmin) {
+    if (status !== "authenticated") {
       return;
     }
     const intervalId = setInterval(() => {
@@ -504,11 +501,11 @@ export default function AdminPage() {
     return () => {
       clearInterval(intervalId);
     };
-  }, [status, isAdmin, fetchData]);
+  }, [status, fetchData]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (status === "authenticated" && isAdmin) {
+    if (status === "authenticated") {
       setReviewRequiredCursor(null);
       fetchReviewRequired(true);
     }
@@ -516,7 +513,7 @@ export default function AdminPage() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (status === "authenticated" && isAdmin && activeTab === "disputes") {
+    if (status === "authenticated" && activeTab === "disputes") {
       setDisputesCursor(null);
       fetchDisputes(true);
     }
@@ -640,7 +637,7 @@ export default function AdminPage() {
     );
   }
 
-  if (status === "unauthenticated" || !isAdmin) {
+  if (status === "unauthenticated") {
     return null;
   }
 
@@ -1402,6 +1399,15 @@ export default function AdminPage() {
                   <button onClick={() => handleDownload(selectedReceipt)} className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
                     <Download className="h-4 w-4" /> Download
                   </button>
+
+                  {/* Comment Thread */}
+                  <div className="pt-4 border-t">
+                    <CommentThread
+                      receiptId={selectedReceipt.id}
+                      currentUserId={(session?.user as any)?.id || ""}
+                      isAdmin={isAdmin}
+                    />
+                  </div>
                 </div>
               </div>
             </motion.div>

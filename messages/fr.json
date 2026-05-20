@@ -438,6 +438,8 @@
     "typeDescription_dispute_outcome": "La contestation d'un client a été traitée",
     "type_role_changed": "Rôle modifié",
     "typeDescription_role_changed": "Votre rôle utilisateur a été modifié par un administrateur",
+    "type_comment_mention": "Mention dans un commentaire",
+    "typeDescription_comment_mention": "Quelqu'un vous a mentionné dans un commentaire sur un reçu",
     "channel_none": "Aucune",
     "channel_in_app": "In-app",
     "channel_email": "E-mail"
@@ -447,5 +449,18 @@
     "title": "Notifications",
     "markAllRead": "Tout marquer comme lu",
     "empty": "Pas encore de notifications"
+  },
+  "Comments": {
+    "comments": "Commentaires",
+    "noComments": "Aucun commentaire",
+    "writeComment": "Ecrire un commentaire...",
+    "submit": "Envoyer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "edited": "modifie",
+    "deleteConfirmTitle": "Supprimer le commentaire",
+    "deleteConfirmMessage": "Etes-vous sur de vouloir supprimer ce commentaire ? Cette action est irreversible."
   }
 }

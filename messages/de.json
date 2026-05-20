@@ -438,6 +438,8 @@
     "typeDescription_dispute_outcome": "Ein Kundeneinspruch wurde bearbeitet",
     "type_role_changed": "Rolle geändert",
     "typeDescription_role_changed": "Deine Benutzerrolle wurde von einem Administrator geändert",
+    "type_comment_mention": "Kommentar-Erwähnung",
+    "typeDescription_comment_mention": "Jemand hat dich in einem Kommentar zu einem Beleg erwähnt",
     "channel_none": "Keine",
     "channel_in_app": "In-App",
     "channel_email": "E-Mail"
@@ -447,5 +449,18 @@
     "title": "Benachrichtigungen",
     "markAllRead": "Alle als gelesen markieren",
     "empty": "Noch keine Benachrichtigungen"
+  },
+  "Comments": {
+    "comments": "Kommentare",
+    "noComments": "Noch keine Kommentare",
+    "writeComment": "Kommentar schreiben...",
+    "submit": "Absenden",
+    "delete": "Loeschen",
+    "edit": "Bearbeiten",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "edited": "bearbeitet",
+    "deleteConfirmTitle": "Kommentar loeschen",
+    "deleteConfirmMessage": "Moechten Sie diesen Kommentar wirklich loeschen? Diese Aktion kann nicht rueckgaengig gemacht werden."
   }
 }

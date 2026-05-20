@@ -1,5 +1,45 @@
 # Changes
 
+## [107] Add comment thread UI with @-mention autocomplete
+
+**What**: Built CommentThread and MentionAutocomplete components, integrated into admin receipt detail modal, added Comments translation keys to all 8 locale files.
+**Decisions**:
+- Used custom useMentionInput hook for shared mention logic between compose and edit modes
+- Positioned autocomplete dropdown using fixed positioning relative to textarea
+- Comment thread placed below download button in receipt detail panel
+**Files**:
+- components/comment-thread.tsx
+- components/mention-autocomplete.tsx
+- app/admin/page.tsx
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [106] Add unit tests for comment-service
+
+**What**: Added 22 unit tests covering createComment validation, editComment authorization and new-mention notifications, deleteComment authorization, and getComments ordering and deserialization.
+
+## [105] Add comment and user search API routes
+
+**What**: Created API routes for comment CRUD (GET/POST on receipts/[id]/comments, PATCH/DELETE on comments/[commentId]) and user search endpoint for @-mention autocomplete.
+**Decisions**:
+- Thin route handlers delegating to comment-service
+- User search uses Prisma directly (no service layer needed for simple query)
+**Files**:
+- app/api/receipts/[id]/comments/route.ts
+- app/api/receipts/[id]/comments/[commentId]/route.ts
+- app/api/users/search/route.ts
+
+## [104] Add comment service with CRUD and mention notifications
+
+**What**: Created `lib/services/comment-service.ts` with createComment, getComments, editComment, and deleteComment functions including body validation, author-only edit, author-or-admin delete, and fire-and-forget mention notifications for new and newly-added mentions.
+
+## [103] Add Comment model and comment_mention notification type
+
+**What**: Added Prisma Comment model with indexes and cascade relations to User/Receipt, added `comment_mention` to the notification type system.
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260520121706_add_comment_model/migration.sql
+- lib/services/notification-service.ts
+
 ## [102] Add manual review disable/enable form to admin page
 
 **What**: Added a "Manual Disable" tab to the admin dashboard with a form for review ID, location ID, and tenant ID that calls the existing `disable-manual`/`enable-manual` API actions.

@@ -9,7 +9,8 @@ export type NotificationType =
   | "receipt_processed"
   | "review_disabled"
   | "dispute_outcome"
-  | "role_changed";
+  | "role_changed"
+  | "comment_mention";
 
 export type NotificationChannel = "none" | "in_app" | "email";
 
@@ -45,6 +46,7 @@ export const NOTIFICATION_TYPES: ReadonlyArray<NotificationType> = [
   "review_disabled",
   "dispute_outcome",
   "role_changed",
+  "comment_mention",
 ];
 
 // ─── Notification Writer ─────────────────────────────────────────────────────

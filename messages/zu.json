@@ -438,6 +438,8 @@
     "typeDescription_dispute_outcome": "Ingxabano yekhasimende iqediwe",
     "type_role_changed": "Indima ishintshiwe",
     "typeDescription_role_changed": "Indima yakho yomsebenzisi ishintshwe umlawuli",
+    "type_comment_mention": "Ukubalulwa kumazwana",
+    "typeDescription_comment_mention": "Othile ukubalulile kumazwana kwirisidi",
     "channel_none": "Lutho",
     "channel_in_app": "Ku-app",
     "channel_email": "I-imeyili"
@@ -447,5 +449,18 @@
     "title": "Izaziso",
     "markAllRead": "Phawula konke njengokufundiwe",
     "empty": "Azikho izaziso okwamanje"
+  },
+  "Comments": {
+    "comments": "Amazwana",
+    "noComments": "Awekho amazwana okwamanje",
+    "writeComment": "Bhala amazwana...",
+    "submit": "Thumela",
+    "delete": "Susa",
+    "edit": "Hlela",
+    "save": "Londoloza",
+    "cancel": "Khansela",
+    "edited": "kuhleliwe",
+    "deleteConfirmTitle": "Susa amazwana",
+    "deleteConfirmMessage": "Uqinisekile ukuthi ufuna ukususa la mazwana? Lesi senzo asinakubuyiswa."
   }
 }

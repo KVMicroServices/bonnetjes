@@ -438,6 +438,8 @@
     "typeDescription_dispute_outcome": "Een bezwaar van een klant is verwerkt",
     "type_role_changed": "Rol gewijzigd",
     "typeDescription_role_changed": "Je gebruikersrol is gewijzigd door een beheerder",
+    "type_comment_mention": "Vermelding in opmerking",
+    "typeDescription_comment_mention": "Iemand heeft je vermeld in een opmerking bij een bon",
     "channel_none": "Geen",
     "channel_in_app": "In-app",
     "channel_email": "E-mail"
@@ -447,5 +449,18 @@
     "title": "Meldingen",
     "markAllRead": "Alles als gelezen markeren",
     "empty": "Nog geen meldingen"
+  },
+  "Comments": {
+    "comments": "Opmerkingen",
+    "noComments": "Nog geen opmerkingen",
+    "writeComment": "Schrijf een opmerking...",
+    "submit": "Versturen",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "edited": "bewerkt",
+    "deleteConfirmTitle": "Opmerking verwijderen",
+    "deleteConfirmMessage": "Weet je zeker dat je deze opmerking wilt verwijderen? Dit kan niet ongedaan worden gemaakt."
   }
 }

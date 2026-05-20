@@ -22,6 +22,7 @@ const NOTIFICATION_TYPES: ReadonlyArray<string> = [
   "review_disabled",
   "dispute_outcome",
   "role_changed",
+  "comment_mention",
 ];
 
 const CHANNEL_OPTIONS: ReadonlyArray<string> = ["none", "in_app", "email"];

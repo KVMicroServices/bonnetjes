@@ -438,6 +438,8 @@
     "typeDescription_dispute_outcome": "Ingxabano yomthengi iqhutyiwe",
     "type_role_changed": "Indima itshintshiwe",
     "typeDescription_role_changed": "Indima yakho yomsebenzisi itshintshwe ngumlawuli",
+    "type_comment_mention": "Ukuchazwa kwizimvo",
+    "typeDescription_comment_mention": "Umntu ukuchazile kwizimvo kwirisithi",
     "channel_none": "Akukho",
     "channel_in_app": "Kwi-app",
     "channel_email": "I-imeyile"
@@ -447,5 +449,18 @@
     "title": "Izaziso",
     "markAllRead": "Phawula konke njengokufundiweyo",
     "empty": "Akukho zaziso okwangoku"
+  },
+  "Comments": {
+    "comments": "Izimvo",
+    "noComments": "Akukho zimvo okwangoku",
+    "writeComment": "Bhala isimvo...",
+    "submit": "Thumela",
+    "delete": "Cima",
+    "edit": "Hlela",
+    "save": "Gcina",
+    "cancel": "Rhoxisa",
+    "edited": "ihleliwe",
+    "deleteConfirmTitle": "Cima isimvo",
+    "deleteConfirmMessage": "Uqinisekile ukuba ufuna ukucima esi simvo? Esi senzo asinakubuyiswa."
   }
 }
