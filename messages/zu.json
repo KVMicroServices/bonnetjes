@@ -17,7 +17,8 @@
     "settings": "Izilungiselelo",
     "signOut": "Phuma",
     "signIn": "Ngena",
-    "getStarted": "Qala"
+    "getStarted": "Qala",
+    "analytics": "Ukuhlaziya"
   },
   "Login": {
     "subtitle": "Ngena ku-akhawunti yakho",
@@ -312,5 +313,31 @@
     "invalidLinkExpired": "Lesi sixhumanisi sokuphikisa siphelelwe yisikhathi.",
     "invalidLinkMissing": "Lesi sixhumanisi sokuphikisa siswele ulwazi oludingekayo.",
     "invalidLinkInvalid": "Lesi sixhumanisi sokuphikisa asisebenzi."
+  },
+  "Analytics": {
+    "title": "Ukuhlaziya",
+    "subtitle": "Amamethrikhi okucubungula amarisidi nokulandelela umthamo",
+    "tabMetrics": "Amamethrikhi",
+    "tabVolume": "Umthamo",
+    "tabAuditLog": "Ilog yokuhlola",
+    "totalReceipts": "Amarisidi esewonke",
+    "approved": "Avunyiwe",
+    "rejected": "Enqatshiwe",
+    "pending": "Alindile",
+    "requiresReview": "Kudingeka ukubuyekezwa",
+    "flagged": "Aphawuliwe",
+    "approvalRate": "Izinga lokuvuma",
+    "rejectionRate": "Izinga lokuenqaba",
+    "groupBy": "Hlanganisa nge",
+    "hourly": "Ngehora",
+    "daily": "Ngosuku",
+    "weekly": "Ngeviki",
+    "noData": "Ayikho idatha etholakalayo kulesi sikhathi",
+    "legendVerified": "Iqinisekisiwe",
+    "legendPending": "Ilindile",
+    "legendRejected": "Yenqatshiwe",
+    "auditLogTitle": "Ilog yokuhlola",
+    "auditLogDescription": "Ukusebenza kwelog yokuhlola kuzotholakala ku-update ezayo.",
+    "failedToLoad": "Yehlulekile ukulayisha idatha yokuhlaziya"
   }
 }

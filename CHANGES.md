@@ -1,5 +1,22 @@
 # Changes
 
+## [088] Add analytics page with metrics, volume chart, and audit log tab
+
+**What**: Added admin-only analytics page at `/admin/analytics` with three tabs: metrics overview (receipt counts, approval/rejection rates), receipt volume stacked bar chart (filterable by hour/day/week using Recharts), and a placeholder audit log tab for future implementation.
+**Decisions**:
+- Used Recharts for the volume chart (already installed, simplest React integration)
+- Analytics service separates data logic from the API route
+- Volume query fetches all receipts in range and buckets client-side (sufficient for current scale)
+- Audit log tab is an empty placeholder per requirements
+**Files**:
+- lib/services/analytics-service.ts (new)
+- app/api/admin/analytics/route.ts (new)
+- app/admin/analytics/page.tsx (new)
+- components/header.tsx
+- messages/*.json (all 8 languages)
+- tests/services/analytics-service.test.ts (new)
+- tests/pages/header-navigation.test.tsx
+
 ## [087] Fix review findings from 26.05.19 code review
 
 **What**: Applied all 10 standards fixes (ternaries → if-else, short-circuits → if-else, chained ops → separate lines, magic numbers → named constants) and 3 security fixes (admin-gate settings nav link, Zod schema validation on secondary analysis LLM output, type guard on parsed verdict).

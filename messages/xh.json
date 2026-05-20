@@ -17,7 +17,8 @@
     "settings": "Izicwangciso",
     "signOut": "Phuma",
     "signIn": "Ngena",
-    "getStarted": "Qala"
+    "getStarted": "Qala",
+    "analytics": "Uhlalutyo"
   },
   "Login": {
     "subtitle": "Ngena kwi-akhawunti yakho",
@@ -312,5 +313,31 @@
     "invalidLinkExpired": "Eli khonkco lokuphikisa liphelelwe lixesha.",
     "invalidLinkMissing": "Eli khonkco lokuphikisa lishokuxela ulwazi olufunekayo.",
     "invalidLinkInvalid": "Eli khonkco lokuphikisa alisebenzi."
+  },
+  "Analytics": {
+    "title": "Uhlalutyo",
+    "subtitle": "Imilinganiselo yokucubungula irisithi kunye nokulandelela umthamo",
+    "tabMetrics": "Imilinganiselo",
+    "tabVolume": "Umthamo",
+    "tabAuditLog": "Ilog yokuhlola",
+    "totalReceipts": "Irisithi ziphela",
+    "approved": "Zamkelwe",
+    "rejected": "Zaliwe",
+    "pending": "Zilindile",
+    "requiresReview": "Kufuneka uphononongo",
+    "flagged": "Ziphawulwe",
+    "approvalRate": "Izinga lokwamkela",
+    "rejectionRate": "Izinga lokwala",
+    "groupBy": "Qokelela nge",
+    "hourly": "Ngeyure",
+    "daily": "Ngosuku",
+    "weekly": "Ngeveki",
+    "noData": "Akukho datha ekhoyo kweli xesha",
+    "legendVerified": "Iqinisekisiwe",
+    "legendPending": "Ilindile",
+    "legendRejected": "Yaliwe",
+    "auditLogTitle": "Ilog yokuhlola",
+    "auditLogDescription": "Ukusebenza kwelog yokuhlola kuya kufumaneka kwi-update ezayo.",
+    "failedToLoad": "Ayikwazanga ukulayisha idatha yohlalutyo"
   }
 }

@@ -17,7 +17,8 @@
     "settings": "Settings",
     "signOut": "Sign Out",
     "signIn": "Sign In",
-    "getStarted": "Get Started"
+    "getStarted": "Get Started",
+    "analytics": "Analytics"
   },
   "Login": {
     "subtitle": "Sign in to your account",
@@ -312,5 +313,31 @@
     "invalidLinkExpired": "This dispute link has expired.",
     "invalidLinkMissing": "This dispute link is missing required information.",
     "invalidLinkInvalid": "This dispute link is invalid."
+  },
+  "Analytics": {
+    "title": "Analytics",
+    "subtitle": "Receipt processing metrics and volume tracking",
+    "tabMetrics": "Metrics",
+    "tabVolume": "Volume",
+    "tabAuditLog": "Audit Log",
+    "totalReceipts": "Total Receipts",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "pending": "Pending",
+    "requiresReview": "Requires Review",
+    "flagged": "Flagged",
+    "approvalRate": "Approval Rate",
+    "rejectionRate": "Rejection Rate",
+    "groupBy": "Group by",
+    "hourly": "Hourly",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "noData": "No data available for this period",
+    "legendVerified": "Verified",
+    "legendPending": "Pending",
+    "legendRejected": "Rejected",
+    "auditLogTitle": "Audit Log",
+    "auditLogDescription": "Audit log functionality will be available in a future update.",
+    "failedToLoad": "Failed to load analytics data"
   }
 }

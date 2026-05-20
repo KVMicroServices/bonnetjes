@@ -17,7 +17,8 @@
     "settings": "Configuración",
     "signOut": "Cerrar sesión",
     "signIn": "Iniciar sesión",
-    "getStarted": "Comenzar"
+    "getStarted": "Comenzar",
+    "analytics": "Analítica"
   },
   "Login": {
     "subtitle": "Inicia sesión en tu cuenta",
@@ -312,5 +313,31 @@
     "invalidLinkExpired": "Este enlace de disputa ha caducado.",
     "invalidLinkMissing": "A este enlace de disputa le falta información requerida.",
     "invalidLinkInvalid": "Este enlace de disputa no es válido."
+  },
+  "Analytics": {
+    "title": "Analítica",
+    "subtitle": "Métricas de procesamiento de recibos y seguimiento de volumen",
+    "tabMetrics": "Métricas",
+    "tabVolume": "Volumen",
+    "tabAuditLog": "Registro de auditoría",
+    "totalReceipts": "Total de recibos",
+    "approved": "Aprobados",
+    "rejected": "Rechazados",
+    "pending": "Pendientes",
+    "requiresReview": "Requiere revisión",
+    "flagged": "Marcados",
+    "approvalRate": "Tasa de aprobación",
+    "rejectionRate": "Tasa de rechazo",
+    "groupBy": "Agrupar por",
+    "hourly": "Por hora",
+    "daily": "Diario",
+    "weekly": "Semanal",
+    "noData": "No hay datos disponibles para este período",
+    "legendVerified": "Verificado",
+    "legendPending": "Pendiente",
+    "legendRejected": "Rechazado",
+    "auditLogTitle": "Registro de auditoría",
+    "auditLogDescription": "La funcionalidad del registro de auditoría estará disponible en una actualización futura.",
+    "failedToLoad": "No se pudieron cargar los datos analíticos"
   }
 }

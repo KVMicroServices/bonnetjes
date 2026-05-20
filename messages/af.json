@@ -17,7 +17,8 @@
     "settings": "Instellings",
     "signOut": "Teken uit",
     "signIn": "Teken in",
-    "getStarted": "Begin"
+    "getStarted": "Begin",
+    "analytics": "Analise"
   },
   "Login": {
     "subtitle": "Teken in by jou rekening",
@@ -312,5 +313,31 @@
     "invalidLinkExpired": "Hierdie betwistings-skakel het verstryk.",
     "invalidLinkMissing": "Hierdie betwistings-skakel mis nodige inligting.",
     "invalidLinkInvalid": "Hierdie betwistings-skakel is ongeldig."
+  },
+  "Analytics": {
+    "title": "Analise",
+    "subtitle": "Kwitansie-verwerkingstatistieke en volume-opsporing",
+    "tabMetrics": "Statistieke",
+    "tabVolume": "Volume",
+    "tabAuditLog": "Ouditlog",
+    "totalReceipts": "Totale kwitansies",
+    "approved": "Goedgekeur",
+    "rejected": "Afgekeur",
+    "pending": "Hangende",
+    "requiresReview": "Hersiening nodig",
+    "flagged": "Gemerk",
+    "approvalRate": "Goedkeuringskoers",
+    "rejectionRate": "Afkeuringskoers",
+    "groupBy": "Groepeer volgens",
+    "hourly": "Per uur",
+    "daily": "Daagliks",
+    "weekly": "Weekliks",
+    "noData": "Geen data beskikbaar vir hierdie tydperk",
+    "legendVerified": "Geverifieer",
+    "legendPending": "Hangende",
+    "legendRejected": "Afgekeur",
+    "auditLogTitle": "Ouditlog",
+    "auditLogDescription": "Ouditlog-funksionaliteit sal beskikbaar wees in 'n toekomstige opdatering.",
+    "failedToLoad": "Kon nie analise-data laai nie"
   }
 }

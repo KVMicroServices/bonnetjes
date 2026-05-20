@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { LogOut, LayoutDashboard, Menu, X, Settings } from "lucide-react";
+import { LogOut, LayoutDashboard, Menu, X, Settings, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
@@ -43,6 +43,15 @@ export function Header() {
                 <LayoutDashboard className="h-4 w-4" />
                 {t("dashboard")}
               </Link>
+              {isAdmin && (
+                <Link
+                  href="/admin/analytics"
+                  className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  {t("analytics")}
+                </Link>
+              )}
               {isAdmin && (
                 <Link
                   href="/admin/settings"
@@ -113,6 +122,16 @@ export function Header() {
                     <LayoutDashboard className="h-4 w-4" />
                     {t("dashboard")}
                   </Link>
+                  {isAdmin && (
+                    <Link
+                      href="/admin/analytics"
+                      className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      {t("analytics")}
+                    </Link>
+                  )}
                   {isAdmin && (
                     <Link
                       href="/admin/settings"

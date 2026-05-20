@@ -17,7 +17,8 @@
     "settings": "Paramètres",
     "signOut": "Déconnexion",
     "signIn": "Connexion",
-    "getStarted": "Commencer"
+    "getStarted": "Commencer",
+    "analytics": "Analytique"
   },
   "Login": {
     "subtitle": "Connectez-vous à votre compte",
@@ -312,5 +313,31 @@
     "invalidLinkExpired": "Ce lien de contestation a expiré.",
     "invalidLinkMissing": "Il manque des informations requises dans ce lien de contestation.",
     "invalidLinkInvalid": "Ce lien de contestation n'est pas valide."
+  },
+  "Analytics": {
+    "title": "Analytique",
+    "subtitle": "Métriques de traitement des reçus et suivi du volume",
+    "tabMetrics": "Métriques",
+    "tabVolume": "Volume",
+    "tabAuditLog": "Journal d'audit",
+    "totalReceipts": "Total des reçus",
+    "approved": "Approuvés",
+    "rejected": "Rejetés",
+    "pending": "En attente",
+    "requiresReview": "Examen requis",
+    "flagged": "Signalés",
+    "approvalRate": "Taux d'approbation",
+    "rejectionRate": "Taux de rejet",
+    "groupBy": "Grouper par",
+    "hourly": "Par heure",
+    "daily": "Par jour",
+    "weekly": "Par semaine",
+    "noData": "Aucune donnée disponible pour cette période",
+    "legendVerified": "Vérifié",
+    "legendPending": "En attente",
+    "legendRejected": "Rejeté",
+    "auditLogTitle": "Journal d'audit",
+    "auditLogDescription": "La fonctionnalité du journal d'audit sera disponible dans une mise à jour future.",
+    "failedToLoad": "Impossible de charger les données analytiques"
   }
 }

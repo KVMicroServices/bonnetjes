@@ -17,7 +17,8 @@
     "settings": "Einstellungen",
     "signOut": "Abmelden",
     "signIn": "Anmelden",
-    "getStarted": "Loslegen"
+    "getStarted": "Loslegen",
+    "analytics": "Analytik"
   },
   "Login": {
     "subtitle": "Melden Sie sich bei Ihrem Konto an",
@@ -312,5 +313,31 @@
     "invalidLinkExpired": "Dieser Einspruchs-Link ist abgelaufen.",
     "invalidLinkMissing": "Diesem Einspruchs-Link fehlen erforderliche Informationen.",
     "invalidLinkInvalid": "Dieser Einspruchs-Link ist ungültig."
+  },
+  "Analytics": {
+    "title": "Analytik",
+    "subtitle": "Belegverarbeitungsmetriken und Volumentracking",
+    "tabMetrics": "Metriken",
+    "tabVolume": "Volumen",
+    "tabAuditLog": "Prüfprotokoll",
+    "totalReceipts": "Belege gesamt",
+    "approved": "Genehmigt",
+    "rejected": "Abgelehnt",
+    "pending": "Ausstehend",
+    "requiresReview": "Überprüfung erforderlich",
+    "flagged": "Markiert",
+    "approvalRate": "Genehmigungsrate",
+    "rejectionRate": "Ablehnungsrate",
+    "groupBy": "Gruppieren nach",
+    "hourly": "Stündlich",
+    "daily": "Täglich",
+    "weekly": "Wöchentlich",
+    "noData": "Keine Daten für diesen Zeitraum verfügbar",
+    "legendVerified": "Verifiziert",
+    "legendPending": "Ausstehend",
+    "legendRejected": "Abgelehnt",
+    "auditLogTitle": "Prüfprotokoll",
+    "auditLogDescription": "Die Prüfprotokoll-Funktion wird in einem zukünftigen Update verfügbar sein.",
+    "failedToLoad": "Analysedaten konnten nicht geladen werden"
   }
 }

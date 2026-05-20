@@ -17,7 +17,8 @@
     "settings": "Instellingen",
     "signOut": "Uitloggen",
     "signIn": "Inloggen",
-    "getStarted": "Aan de slag"
+    "getStarted": "Aan de slag",
+    "analytics": "Analyse"
   },
   "Login": {
     "subtitle": "Log in op je account",
@@ -312,5 +313,31 @@
     "invalidLinkExpired": "Deze bezwaarlink is verlopen.",
     "invalidLinkMissing": "Deze bezwaarlink mist vereiste informatie.",
     "invalidLinkInvalid": "Deze bezwaarlink is ongeldig."
+  },
+  "Analytics": {
+    "title": "Analyse",
+    "subtitle": "Bonverwerking statistieken en volumetracking",
+    "tabMetrics": "Statistieken",
+    "tabVolume": "Volume",
+    "tabAuditLog": "Auditlog",
+    "totalReceipts": "Totaal bonnen",
+    "approved": "Goedgekeurd",
+    "rejected": "Afgewezen",
+    "pending": "In afwachting",
+    "requiresReview": "Beoordeling nodig",
+    "flagged": "Gemarkeerd",
+    "approvalRate": "Goedkeuringspercentage",
+    "rejectionRate": "Afwijzingspercentage",
+    "groupBy": "Groeperen op",
+    "hourly": "Per uur",
+    "daily": "Per dag",
+    "weekly": "Per week",
+    "noData": "Geen gegevens beschikbaar voor deze periode",
+    "legendVerified": "Geverifieerd",
+    "legendPending": "In afwachting",
+    "legendRejected": "Afgewezen",
+    "auditLogTitle": "Auditlog",
+    "auditLogDescription": "Auditlog functionaliteit wordt beschikbaar in een toekomstige update.",
+    "failedToLoad": "Kan analysegegevens niet laden"
   }
 }

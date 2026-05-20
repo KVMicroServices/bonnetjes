@@ -15,6 +15,7 @@ vi.mock("next-intl", () => ({
     const translations: Record<string, string> = {
       dashboard: "Dashboard",
       settings: "Settings",
+      analytics: "Analytics",
       signOut: "Sign Out",
       signIn: "Sign In",
       getStarted: "Get Started",
@@ -45,6 +46,7 @@ vi.mock("lucide-react", () => ({
   Menu: () => React.createElement("span", null, "MenuIcon"),
   X: () => React.createElement("span", null, "XIcon"),
   Settings: () => React.createElement("span", null, "SettingsIcon"),
+  BarChart3: () => React.createElement("span", null, "BarChart3Icon"),
 }));
 
 // ─── Imports (after mocks) ─────────────────────────────────────────────────────
@@ -84,6 +86,23 @@ describe("Header navigation for authenticated users", () => {
     expect(html).toContain('href="/admin/settings"');
   });
 
+  it("renders Analytics link for admin users", () => {
+    mockSession = {
+      user: { id: "admin-1", email: "admin@test.com", role: "admin" },
+    };
+    const html = renderHeader();
+
+    expect(html).toContain("Analytics");
+    expect(html).toContain('href="/admin/analytics"');
+  });
+
+  it("does not render Analytics link for non-admin users", () => {
+    const html = renderHeader();
+
+    expect(html).not.toContain("Analytics");
+    expect(html).not.toContain('href="/admin/analytics"');
+  });
+
   it("does not render Settings link for non-admin users", () => {
     const html = renderHeader();
 
@@ -109,14 +128,15 @@ describe("Header navigation for authenticated users", () => {
     expect(html).not.toContain("Platforms");
   });
 
-  it("renders exactly Dashboard and Settings as navigation links for admin", () => {
+  it("renders exactly Dashboard, Analytics, and Settings as navigation links for admin", () => {
     mockSession = {
       user: { id: "admin-1", email: "admin@test.com", role: "admin" },
     };
     const html = renderHeader();
 
-    // Verify the two expected links exist
+    // Verify the expected links exist
     expect(html).toContain("Dashboard");
+    expect(html).toContain("Analytics");
     expect(html).toContain("Settings");
 
     // Verify removed links do not exist
@@ -172,6 +192,7 @@ describe("Header navigation for unauthenticated users", () => {
     expect(html).toContain("Sign In");
     expect(html).toContain("Get Started");
     expect(html).not.toContain("Dashboard");
+    expect(html).not.toContain("Analytics");
     expect(html).not.toContain("Settings");
     expect(html).not.toContain("Admin Panel");
     expect(html).not.toContain("Moderation");
