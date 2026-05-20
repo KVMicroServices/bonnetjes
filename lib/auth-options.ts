@@ -5,28 +5,12 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./db";
 import bcrypt from "bcryptjs";
 
-function getGoogleClientId(): string {
-  const value = process.env.GOOGLE_CLIENT_ID;
-  if (!value) {
-    throw new Error("Missing GOOGLE_CLIENT_ID environment variable");
-  }
-  return value;
-}
-
-function getGoogleClientSecret(): string {
-  const value = process.env.GOOGLE_CLIENT_SECRET;
-  if (!value) {
-    throw new Error("Missing GOOGLE_CLIENT_SECRET environment variable");
-  }
-  return value;
-}
-
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
-      clientId: getGoogleClientId(),
-      clientSecret: getGoogleClientSecret(),
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {

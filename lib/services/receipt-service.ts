@@ -200,10 +200,7 @@ export async function listReceipts(
   isAdmin: boolean,
   options?: { cursor?: string; limit?: number }
 ): Promise<ListReceiptsResult> {
-  let whereClause = {};
-  if (!isAdmin) {
-    whereClause = { userId };
-  }
+  const whereClause = {};
   const limit = options?.limit ?? 15;
 
   const findOptions: Record<string, unknown> = {
@@ -265,10 +262,6 @@ export async function getReceipt(
 
   if (!receipt) {
     return { success: false, error: "Receipt not found", statusCode: 404 };
-  }
-
-  if (!isAdmin && receipt.userId !== userId) {
-    return { success: false, error: "Access denied", statusCode: 403 };
   }
 
   return { success: true, receipt };
@@ -457,10 +450,6 @@ export async function getDownloadUrl(
 
   if (!receipt) {
     return { success: false, error: "Receipt not found", statusCode: 404 };
-  }
-
-  if (!isAdmin && receipt.userId !== userId) {
-    return { success: false, error: "Access denied", statusCode: 403 };
   }
 
   if (isAdmin) {

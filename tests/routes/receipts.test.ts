@@ -145,7 +145,7 @@ describe("GET /api/receipts", () => {
     expect(body.error).toBe("Unauthorized");
   });
 
-  it("returns only user receipts for non-admin users", async () => {
+  it("returns all receipts for non-admin users", async () => {
     const session = createUserSession();
     mockGetServerSession.mockResolvedValue(session);
 
@@ -162,7 +162,7 @@ describe("GET /api/receipts", () => {
 
     expect(mockPrisma.receipt.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: "user-123" },
+        where: {},
       })
     );
   });
@@ -370,7 +370,7 @@ describe("GET /api/receipts/[id]", () => {
     expect(body.error).toBe("Receipt not found");
   });
 
-  it("returns 403 when non-admin user tries to access another user receipt", async () => {
+  it("returns receipt when non-admin user accesses another user receipt", async () => {
     const session = createUserSession();
     mockGetServerSession.mockResolvedValue(session);
 
@@ -386,8 +386,8 @@ describe("GET /api/receipts/[id]", () => {
     const response = await getReceiptById(request, { params: Promise.resolve({ id: "receipt-other" }) });
     const body = await response.json();
 
-    expect(response.status).toBe(403);
-    expect(body.error).toBe("Access denied");
+    expect(response.status).toBe(200);
+    expect(body.id).toBe("receipt-other");
   });
 
   it("returns receipt for the owning user", async () => {
@@ -693,7 +693,7 @@ describe("GET /api/receipts/[id]/download", () => {
     expect(body.error).toBe("Receipt not found");
   });
 
-  it("returns 403 when non-admin user tries to download another user receipt", async () => {
+  it("returns download URL when non-admin user downloads another user receipt", async () => {
     const session = createUserSession();
     mockGetServerSession.mockResolvedValue(session);
 
@@ -707,8 +707,8 @@ describe("GET /api/receipts/[id]/download", () => {
     const response = await getDownload(request, { params: Promise.resolve({ id: "receipt-001" }) });
     const body = await response.json();
 
-    expect(response.status).toBe(403);
-    expect(body.error).toBe("Access denied");
+    expect(response.status).toBe(200);
+    expect(body.downloadUrl).toBeDefined();
   });
 
   it("returns download URL for the owning user", async () => {

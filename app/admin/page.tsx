@@ -913,6 +913,11 @@ export default function AdminPage() {
           >
             <Scale className="h-4 w-4" />
             {t("disputesTab")}
+            {disputes.filter((dispute) => dispute.status === "pending" || dispute.status === "requires_review").length > 0 && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-kv-orange text-[10px] font-bold text-white">
+                {disputes.filter((dispute) => dispute.status === "pending" || dispute.status === "requires_review").length}
+              </span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab("manual-disable")}
@@ -1611,6 +1616,17 @@ export default function AdminPage() {
                       {t("disputeReject")}
                     </button>
                   </div>
+
+                  {/* Comment Thread */}
+                  {selectedDispute.receipt && (
+                    <div className="pt-4 border-t">
+                      <CommentThread
+                        receiptId={selectedDispute.receipt.id}
+                        currentUserId={(session?.user as any)?.id || ""}
+                        isAdmin={isAdmin}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

@@ -110,18 +110,19 @@ describe("listReceipts", () => {
     );
   });
 
-  it("returns only user-owned receipts for non-admin users", async () => {
-    dependencies.database.receipt.findMany.mockResolvedValue([SAMPLE_RECEIPT] as any);
+  it("returns all receipts for non-admin users", async () => {
+    const allReceipts = [SAMPLE_RECEIPT, OTHER_USER_RECEIPT];
+    dependencies.database.receipt.findMany.mockResolvedValue(allReceipts as any);
 
     const result = await listReceipts(dependencies, USER_ID, false);
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.receipts).toHaveLength(1);
+      expect(result.receipts).toHaveLength(2);
       expect(result.hasMore).toBe(false);
     }
     expect(dependencies.database.receipt.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: USER_ID } })
+      expect.objectContaining({ where: {} })
     );
   });
 
@@ -181,16 +182,15 @@ describe("getReceipt", () => {
     }
   });
 
-  it("returns 403 when non-admin accesses another user receipt", async () => {
+  it("returns receipt for any user regardless of ownership", async () => {
     const receiptWithActions = { ...OTHER_USER_RECEIPT, adminActions: [] };
     dependencies.database.receipt.findUnique.mockResolvedValue(receiptWithActions as any);
 
     const result = await getReceipt(dependencies, "receipt-002", USER_ID, false);
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.statusCode).toBe(403);
-      expect(result.error).toBe("Access denied");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.receipt.id).toBe("receipt-002");
     }
   });
 });
@@ -568,15 +568,14 @@ describe("getDownloadUrl", () => {
     }
   });
 
-  it("returns 403 when non-admin accesses another user receipt", async () => {
+  it("returns download URL for any authenticated user regardless of ownership", async () => {
     dependencies.database.receipt.findUnique.mockResolvedValue(OTHER_USER_RECEIPT as any);
 
     const result = await getDownloadUrl(dependencies, "receipt-002", USER_ID, false);
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.statusCode).toBe(403);
-      expect(result.error).toBe("Access denied");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.downloadUrl).toBe("https://storage.example.com/signed-url");
     }
   });
 

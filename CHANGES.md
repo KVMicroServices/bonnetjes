@@ -1,5 +1,23 @@
 # Changes
 
+## [111] Fix build failure from env var validation at module load time
+
+**What**: Replaced throwing helper functions for GOOGLE_CLIENT_ID/SECRET with fallback empty strings so `next build` doesn't crash when env vars aren't available at build time (Railway injects them at runtime only).
+**Files**:
+- lib/auth-options.ts
+
+## [110] Fix admin dashboard bugs: disputes badge, comment thread, access control
+
+**What**: Added badge count to Disputes tab, added CommentThread to dispute modal, removed user-scoping from receipt list/view/download so all authenticated users can access all receipts.
+**Decisions**:
+- Disputes badge counts items with status "pending" or "requires_review"
+- Only `/admin/settings` retains admin-role guard; all other routes are open to any authenticated user
+**Files**:
+- app/admin/page.tsx
+- lib/services/receipt-service.ts
+- tests/services/receipt-service.test.ts
+- tests/routes/receipts.test.ts
+
 ## [109] Fix review findings from 26.05.20.1-feature-sprint
 
 **What**: Fixed SMTP password exposure in settings API, remediated 30+ banned code patterns (ternaries, magic values, abbreviations, console.error, chained ops), added missing translations, restored admin auth guard, added limit caps and JSON parse guards on API routes.
