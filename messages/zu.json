@@ -18,7 +18,8 @@
     "signOut": "Phuma",
     "signIn": "Ngena",
     "getStarted": "Qala",
-    "analytics": "Ukuhlaziya"
+    "analytics": "Ukuhlaziya",
+    "adminSettings": "Admin"
   },
   "Login": {
     "subtitle": "Ngena ku-akhawunti yakho",
@@ -345,5 +346,28 @@
     "auditLogTitle": "Ilog yokuhlola",
     "auditLogDescription": "Ukusebenza kwelog yokuhlola kuzotholakala ku-update ezayo.",
     "failedToLoad": "Yehlulekile ukulayisha idatha yokuhlaziya"
+  },
+  "AuditLog": {
+    "columnTime": "Isikhathi",
+    "columnCategory": "Isigaba",
+    "columnAction": "Isenzo",
+    "columnActor": "Umenzi",
+    "columnSummary": "Isifinyezo",
+    "auditFilterAll": "Konke",
+    "auditFilterAiJudgement": "Isinqumo se-AI",
+    "auditFilterSecondaryAnalysis": "Ukuhlaziywa kwesibili",
+    "auditFilterModeration": "Ukulawula",
+    "auditFilterComment": "Amazwana",
+    "auditFilterUserManagement": "Ukuphathwa kwabasebenzisi",
+    "auditFilterSettings": "Izilungiselelo",
+    "auditFilterSystem": "Uhlelo",
+    "loadMore": "Layisha okwengeziwe",
+    "loading": "Iyalayisha...",
+    "emptyState": "Azikho izingeniso zelog yokuhlola ezihambelana nefiltha yamanje",
+    "systemActor": "Uhlelo"
+  },
+  "UserSettings": {
+    "title": "Izilungiselelo",
+    "comingSoon": "Izilungiselelo zomsebenzisi zizotholakala ekuvuselelweni okuzayo."
   }
 }

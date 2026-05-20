@@ -12,6 +12,7 @@ import {
 } from "@/lib/fraud-detection";
 import { isAutoDisableEnabled, isLocationAllowedForAutoDisable } from "@/lib/services/app-settings-service";
 import { logger } from "@/lib/logger";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
 // ─── KV-Sync Storage Routing ─────────────────────────────────────────────────
 
@@ -206,6 +207,11 @@ async function enqueueAutoDisableIfEligible(receiptId: string): Promise<void> {
     reviewId: syncState.reviewId,
     locationId: syncState.locationId,
     tenantId: syncState.tenantId,
+  });
+
+  recordAuditEvent("system", "auto_disable_enqueued", undefined, {
+    receiptId,
+    reviewId: syncState.reviewId,
   });
 
   logger.info(

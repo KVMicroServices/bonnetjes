@@ -18,7 +18,8 @@
     "signOut": "Uitloggen",
     "signIn": "Inloggen",
     "getStarted": "Aan de slag",
-    "analytics": "Analyse"
+    "analytics": "Analyse",
+    "adminSettings": "Admin"
   },
   "Login": {
     "subtitle": "Log in op je account",
@@ -345,5 +346,28 @@
     "auditLogTitle": "Auditlog",
     "auditLogDescription": "Auditlog functionaliteit wordt beschikbaar in een toekomstige update.",
     "failedToLoad": "Kan analysegegevens niet laden"
+  },
+  "AuditLog": {
+    "columnTime": "Tijd",
+    "columnCategory": "Categorie",
+    "columnAction": "Actie",
+    "columnActor": "Uitvoerder",
+    "columnSummary": "Samenvatting",
+    "auditFilterAll": "Alles",
+    "auditFilterAiJudgement": "AI-beoordeling",
+    "auditFilterSecondaryAnalysis": "Secundaire analyse",
+    "auditFilterModeration": "Moderatie",
+    "auditFilterComment": "Opmerking",
+    "auditFilterUserManagement": "Gebruikersbeheer",
+    "auditFilterSettings": "Instellingen",
+    "auditFilterSystem": "Systeem",
+    "loadMore": "Meer laden",
+    "loading": "Laden...",
+    "emptyState": "Geen auditlog-items komen overeen met het huidige filter",
+    "systemActor": "Systeem"
+  },
+  "UserSettings": {
+    "title": "Instellingen",
+    "comingSoon": "Gebruikersinstellingen worden beschikbaar in een toekomstige update."
   }
 }

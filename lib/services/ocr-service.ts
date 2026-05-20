@@ -5,6 +5,7 @@ import { convertPdfToImages } from "@/lib/pdf-to-image";
 import {
   getHighConfidenceThreshold,
 } from "@/lib/services/app-settings-service";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -633,6 +634,21 @@ export async function processReceiptOcr(
       processedAt: new Date()
     }
   });
+
+  recordAuditEvent("ai_judgement", finalVerificationStatus, undefined, {
+    receiptId,
+    verdict: finalVerificationStatus,
+    confidence: finalConfidence,
+  });
+
+  if (secondaryAnalysis) {
+    const parsedSecondary = JSON.parse(secondaryAnalysis) as SecondaryAnalysisResult;
+    recordAuditEvent("secondary_analysis", parsedSecondary.verdict, undefined, {
+      receiptId,
+      verdict: parsedSecondary.verdict,
+      confidence: parsedSecondary.confidence,
+    });
+  }
 
   return { success: true, verificationStatus: finalVerificationStatus };
 }

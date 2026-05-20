@@ -18,7 +18,8 @@
     "signOut": "Teken uit",
     "signIn": "Teken in",
     "getStarted": "Begin",
-    "analytics": "Analise"
+    "analytics": "Analise",
+    "adminSettings": "Admin"
   },
   "Login": {
     "subtitle": "Teken in by jou rekening",
@@ -345,5 +346,28 @@
     "auditLogTitle": "Ouditlog",
     "auditLogDescription": "Ouditlog-funksionaliteit sal beskikbaar wees in 'n toekomstige opdatering.",
     "failedToLoad": "Kon nie analise-data laai nie"
+  },
+  "AuditLog": {
+    "columnTime": "Tyd",
+    "columnCategory": "Kategorie",
+    "columnAction": "Aksie",
+    "columnActor": "Uitvoerder",
+    "columnSummary": "Opsomming",
+    "auditFilterAll": "Alles",
+    "auditFilterAiJudgement": "KI-beoordeling",
+    "auditFilterSecondaryAnalysis": "Sekondêre analise",
+    "auditFilterModeration": "Moderering",
+    "auditFilterComment": "Opmerking",
+    "auditFilterUserManagement": "Gebruikersbestuur",
+    "auditFilterSettings": "Instellings",
+    "auditFilterSystem": "Stelsel",
+    "loadMore": "Laai meer",
+    "loading": "Laai...",
+    "emptyState": "Geen ouditlog-inskrywings stem ooreen met die huidige filter nie",
+    "systemActor": "Stelsel"
+  },
+  "UserSettings": {
+    "title": "Instellings",
+    "comingSoon": "Gebruikerinstellings sal beskikbaar wees in 'n toekomstige opdatering."
   }
 }

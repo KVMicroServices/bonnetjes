@@ -18,7 +18,8 @@
     "signOut": "Déconnexion",
     "signIn": "Connexion",
     "getStarted": "Commencer",
-    "analytics": "Analytique"
+    "analytics": "Analytique",
+    "adminSettings": "Admin"
   },
   "Login": {
     "subtitle": "Connectez-vous à votre compte",
@@ -345,5 +346,28 @@
     "auditLogTitle": "Journal d'audit",
     "auditLogDescription": "La fonctionnalité du journal d'audit sera disponible dans une mise à jour future.",
     "failedToLoad": "Impossible de charger les données analytiques"
+  },
+  "AuditLog": {
+    "columnTime": "Heure",
+    "columnCategory": "Catégorie",
+    "columnAction": "Action",
+    "columnActor": "Acteur",
+    "columnSummary": "Résumé",
+    "auditFilterAll": "Tous",
+    "auditFilterAiJudgement": "Jugement IA",
+    "auditFilterSecondaryAnalysis": "Analyse secondaire",
+    "auditFilterModeration": "Modération",
+    "auditFilterComment": "Commentaire",
+    "auditFilterUserManagement": "Gestion des utilisateurs",
+    "auditFilterSettings": "Paramètres",
+    "auditFilterSystem": "Système",
+    "loadMore": "Charger plus",
+    "loading": "Chargement...",
+    "emptyState": "Aucune entrée du journal d'audit ne correspond au filtre actuel",
+    "systemActor": "Système"
+  },
+  "UserSettings": {
+    "title": "Paramètres",
+    "comingSoon": "Les paramètres utilisateur seront disponibles dans une mise à jour future."
   }
 }

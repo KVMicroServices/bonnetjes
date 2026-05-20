@@ -4,13 +4,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import {
   getAnalyticsMetrics,
   getReceiptVolume,
   VolumeGranularity,
 } from "@/lib/services/analytics-service";
+import {
+  getAuditLogs,
+  AuditCategory,
+} from "@/lib/services/audit-log-service";
 
 const VALID_GRANULARITIES: ReadonlyArray<string> = ["hour", "day", "week"];
+
+const VALID_AUDIT_CATEGORIES: ReadonlyArray<string> = [
+  "ai_judgement",
+  "secondary_analysis",
+  "moderation",
+  "comment",
+  "user_management",
+  "settings",
+  "system",
+];
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,6 +44,10 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get("type");
+
+    if (type === "audit") {
+      return await handleAuditQuery(searchParams);
+    }
 
     if (type === "volume") {
       const granularity = searchParams.get("granularity") || "day";
@@ -60,10 +79,45 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result.metrics);
   } catch (error) {
-    console.error("Analytics API error:", error);
+    logger.error({ error }, "Analytics API error");
     return NextResponse.json(
       { error: "Failed to fetch analytics" },
       { status: 500 }
     );
   }
+}
+
+async function handleAuditQuery(
+  searchParams: URLSearchParams
+): Promise<NextResponse> {
+  const categoryParam = searchParams.get("category");
+  const cursorParam = searchParams.get("cursor");
+
+  if (categoryParam && !VALID_AUDIT_CATEGORIES.includes(categoryParam)) {
+    return NextResponse.json(
+      { error: "Invalid category" },
+      { status: 400 }
+    );
+  }
+
+  const queryOptions: {
+    category?: AuditCategory;
+    cursor?: string;
+  } = {};
+
+  if (categoryParam) {
+    queryOptions.category = categoryParam as AuditCategory;
+  }
+
+  if (cursorParam) {
+    queryOptions.cursor = cursorParam;
+  }
+
+  const result = await getAuditLogs(queryOptions);
+
+  return NextResponse.json({
+    entries: result.entries,
+    nextCursor: result.nextCursor,
+    hasMore: result.hasMore,
+  });
 }

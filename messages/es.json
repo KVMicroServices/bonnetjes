@@ -18,7 +18,8 @@
     "signOut": "Cerrar sesión",
     "signIn": "Iniciar sesión",
     "getStarted": "Comenzar",
-    "analytics": "Analítica"
+    "analytics": "Analítica",
+    "adminSettings": "Admin"
   },
   "Login": {
     "subtitle": "Inicia sesión en tu cuenta",
@@ -345,5 +346,28 @@
     "auditLogTitle": "Registro de auditoría",
     "auditLogDescription": "La funcionalidad del registro de auditoría estará disponible en una actualización futura.",
     "failedToLoad": "No se pudieron cargar los datos analíticos"
+  },
+  "AuditLog": {
+    "columnTime": "Hora",
+    "columnCategory": "Categoría",
+    "columnAction": "Acción",
+    "columnActor": "Actor",
+    "columnSummary": "Resumen",
+    "auditFilterAll": "Todos",
+    "auditFilterAiJudgement": "Juicio IA",
+    "auditFilterSecondaryAnalysis": "Análisis secundario",
+    "auditFilterModeration": "Moderación",
+    "auditFilterComment": "Comentario",
+    "auditFilterUserManagement": "Gestión de usuarios",
+    "auditFilterSettings": "Configuración",
+    "auditFilterSystem": "Sistema",
+    "loadMore": "Cargar más",
+    "loading": "Cargando...",
+    "emptyState": "No hay entradas del registro de auditoría que coincidan con el filtro actual",
+    "systemActor": "Sistema"
+  },
+  "UserSettings": {
+    "title": "Configuración",
+    "comingSoon": "La configuración de usuario estará disponible en una actualización futura."
   }
 }

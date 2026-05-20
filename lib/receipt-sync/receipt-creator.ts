@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { enqueueReceiptProcessing } from "@/lib/queue";
 import { isAutoVerifyEnabled } from "@/lib/services/app-settings-service";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
 import type { ReviewDto } from "./types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -45,6 +46,11 @@ export async function createReceiptFromSync(params: {
       extractedDate: parseReviewDate(params.review.reviewDate),
       extractedAmount: params.review.amount || null,
     },
+  });
+
+  recordAuditEvent("system", "receipt_synced", undefined, {
+    receiptId: receipt.id,
+    reviewId: params.review.reviewId,
   });
 
   // When auto-verify is enabled, enqueue for OCR + fraud detection processing

@@ -14,6 +14,7 @@ import {
   SETTING_HIGH_CONFIDENCE_THRESHOLD,
   SETTING_AUTO_DISABLE_LOCATION_WHITELIST,
 } from "@/lib/services/app-settings-service";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
 const MIN_THRESHOLD = 0;
 const MAX_THRESHOLD = 100;
@@ -102,6 +103,11 @@ export async function PATCH(request: NextRequest) {
 
     const settings = await getAppSettings();
     logger.info({ settings, admin: session.user.email }, "App settings updated");
+
+    recordAuditEvent("settings", "settings_updated", (session.user as any).id, {
+      changedKeys: Object.keys(payload),
+    });
+
     return NextResponse.json(settings);
   } catch (error) {
     logger.error({ error }, "Failed to update app settings");

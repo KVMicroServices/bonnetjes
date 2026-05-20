@@ -184,3 +184,16 @@ model AppSetting {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  category  String
+  action    String
+  actorId   String?
+  metadata  String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([category, createdAt])
+  @@index([actorId])
+  @@index([createdAt])
+}

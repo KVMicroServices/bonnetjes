@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
 // ─── Dependencies ────────────────────────────────────────────────────────────
 
@@ -361,6 +362,11 @@ export async function updateReceiptStatus(
       action: status,
       notes,
     },
+  });
+
+  recordAuditEvent("moderation", status, adminId, {
+    receiptId,
+    action: status,
   });
 
   return { success: true, receipt };

@@ -18,6 +18,11 @@ vi.mock("next-auth", () => ({
   getServerSession: (...args: unknown[]) => mockGetServerSession(...args),
 }));
 
+// Mock audit-log-service (fire-and-forget, not relevant to these tests)
+vi.mock("@/lib/services/audit-log-service", () => ({
+  recordAuditEvent: vi.fn(),
+}));
+
 // Mock fraud detection module
 const mockCalculateImageHash = vi.fn();
 const mockCheckForDuplicates = vi.fn();

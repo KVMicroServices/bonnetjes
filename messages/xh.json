@@ -18,7 +18,8 @@
     "signOut": "Phuma",
     "signIn": "Ngena",
     "getStarted": "Qala",
-    "analytics": "Uhlalutyo"
+    "analytics": "Uhlalutyo",
+    "adminSettings": "Admin"
   },
   "Login": {
     "subtitle": "Ngena kwi-akhawunti yakho",
@@ -345,5 +346,28 @@
     "auditLogTitle": "Ilog yokuhlola",
     "auditLogDescription": "Ukusebenza kwelog yokuhlola kuya kufumaneka kwi-update ezayo.",
     "failedToLoad": "Ayikwazanga ukulayisha idatha yohlalutyo"
+  },
+  "AuditLog": {
+    "columnTime": "Ixesha",
+    "columnCategory": "Udidi",
+    "columnAction": "Isenzo",
+    "columnActor": "Umenzi",
+    "columnSummary": "Isishwankathelo",
+    "auditFilterAll": "Konke",
+    "auditFilterAiJudgement": "Isigwebo se-AI",
+    "auditFilterSecondaryAnalysis": "Uhlalutyo lwesibini",
+    "auditFilterModeration": "Ukulawula",
+    "auditFilterComment": "Izimvo",
+    "auditFilterUserManagement": "Ulawulo lwabasebenzisi",
+    "auditFilterSettings": "Izicwangciso",
+    "auditFilterSystem": "Inkqubo",
+    "loadMore": "Layisha okungakumbi",
+    "loading": "Iyalayisha...",
+    "emptyState": "Akukho zingeniso zelog yokuhlola ezihambelana nefiltha yangoku",
+    "systemActor": "Inkqubo"
+  },
+  "UserSettings": {
+    "title": "Izicwangciso",
+    "comingSoon": "Izicwangciso zomsebenzisi ziya kufumaneka kwi-update elizayo."
   }
 }

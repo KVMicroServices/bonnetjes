@@ -14,6 +14,7 @@ import {
 } from "@/lib/review-disable/review-disable-service";
 import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
 import { sendReviewDisableEmail } from "@/lib/email/email-service";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
 const disableByReceiptSchema = z.object({
   action: z.literal("disable"),
@@ -155,6 +156,11 @@ export async function POST(request: Request) {
         ).catch(() => {});
       }
 
+      recordAuditEvent("moderation", data.action, (session.user as any).id, {
+        receiptId: data.receiptId,
+        action: data.action,
+      });
+
       return NextResponse.json({ success: true, reviewId: result.reviewId });
     }
 
@@ -164,6 +170,12 @@ export async function POST(request: Request) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 404 });
       }
+
+      recordAuditEvent("moderation", data.action, (session.user as any).id, {
+        receiptId: data.receiptId,
+        action: data.action,
+      });
+
       return NextResponse.json({ success: true, reviewId: result.reviewId });
     }
 
@@ -181,6 +193,11 @@ export async function POST(request: Request) {
         ADMIN_DISABLED_REASON
       ).catch(() => {});
 
+      recordAuditEvent("moderation", data.action, (session.user as any).id, {
+        reviewId: data.reviewId,
+        action: data.action,
+      });
+
       return NextResponse.json({ success: true });
     }
 
@@ -190,6 +207,12 @@ export async function POST(request: Request) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 500 });
       }
+
+      recordAuditEvent("moderation", data.action, (session.user as any).id, {
+        reviewId: data.reviewId,
+        action: data.action,
+      });
+
       return NextResponse.json({ success: true });
     }
 

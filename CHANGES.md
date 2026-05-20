@@ -1,5 +1,74 @@
 # Changes
 
+## [096] Build AuditLogTab component with category filters, table, and pagination
+
+**What**: Replaced the placeholder audit log tab in the analytics page with a full implementation featuring category filter pills, a data table, cursor-based pagination, loading spinner, and empty state.
+**Decisions**:
+- Used separate `AuditLog` translation namespace to keep keys organized
+- Category badge colors map to distinct Tailwind color classes per category
+- Summary column derives human-readable text from metadata JSON
+- Silent error handling in fetch (matching existing page pattern for client-side code)
+**Files**:
+- app/admin/analytics/page.tsx
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [095] Add unit tests for audit-log-service
+
+**What**: Unit tests covering writer error isolation (fire-and-forget, error logging), cursor-based pagination, and category filtering.
+
+## [094] Rename admin settings nav link to "Admin" and add user settings placeholder
+
+**What**: Renamed admin settings link label from "Settings" to "Admin" in header navigation, added a new "Settings" link visible to all authenticated users pointing to `/settings`, and created a placeholder settings page.
+**Decisions**:
+- Used `Shield` icon for admin link to visually distinguish from user settings
+- Created `UserSettings` namespace to avoid conflict with existing `Settings` namespace (admin settings page)
+**Files**:
+- components/header.tsx
+- app/settings/page.tsx
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+- tests/pages/header-navigation.test.tsx
+
+## [093] Add recordAuditEvent calls to all integration points
+
+**What**: Integrated fire-and-forget audit logging into OCR service, receipt service, admin reviews disable route, admin service, settings route, receipt worker, receipt creator, and dispute verify route.
+**Decisions**:
+- Added `adminId` parameter to `updateUserRole` (optional, threaded from calling route)
+- Used `(session.user as any).id` pattern consistent with existing codebase for session user ID access
+- Mocked audit-log-service in affected test files since fire-and-forget calls don't need testing in route tests
+**Files**:
+- lib/services/ocr-service.ts
+- lib/services/receipt-service.ts
+- app/api/admin/reviews/disable/route.ts
+- lib/services/admin-service.ts
+- app/api/admin/users/route.ts
+- app/api/admin/settings/route.ts
+- lib/queue/receipt-worker.ts
+- lib/receipt-sync/receipt-creator.ts
+- app/api/dispute/verify/route.ts
+- tests/routes/admin.test.ts
+- tests/routes/receipts.test.ts
+- tests/routes/admin-settings.test.ts
+
+## [092] Extend analytics route with type=audit handler
+
+**What**: Added `type=audit` query param support to the analytics API route, delegating to `getAuditLogs` with optional `category` and `cursor` params.
+**Decisions**:
+- Validates category against allowed values before querying
+- Replaced `console.error` with shared logger in catch block
+- Extracted `handleAuditQuery` helper to keep the route handler thin
+
+## [091] Add AuditLog model and audit-log-service with fire-and-forget writer and cursor-based query
+
+**What**: Added `AuditLog` Prisma model with composite indexes and created `lib/services/audit-log-service.ts` with `recordAuditEvent` (fire-and-forget, internal error logging) and `getAuditLogs` (cursor-based pagination, category filtering).
+**Decisions**:
+- No foreign key on actorId — entries survive user deletion
+- Writer catches errors internally via shared logger, never propagates
+- Query fetches limit+1 to determine hasMore without a separate count query
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260601000006_add_audit_log/migration.sql
+- lib/services/audit-log-service.ts
+
 ## [090] Show queued/processed dates in admin table, move user/date/amount to modal
 
 **What**: Replaced User, Date, and Amount columns in the admin review queue table with Queued and Processed timestamp columns. The removed data is already visible in the receipt detail modal.

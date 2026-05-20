@@ -13,8 +13,8 @@ import {
   AlertTriangle,
   TrendingUp,
   TrendingDown,
-  FileText,
   Loader2,
+  Inbox,
 } from "lucide-react";
 import {
   BarChart,
@@ -430,18 +430,308 @@ function GranularityButton({
 
 // ─── Audit Log Tab ───────────────────────────────────────────────────────────
 
+// ─── Audit Log Types ─────────────────────────────────────────────────────────
+
+interface AuditLogEntry {
+  id: string;
+  category: string;
+  action: string;
+  actorId: string | null;
+  metadata: string | null;
+  createdAt: string;
+}
+
+interface AuditLogResponse {
+  entries: ReadonlyArray<AuditLogEntry>;
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+// ─── Audit Log Constants ─────────────────────────────────────────────────────
+
+const AUDIT_CATEGORY_ALL = "all";
+
+const AUDIT_CATEGORIES: ReadonlyArray<string> = [
+  AUDIT_CATEGORY_ALL,
+  "ai_judgement",
+  "secondary_analysis",
+  "moderation",
+  "comment",
+  "user_management",
+  "settings",
+  "system",
+];
+
+const CATEGORY_TRANSLATION_KEYS: Readonly<Record<string, string>> = {
+  all: "auditFilterAll",
+  ai_judgement: "auditFilterAiJudgement",
+  secondary_analysis: "auditFilterSecondaryAnalysis",
+  moderation: "auditFilterModeration",
+  comment: "auditFilterComment",
+  user_management: "auditFilterUserManagement",
+  settings: "auditFilterSettings",
+  system: "auditFilterSystem",
+};
+
+const CATEGORY_BADGE_COLORS: Readonly<Record<string, string>> = {
+  ai_judgement: "bg-purple-100 text-purple-800",
+  secondary_analysis: "bg-indigo-100 text-indigo-800",
+  moderation: "bg-blue-100 text-blue-800",
+  comment: "bg-green-100 text-green-800",
+  user_management: "bg-orange-100 text-orange-800",
+  settings: "bg-yellow-100 text-yellow-800",
+  system: "bg-gray-100 text-gray-800",
+};
+
+// ─── Audit Log Helpers ───────────────────────────────────────────────────────
+
+function resolveActorName(entry: AuditLogEntry, systemLabel: string): string {
+  if (!entry.actorId) {
+    return systemLabel;
+  }
+
+  if (!entry.metadata) {
+    return entry.actorId;
+  }
+
+  try {
+    const parsed = JSON.parse(entry.metadata);
+    if (parsed.actorName) {
+      return parsed.actorName;
+    }
+  } catch {
+    // metadata is not valid JSON, fall through
+  }
+
+  return entry.actorId;
+}
+
+function buildSummary(entry: AuditLogEntry): string {
+  if (!entry.metadata) {
+    return entry.action;
+  }
+
+  try {
+    const parsed = JSON.parse(entry.metadata);
+
+    if (parsed.receiptId && parsed.verdict) {
+      return `Receipt ${parsed.receiptId.slice(0, 8)} → ${parsed.verdict}`;
+    }
+
+    if (parsed.targetUserId && parsed.newRole) {
+      return `Role changed to ${parsed.newRole}`;
+    }
+
+    if (parsed.changedKeys) {
+      const keys = parsed.changedKeys as string[];
+      return `Updated: ${keys.join(", ")}`;
+    }
+
+    if (parsed.receiptId && parsed.action) {
+      return `Receipt ${parsed.receiptId.slice(0, 8)} → ${parsed.action}`;
+    }
+
+    if (parsed.receiptId && parsed.outcome) {
+      return `Receipt ${parsed.receiptId.slice(0, 8)} → ${parsed.outcome}`;
+    }
+
+    if (parsed.receiptId && parsed.reviewId) {
+      return `Receipt ${parsed.receiptId.slice(0, 8)}`;
+    }
+
+    if (parsed.receiptId) {
+      return `Receipt ${parsed.receiptId.slice(0, 8)}`;
+    }
+  } catch {
+    // metadata is not valid JSON, fall through
+  }
+
+  return entry.action;
+}
+
+// ─── Audit Log Tab Component ─────────────────────────────────────────────────
+
 function AuditLogTab() {
-  const t = useTranslations("Analytics");
+  const t = useTranslations("AuditLog");
+
+  const [entries, setEntries] = useState<AuditLogEntry[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string>(AUDIT_CATEGORY_ALL);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+
+  const fetchAuditLogs = useCallback(async (category: string, cursor: string | null) => {
+    let url = "/api/admin/analytics?type=audit";
+
+    if (category !== AUDIT_CATEGORY_ALL) {
+      url = url + `&category=${category}`;
+    }
+
+    if (cursor) {
+      url = url + `&cursor=${cursor}`;
+    }
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data: AuditLogResponse = await response.json();
+    return data;
+  }, []);
+
+  const loadInitial = useCallback(async (category: string) => {
+    setIsLoading(true);
+    setEntries([]);
+    setNextCursor(null);
+    setHasMore(false);
+
+    try {
+      const result = await fetchAuditLogs(category, null);
+      if (result) {
+        setEntries([...result.entries]);
+        setNextCursor(result.nextCursor);
+        setHasMore(result.hasMore);
+      }
+    } catch {
+      // Audit log fetch failed silently
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchAuditLogs]);
+
+  const loadMore = useCallback(async () => {
+    if (!nextCursor || isLoadingMore) {
+      return;
+    }
+
+    setIsLoadingMore(true);
+
+    try {
+      const result = await fetchAuditLogs(activeCategory, nextCursor);
+      if (result) {
+        setEntries((previous) => [...previous, ...result.entries]);
+        setNextCursor(result.nextCursor);
+        setHasMore(result.hasMore);
+      }
+    } catch {
+      // Load more failed silently
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [activeCategory, nextCursor, isLoadingMore, fetchAuditLogs]);
+
+  useEffect(() => {
+    loadInitial(activeCategory);
+  }, [activeCategory, loadInitial]);
+
+  function handleCategoryChange(category: string) {
+    setActiveCategory(category);
+  }
 
   return (
-    <div className="rounded-lg border bg-white p-12 text-center">
-      <FileText className="mx-auto h-12 w-12 text-gray-300" />
-      <h3 className="mt-4 text-lg font-medium text-gray-900">
-        {t("auditLogTitle")}
-      </h3>
-      <p className="mt-2 text-sm text-gray-500">
-        {t("auditLogDescription")}
-      </p>
+    <div className="space-y-4">
+      {/* Category Filter Pills */}
+      <div className="flex flex-wrap gap-2">
+        {AUDIT_CATEGORIES.map((category) => {
+          const isActive = category === activeCategory;
+          const translationKey = CATEGORY_TRANSLATION_KEYS[category];
+          return (
+            <button
+              key={category}
+              onClick={() => handleCategoryChange(category)}
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {t(translationKey)}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <span className="ml-2 text-sm text-gray-500">{t("loading")}</span>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && entries.length === 0 && (
+        <div className="rounded-lg border bg-white p-12 text-center">
+          <Inbox className="mx-auto h-12 w-12 text-gray-300" />
+          <p className="mt-4 text-sm text-gray-500">{t("emptyState")}</p>
+        </div>
+      )}
+
+      {/* Table */}
+      {!isLoading && entries.length > 0 && (
+        <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 font-medium text-gray-700">{t("columnTime")}</th>
+                <th className="px-4 py-3 font-medium text-gray-700">{t("columnCategory")}</th>
+                <th className="px-4 py-3 font-medium text-gray-700">{t("columnAction")}</th>
+                <th className="px-4 py-3 font-medium text-gray-700">{t("columnActor")}</th>
+                <th className="px-4 py-3 font-medium text-gray-700">{t("columnSummary")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {entries.map((entry) => {
+                const badgeColor = CATEGORY_BADGE_COLORS[entry.category];
+                const defaultBadgeColor = "bg-gray-100 text-gray-800";
+                const categoryKey = CATEGORY_TRANSLATION_KEYS[entry.category];
+                const formattedTime = new Date(entry.createdAt).toLocaleString();
+                const actorName = resolveActorName(entry, t("systemActor"));
+                const summary = buildSummary(entry);
+
+                return (
+                  <tr key={entry.id} className="hover:bg-gray-50">
+                    <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                      {formattedTime}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${badgeColor || defaultBadgeColor}`}>
+                        {categoryKey ? t(categoryKey) : entry.category}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-900">{entry.action}</td>
+                    <td className="px-4 py-3 text-gray-600">{actorName}</td>
+                    <td className="px-4 py-3 text-gray-600">{summary}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Load More Button */}
+      {!isLoading && hasMore && (
+        <div className="flex justify-center pt-4">
+          <button
+            onClick={loadMore}
+            disabled={isLoadingMore}
+            className="rounded-lg border bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
+          >
+            {isLoadingMore ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t("loading")}
+              </span>
+            ) : (
+              t("loadMore")
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

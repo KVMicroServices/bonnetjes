@@ -18,7 +18,8 @@
     "signOut": "Abmelden",
     "signIn": "Anmelden",
     "getStarted": "Loslegen",
-    "analytics": "Analytik"
+    "analytics": "Analytik",
+    "adminSettings": "Admin"
   },
   "Login": {
     "subtitle": "Melden Sie sich bei Ihrem Konto an",
@@ -345,5 +346,28 @@
     "auditLogTitle": "Prüfprotokoll",
     "auditLogDescription": "Die Prüfprotokoll-Funktion wird in einem zukünftigen Update verfügbar sein.",
     "failedToLoad": "Analysedaten konnten nicht geladen werden"
+  },
+  "AuditLog": {
+    "columnTime": "Zeit",
+    "columnCategory": "Kategorie",
+    "columnAction": "Aktion",
+    "columnActor": "Akteur",
+    "columnSummary": "Zusammenfassung",
+    "auditFilterAll": "Alle",
+    "auditFilterAiJudgement": "KI-Beurteilung",
+    "auditFilterSecondaryAnalysis": "Sekundäranalyse",
+    "auditFilterModeration": "Moderation",
+    "auditFilterComment": "Kommentar",
+    "auditFilterUserManagement": "Benutzerverwaltung",
+    "auditFilterSettings": "Einstellungen",
+    "auditFilterSystem": "System",
+    "loadMore": "Mehr laden",
+    "loading": "Laden...",
+    "emptyState": "Keine Prüfprotokoll-Einträge entsprechen dem aktuellen Filter",
+    "systemActor": "System"
+  },
+  "UserSettings": {
+    "title": "Einstellungen",
+    "comingSoon": "Benutzereinstellungen werden in einem zukünftigen Update verfügbar sein."
   }
 }

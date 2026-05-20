@@ -15,6 +15,7 @@
   "Header": {
     "dashboard": "Dashboard",
     "settings": "Settings",
+    "adminSettings": "Admin",
     "signOut": "Sign Out",
     "signIn": "Sign In",
     "getStarted": "Get Started",
@@ -225,6 +226,10 @@
     "locationAlreadyExists": "Already added",
     "locationAlreadyExistsDescription": "This location ID is already in the whitelist"
   },
+  "UserSettings": {
+    "title": "Settings",
+    "comingSoon": "User settings will be available in a future update."
+  },
   "ReceiptCard": {
     "failureReason": "Failure Reason",
     "secondaryAnalysis": "Secondary Analysis",
@@ -345,5 +350,24 @@
     "auditLogTitle": "Audit Log",
     "auditLogDescription": "Audit log functionality will be available in a future update.",
     "failedToLoad": "Failed to load analytics data"
+  },
+  "AuditLog": {
+    "columnTime": "Time",
+    "columnCategory": "Category",
+    "columnAction": "Action",
+    "columnActor": "Actor",
+    "columnSummary": "Summary",
+    "auditFilterAll": "All",
+    "auditFilterAiJudgement": "AI Judgement",
+    "auditFilterSecondaryAnalysis": "Secondary Analysis",
+    "auditFilterModeration": "Moderation",
+    "auditFilterComment": "Comment",
+    "auditFilterUserManagement": "User Management",
+    "auditFilterSettings": "Settings",
+    "auditFilterSystem": "System",
+    "loadMore": "Load more",
+    "loading": "Loading...",
+    "emptyState": "No audit log entries match the current filter",
+    "systemActor": "System"
   }
 }
