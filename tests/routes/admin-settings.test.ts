@@ -23,6 +23,11 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+// Mock audit-log-service (fire-and-forget, not relevant to these tests)
+vi.mock("@/lib/services/audit-log-service", () => ({
+  recordAuditEvent: vi.fn(),
+}));
+
 // ─── Imports (after mocks) ─────────────────────────────────────────────────────
 
 import { GET, PATCH } from "@/app/api/admin/settings/route";

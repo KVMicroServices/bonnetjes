@@ -15,6 +15,8 @@ vi.mock("next-intl", () => ({
     const translations: Record<string, string> = {
       dashboard: "Dashboard",
       settings: "Settings",
+      adminSettings: "Admin",
+      analytics: "Analytics",
       signOut: "Sign Out",
       signIn: "Sign In",
       getStarted: "Get Started",
@@ -45,6 +47,8 @@ vi.mock("lucide-react", () => ({
   Menu: () => React.createElement("span", null, "MenuIcon"),
   X: () => React.createElement("span", null, "XIcon"),
   Settings: () => React.createElement("span", null, "SettingsIcon"),
+  BarChart3: () => React.createElement("span", null, "BarChart3Icon"),
+  Shield: () => React.createElement("span", null, "ShieldIcon"),
 }));
 
 // ─── Imports (after mocks) ─────────────────────────────────────────────────────
@@ -74,21 +78,39 @@ describe("Header navigation for authenticated users", () => {
     expect(html).toContain('href="/admin"');
   });
 
-  it("renders Settings link for admin users", () => {
+  it("renders Admin link for admin users pointing to admin settings", () => {
     mockSession = {
       user: { id: "admin-1", email: "admin@test.com", role: "admin" },
     };
     const html = renderHeader();
 
-    expect(html).toContain("Settings");
+    expect(html).toContain("Admin");
     expect(html).toContain('href="/admin/settings"');
   });
 
-  it("does not render Settings link for non-admin users", () => {
+  it("renders Analytics link for admin users", () => {
+    mockSession = {
+      user: { id: "admin-1", email: "admin@test.com", role: "admin" },
+    };
     const html = renderHeader();
 
-    expect(html).not.toContain("Settings");
+    expect(html).toContain("Analytics");
+    expect(html).toContain('href="/admin/analytics"');
+  });
+
+  it("does not render Analytics link for non-admin users", () => {
+    const html = renderHeader();
+
+    expect(html).not.toContain("Analytics");
+    expect(html).not.toContain('href="/admin/analytics"');
+  });
+
+  it("does not render admin settings link for non-admin users", () => {
+    const html = renderHeader();
+
     expect(html).not.toContain('href="/admin/settings"');
+    expect(html).toContain('href="/settings"');
+    expect(html).toContain("Settings");
   });
 
   it("does not render Admin Panel link", () => {
@@ -109,14 +131,17 @@ describe("Header navigation for authenticated users", () => {
     expect(html).not.toContain("Platforms");
   });
 
-  it("renders exactly Dashboard and Settings as navigation links for admin", () => {
+  it("renders Dashboard, Analytics, Admin, and Settings as navigation links for admin", () => {
     mockSession = {
       user: { id: "admin-1", email: "admin@test.com", role: "admin" },
     };
     const html = renderHeader();
 
-    // Verify the two expected links exist
+    // Verify the expected links exist
     expect(html).toContain("Dashboard");
+    expect(html).toContain("Analytics");
+    expect(html).toContain('href="/admin/settings"');
+    expect(html).toContain('href="/settings"');
     expect(html).toContain("Settings");
 
     // Verify removed links do not exist
@@ -164,6 +189,7 @@ describe("Header navigation for unauthenticated users", () => {
     const html = renderHeader();
 
     expect(html).not.toContain('href="/admin/settings"');
+    expect(html).not.toContain('href="/settings"');
   });
 
   it("renders exactly Sign In and Get Started as navigation links", () => {
@@ -172,6 +198,7 @@ describe("Header navigation for unauthenticated users", () => {
     expect(html).toContain("Sign In");
     expect(html).toContain("Get Started");
     expect(html).not.toContain("Dashboard");
+    expect(html).not.toContain("Analytics");
     expect(html).not.toContain("Settings");
     expect(html).not.toContain("Admin Panel");
     expect(html).not.toContain("Moderation");

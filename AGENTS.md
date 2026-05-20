@@ -11,9 +11,19 @@
 
 ## Spec Scope
 
-**Task structure**: Use a flat list of top-level checkboxes only. Never use `##` headers, nested bullets, or numbered subtasks (1.1, 1.2). Each `- [ ]` is one self-contained deliverable described in a single sentence with all relevant detail inline. This lets Kiro's dependency analyzer parallelize independent tasks into waves.
+**Parallelizability** Include wave config similar to this for parallel execution:
+## Task Dependency Graph
 
-**Avoid ordering language**: Drop words like "first", "then", "after", "using the X from above", "verify". Add such language only when the dependency is real and matters.
+```json
+{
+  "waves": [
+    { "id": 0, "tasks": ["1"] },
+    { "id": 1, "tasks": ["2", "3", "5"] },
+    { "id": 2, "tasks": ["4", "6"] }
+  ]
+}
+```
+
 
 **Checkpoints** Never include checkpoints tasks. all tasks need to be based on actual features and test execution will happen when the user decides.
 

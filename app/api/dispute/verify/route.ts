@@ -29,6 +29,7 @@ import {
   type DisputeOcrAdapter,
 } from "@/lib/services/dispute-service";
 import { resolveDisputeToken } from "@/lib/dispute/dispute-token-http";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
 const verifyRequestSchema = z.object({
   token: z.string().min(1),
@@ -87,6 +88,11 @@ export async function POST(request: NextRequest) {
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: result.statusCode });
     }
+
+    recordAuditEvent("system", "dispute_processed", undefined, {
+      receiptId: result.receipt.id,
+      outcome: result.receipt.verificationStatus,
+    });
 
     return NextResponse.json(result.receipt);
   } catch (error) {

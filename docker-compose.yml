@@ -53,8 +53,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: ${DOCKER_TARGET:-staging}
-    command: node scripts/queue-worker.js
+      target: worker
+    command: npx tsx scripts/queue-worker.ts
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://bonnetjes:bonnetjes@database:5432/bonnetjes

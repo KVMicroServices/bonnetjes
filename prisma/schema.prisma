@@ -84,6 +84,7 @@ model Receipt {
   // Timestamps
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+  queuedAt            DateTime?
   processedAt         DateTime?
   
   // Admin actions
@@ -182,4 +183,17 @@ model AppSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  category  String
+  action    String
+  actorId   String?
+  metadata  String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([category, createdAt])
+  @@index([actorId])
+  @@index([createdAt])
 }

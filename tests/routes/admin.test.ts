@@ -16,6 +16,11 @@ vi.mock("next-auth", () => ({
   getServerSession: (...args: unknown[]) => mockGetServerSession(...args),
 }));
 
+// Mock audit-log-service (fire-and-forget, not relevant to these tests)
+vi.mock("@/lib/services/audit-log-service", () => ({
+  recordAuditEvent: vi.fn(),
+}));
+
 // ─── Imports (after mocks) ─────────────────────────────────────────────────────
 
 import { GET as getAdminReceipts, PATCH as patchAdminReceipt } from "@/app/api/admin/receipts/route";
@@ -47,6 +52,7 @@ const SAMPLE_RECEIPT = {
   archivedAt: null,
   createdAt: new Date("2024-01-15T10:00:00Z"),
   updatedAt: new Date("2024-01-15T10:00:00Z"),
+  queuedAt: null,
   processedAt: null,
   user: { id: "user-123", name: "Test User", email: "user@example.com" },
 };

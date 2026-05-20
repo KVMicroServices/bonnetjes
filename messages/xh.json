@@ -17,7 +17,9 @@
     "settings": "Izicwangciso",
     "signOut": "Phuma",
     "signIn": "Ngena",
-    "getStarted": "Qala"
+    "getStarted": "Qala",
+    "analytics": "Uhlalutyo",
+    "adminSettings": "Admin"
   },
   "Login": {
     "subtitle": "Ngena kwi-akhawunti yakho",
@@ -107,7 +109,9 @@
     "reviewToggleFailed": "Ukutshintsha uphononongo kwehlulekile",
     "reviewToggleFailedDescription": "Ayikwazanga ukuvuselela isimo sophononongo",
     "disableReview": "Cima uphononongo kwi-platform",
-    "enableReview": "Vula uphononongo kwi-platform"
+    "enableReview": "Vula uphononongo kwi-platform",
+    "queuedAt": "Kuluhlu lokulinda",
+    "processedAt": "Iqhutyiwe"
   },
   "Archive": {
     "backToDashboard": "Buyela kwiDeshibhodi",
@@ -183,7 +187,9 @@
     "reviewToggleFailed": "Ukutshintsha uphononongo kwehlulekile",
     "reviewToggleFailedDescription": "Ayikwazanga ukuvuselela isimo sophononongo",
     "disableReview": "Cima uphononongo kwi-platform",
-    "enableReview": "Vula uphononongo kwi-platform"
+    "enableReview": "Vula uphononongo kwi-platform",
+    "queuedAt": "Kuluhlu lokulinda",
+    "processedAt": "Iqhutyiwe"
   },
   "Settings": {
     "title": "Izicwangciso",
@@ -238,7 +244,9 @@
     "failure_RECEIPT_TOO_OLD": "Irisithi indala kakhulu",
     "failure_SUSPECTED_FRAUD": "Ukuqhathwa okurhanelwayo",
     "failure_UNREADABLE_TEXT": "Isicatshulwa esingafundekiyo",
-    "failure_MISSING_KEY_FIELDS": "Iindawo ezingekhoyo"
+    "failure_MISSING_KEY_FIELDS": "Iindawo ezingekhoyo",
+    "queuedAt": "Ifakwe emgceni",
+    "processedAt": "Isetyenziwe"
   },
   "ReviewDisableEmail": {
     "subject": "Uhlaziyo lophononongo lwakho — ubungqina bokuthenga abukhange bumkelwe",
@@ -312,5 +320,58 @@
     "invalidLinkExpired": "Eli khonkco lokuphikisa liphelelwe lixesha.",
     "invalidLinkMissing": "Eli khonkco lokuphikisa lishokuxela ulwazi olufunekayo.",
     "invalidLinkInvalid": "Eli khonkco lokuphikisa alisebenzi."
+  },
+  "Analytics": {
+    "title": "Uhlalutyo",
+    "subtitle": "Imilinganiselo yokucubungula irisithi kunye nokulandelela umthamo",
+    "tabMetrics": "Imilinganiselo",
+    "tabVolume": "Umthamo",
+    "tabAuditLog": "Ilog yokuhlola",
+    "totalReceipts": "Irisithi ziphela",
+    "approved": "Zamkelwe",
+    "rejected": "Zaliwe",
+    "pending": "Zilindile",
+    "requiresReview": "Kufuneka uphononongo",
+    "flagged": "Ziphawulwe",
+    "approvalRate": "Izinga lokwamkela",
+    "rejectionRate": "Izinga lokwala",
+    "groupBy": "Qokelela nge",
+    "hourly": "Ngeyure",
+    "daily": "Ngosuku",
+    "weekly": "Ngeveki",
+    "noData": "Akukho datha ekhoyo kweli xesha",
+    "legendVerified": "Iqinisekisiwe",
+    "legendPending": "Ilindile",
+    "legendRejected": "Yaliwe",
+    "auditLogTitle": "Ilog yokuhlola",
+    "auditLogDescription": "Ukusebenza kwelog yokuhlola kuya kufumaneka kwi-update ezayo.",
+    "failedToLoad": "Ayikwazanga ukulayisha idatha yohlalutyo"
+  },
+  "AuditLog": {
+    "columnTime": "Ixesha",
+    "columnCategory": "Udidi",
+    "columnAction": "Isenzo",
+    "columnActor": "Umenzi",
+    "columnSummary": "Isishwankathelo",
+    "auditFilterAll": "Konke",
+    "auditFilterAiJudgement": "Isigwebo se-AI",
+    "auditFilterSecondaryAnalysis": "Uhlalutyo lwesibini",
+    "auditFilterModeration": "Ukulawula",
+    "auditFilterComment": "Izimvo",
+    "auditFilterUserManagement": "Ulawulo lwabasebenzisi",
+    "auditFilterSettings": "Izicwangciso",
+    "auditFilterSystem": "Inkqubo",
+    "loadMore": "Layisha okungakumbi",
+    "loading": "Iyalayisha...",
+    "emptyState": "Akukho zingeniso zelog yokuhlola ezihambelana nefiltha yangoku",
+    "systemActor": "Inkqubo",
+    "summaryReceiptVerdict": "Irisithi {receiptId} → {verdict}",
+    "summaryRoleChanged": "Indima itshintshwe yaba ngu-{role}",
+    "summaryUpdated": "Ihlaziyiwe: {keys}",
+    "summaryReceipt": "Irisithi {receiptId}"
+  },
+  "UserSettings": {
+    "title": "Izicwangciso",
+    "comingSoon": "Izicwangciso zomsebenzisi ziya kufumaneka kwi-update elizayo."
   }
 }

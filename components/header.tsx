@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { LogOut, LayoutDashboard, Menu, X, Settings } from "lucide-react";
+import { LogOut, LayoutDashboard, Menu, X, Settings, BarChart3, Shield } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
@@ -45,13 +45,29 @@ export function Header() {
               </Link>
               {isAdmin && (
                 <Link
+                  href="/admin/analytics"
+                  className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  {t("analytics")}
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
                   href="/admin/settings"
                   className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
                 >
-                  <Settings className="h-4 w-4" />
-                  {t("settings")}
+                  <Shield className="h-4 w-4" />
+                  {t("adminSettings")}
                 </Link>
               )}
+              <Link
+                href="/settings"
+                className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+              >
+                <Settings className="h-4 w-4" />
+                {t("settings")}
+              </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 className="flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200"
@@ -115,14 +131,32 @@ export function Header() {
                   </Link>
                   {isAdmin && (
                     <Link
+                      href="/admin/analytics"
+                      className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      {t("analytics")}
+                    </Link>
+                  )}
+                  {isAdmin && (
+                    <Link
                       href="/admin/settings"
                       className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      <Settings className="h-4 w-4" />
-                      {t("settings")}
+                      <Shield className="h-4 w-4" />
+                      {t("adminSettings")}
                     </Link>
                   )}
+                  <Link
+                    href="/settings"
+                    className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Settings className="h-4 w-4" />
+                    {t("settings")}
+                  </Link>
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);

@@ -17,7 +17,9 @@
     "settings": "Paramètres",
     "signOut": "Déconnexion",
     "signIn": "Connexion",
-    "getStarted": "Commencer"
+    "getStarted": "Commencer",
+    "analytics": "Analytique",
+    "adminSettings": "Admin"
   },
   "Login": {
     "subtitle": "Connectez-vous à votre compte",
@@ -107,7 +109,9 @@
     "reviewToggleFailed": "Échec du basculement",
     "reviewToggleFailedDescription": "Impossible de mettre à jour le statut de l'avis",
     "disableReview": "Désactiver l'avis sur la plateforme",
-    "enableReview": "Réactiver l'avis sur la plateforme"
+    "enableReview": "Réactiver l'avis sur la plateforme",
+    "queuedAt": "En file d'attente",
+    "processedAt": "Traité"
   },
   "Archive": {
     "backToDashboard": "Retour au tableau de bord",
@@ -183,7 +187,9 @@
     "reviewToggleFailed": "Échec du basculement",
     "reviewToggleFailedDescription": "Impossible de mettre à jour le statut de l'avis",
     "disableReview": "Désactiver l'avis sur la plateforme",
-    "enableReview": "Réactiver l'avis sur la plateforme"
+    "enableReview": "Réactiver l'avis sur la plateforme",
+    "queuedAt": "En file d'attente",
+    "processedAt": "Traité"
   },
   "Settings": {
     "title": "Paramètres",
@@ -238,7 +244,9 @@
     "failure_RECEIPT_TOO_OLD": "Reçu trop ancien",
     "failure_SUSPECTED_FRAUD": "Suspicion de fraude",
     "failure_UNREADABLE_TEXT": "Texte illisible",
-    "failure_MISSING_KEY_FIELDS": "Champs obligatoires manquants"
+    "failure_MISSING_KEY_FIELDS": "Champs obligatoires manquants",
+    "queuedAt": "Mis en file",
+    "processedAt": "Traité"
   },
   "ReviewDisableEmail": {
     "subject": "Mise à jour de votre avis — preuve d'achat refusée",
@@ -312,5 +320,58 @@
     "invalidLinkExpired": "Ce lien de contestation a expiré.",
     "invalidLinkMissing": "Il manque des informations requises dans ce lien de contestation.",
     "invalidLinkInvalid": "Ce lien de contestation n'est pas valide."
+  },
+  "Analytics": {
+    "title": "Analytique",
+    "subtitle": "Métriques de traitement des reçus et suivi du volume",
+    "tabMetrics": "Métriques",
+    "tabVolume": "Volume",
+    "tabAuditLog": "Journal d'audit",
+    "totalReceipts": "Total des reçus",
+    "approved": "Approuvés",
+    "rejected": "Rejetés",
+    "pending": "En attente",
+    "requiresReview": "Examen requis",
+    "flagged": "Signalés",
+    "approvalRate": "Taux d'approbation",
+    "rejectionRate": "Taux de rejet",
+    "groupBy": "Grouper par",
+    "hourly": "Par heure",
+    "daily": "Par jour",
+    "weekly": "Par semaine",
+    "noData": "Aucune donnée disponible pour cette période",
+    "legendVerified": "Vérifié",
+    "legendPending": "En attente",
+    "legendRejected": "Rejeté",
+    "auditLogTitle": "Journal d'audit",
+    "auditLogDescription": "La fonctionnalité du journal d'audit sera disponible dans une mise à jour future.",
+    "failedToLoad": "Impossible de charger les données analytiques"
+  },
+  "AuditLog": {
+    "columnTime": "Heure",
+    "columnCategory": "Catégorie",
+    "columnAction": "Action",
+    "columnActor": "Acteur",
+    "columnSummary": "Résumé",
+    "auditFilterAll": "Tous",
+    "auditFilterAiJudgement": "Jugement IA",
+    "auditFilterSecondaryAnalysis": "Analyse secondaire",
+    "auditFilterModeration": "Modération",
+    "auditFilterComment": "Commentaire",
+    "auditFilterUserManagement": "Gestion des utilisateurs",
+    "auditFilterSettings": "Paramètres",
+    "auditFilterSystem": "Système",
+    "loadMore": "Charger plus",
+    "loading": "Chargement...",
+    "emptyState": "Aucune entrée du journal d'audit ne correspond au filtre actuel",
+    "systemActor": "Système",
+    "summaryReceiptVerdict": "Reçu {receiptId} → {verdict}",
+    "summaryRoleChanged": "Rôle changé en {role}",
+    "summaryUpdated": "Mis à jour : {keys}",
+    "summaryReceipt": "Reçu {receiptId}"
+  },
+  "UserSettings": {
+    "title": "Paramètres",
+    "comingSoon": "Les paramètres utilisateur seront disponibles dans une mise à jour future."
   }
 }

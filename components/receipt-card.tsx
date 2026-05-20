@@ -34,6 +34,7 @@ interface ReceiptData {
   fraudRiskScore: number | null;
   isDuplicate: boolean;
   createdAt: string;
+  queuedAt: string | null;
   processedAt: string | null;
 }
 
@@ -293,6 +294,24 @@ export function ReceiptCard({ receipt, onRefresh }: ReceiptCardProps) {
           </span>
         )}
       </div>
+
+      {/* Timestamps */}
+      {(receipt.queuedAt || receipt.processedAt) && (
+        <div className="mb-4 flex flex-wrap gap-3 text-xs text-gray-500">
+          {receipt.queuedAt && (
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              <span>{t("queuedAt")}: {new Date(receipt.queuedAt).toLocaleString()}</span>
+            </div>
+          )}
+          {receipt.processedAt && (
+            <div className="flex items-center gap-1">
+              <CheckCircle className="h-3 w-3" />
+              <span>{t("processedAt")}: {new Date(receipt.processedAt).toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-2">

@@ -1,5 +1,126 @@
 # Changes
 
+## [097] Fix review findings for analytics feature
+
+**What**: Resolved all 14 banned pattern violations and 1 localization issue from code review 26.05.20-analytics.
+**Decisions**:
+- Extracted time constants (`MILLISECONDS_PER_SECOND`, `SECONDS_PER_MINUTE`, etc.) and `PERCENTAGE_MULTIPLIER` in analytics-service
+- Extracted `RECEIPT_ID_PREVIEW_LENGTH` constant for `slice(0, 8)` calls
+- Replaced `buildSummary` hardcoded English strings with `t()` calls using new translation keys (`summaryReceiptVerdict`, `summaryRoleChanged`, `summaryUpdated`, `summaryReceipt`)
+- Added translation keys to all 8 locale files
+**Files**:
+- lib/services/analytics-service.ts
+- app/admin/analytics/page.tsx
+- app/api/admin/analytics/route.ts
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [096] Build AuditLogTab component with category filters, table, and pagination
+
+**What**: Replaced the placeholder audit log tab in the analytics page with a full implementation featuring category filter pills, a data table, cursor-based pagination, loading spinner, and empty state.
+**Decisions**:
+- Used separate `AuditLog` translation namespace to keep keys organized
+- Category badge colors map to distinct Tailwind color classes per category
+- Summary column derives human-readable text from metadata JSON
+- Silent error handling in fetch (matching existing page pattern for client-side code)
+**Files**:
+- app/admin/analytics/page.tsx
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [095] Add unit tests for audit-log-service
+
+**What**: Unit tests covering writer error isolation (fire-and-forget, error logging), cursor-based pagination, and category filtering.
+
+## [094] Rename admin settings nav link to "Admin" and add user settings placeholder
+
+**What**: Renamed admin settings link label from "Settings" to "Admin" in header navigation, added a new "Settings" link visible to all authenticated users pointing to `/settings`, and created a placeholder settings page.
+**Decisions**:
+- Used `Shield` icon for admin link to visually distinguish from user settings
+- Created `UserSettings` namespace to avoid conflict with existing `Settings` namespace (admin settings page)
+**Files**:
+- components/header.tsx
+- app/settings/page.tsx
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+- tests/pages/header-navigation.test.tsx
+
+## [093] Add recordAuditEvent calls to all integration points
+
+**What**: Integrated fire-and-forget audit logging into OCR service, receipt service, admin reviews disable route, admin service, settings route, receipt worker, receipt creator, and dispute verify route.
+**Decisions**:
+- Added `adminId` parameter to `updateUserRole` (optional, threaded from calling route)
+- Used `(session.user as any).id` pattern consistent with existing codebase for session user ID access
+- Mocked audit-log-service in affected test files since fire-and-forget calls don't need testing in route tests
+**Files**:
+- lib/services/ocr-service.ts
+- lib/services/receipt-service.ts
+- app/api/admin/reviews/disable/route.ts
+- lib/services/admin-service.ts
+- app/api/admin/users/route.ts
+- app/api/admin/settings/route.ts
+- lib/queue/receipt-worker.ts
+- lib/receipt-sync/receipt-creator.ts
+- app/api/dispute/verify/route.ts
+- tests/routes/admin.test.ts
+- tests/routes/receipts.test.ts
+- tests/routes/admin-settings.test.ts
+
+## [092] Extend analytics route with type=audit handler
+
+**What**: Added `type=audit` query param support to the analytics API route, delegating to `getAuditLogs` with optional `category` and `cursor` params.
+**Decisions**:
+- Validates category against allowed values before querying
+- Replaced `console.error` with shared logger in catch block
+- Extracted `handleAuditQuery` helper to keep the route handler thin
+
+## [091] Add AuditLog model and audit-log-service with fire-and-forget writer and cursor-based query
+
+**What**: Added `AuditLog` Prisma model with composite indexes and created `lib/services/audit-log-service.ts` with `recordAuditEvent` (fire-and-forget, internal error logging) and `getAuditLogs` (cursor-based pagination, category filtering).
+**Decisions**:
+- No foreign key on actorId — entries survive user deletion
+- Writer catches errors internally via shared logger, never propagates
+- Query fetches limit+1 to determine hasMore without a separate count query
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260601000006_add_audit_log/migration.sql
+- lib/services/audit-log-service.ts
+
+## [090] Show queued/processed dates in admin table, move user/date/amount to modal
+
+**What**: Replaced User, Date, and Amount columns in the admin review queue table with Queued and Processed timestamp columns. The removed data is already visible in the receipt detail modal.
+
+## [089] Add queuedAt timestamp to Receipt model
+
+**What**: Track when a receipt is pulled into the processing queue via a new `queuedAt` field, complementing the existing `processedAt` timestamp. Display both timestamps on user and admin receipt cards.
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260520000000_add_queued_at_to_receipt/migration.sql
+- lib/queue/receipt-queue.ts
+- lib/services/receipt-service.ts
+- components/receipt-card.tsx
+- components/admin-receipt-card.tsx
+- app/admin/page.tsx
+- messages/*.json (all 8 languages)
+- tests/routes/receipts.test.ts
+- tests/routes/admin.test.ts
+- tests/services/ocr-service.test.ts
+- tests/services/receipt-service.test.ts
+
+## [088] Add analytics page with metrics, volume chart, and audit log tab
+
+**What**: Added admin-only analytics page at `/admin/analytics` with three tabs: metrics overview (receipt counts, approval/rejection rates), receipt volume stacked bar chart (filterable by hour/day/week using Recharts), and a placeholder audit log tab for future implementation.
+**Decisions**:
+- Used Recharts for the volume chart (already installed, simplest React integration)
+- Analytics service separates data logic from the API route
+- Volume query fetches all receipts in range and buckets client-side (sufficient for current scale)
+- Audit log tab is an empty placeholder per requirements
+**Files**:
+- lib/services/analytics-service.ts (new)
+- app/api/admin/analytics/route.ts (new)
+- app/admin/analytics/page.tsx (new)
+- components/header.tsx
+- messages/*.json (all 8 languages)
+- tests/services/analytics-service.test.ts (new)
+- tests/pages/header-navigation.test.tsx
+
 ## [087] Fix review findings from 26.05.19 code review
 
 **What**: Applied all 10 standards fixes (ternaries → if-else, short-circuits → if-else, chained ops → separate lines, magic numbers → named constants) and 3 security fixes (admin-gate settings nav link, Zod schema validation on secondary analysis LLM output, type guard on parsed verdict).

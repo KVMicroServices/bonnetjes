@@ -17,7 +17,9 @@
     "settings": "Einstellungen",
     "signOut": "Abmelden",
     "signIn": "Anmelden",
-    "getStarted": "Loslegen"
+    "getStarted": "Loslegen",
+    "analytics": "Analytik",
+    "adminSettings": "Admin"
   },
   "Login": {
     "subtitle": "Melden Sie sich bei Ihrem Konto an",
@@ -107,7 +109,9 @@
     "reviewToggleFailed": "Bewertung umschalten fehlgeschlagen",
     "reviewToggleFailedDescription": "Bewertungsstatus konnte nicht aktualisiert werden",
     "disableReview": "Bewertung auf Plattform deaktivieren",
-    "enableReview": "Bewertung auf Plattform wieder aktivieren"
+    "enableReview": "Bewertung auf Plattform wieder aktivieren",
+    "queuedAt": "Eingereiht",
+    "processedAt": "Verarbeitet"
   },
   "Archive": {
     "backToDashboard": "Zurück zum Dashboard",
@@ -183,7 +187,9 @@
     "reviewToggleFailed": "Bewertung umschalten fehlgeschlagen",
     "reviewToggleFailedDescription": "Bewertungsstatus konnte nicht aktualisiert werden",
     "disableReview": "Bewertung auf Plattform deaktivieren",
-    "enableReview": "Bewertung auf Plattform wieder aktivieren"
+    "enableReview": "Bewertung auf Plattform wieder aktivieren",
+    "queuedAt": "Eingereiht",
+    "processedAt": "Verarbeitet"
   },
   "Settings": {
     "title": "Einstellungen",
@@ -238,7 +244,9 @@
     "failure_RECEIPT_TOO_OLD": "Beleg zu alt",
     "failure_SUSPECTED_FRAUD": "Betrugsverdacht",
     "failure_UNREADABLE_TEXT": "Unlesbarer Text",
-    "failure_MISSING_KEY_FIELDS": "Fehlende Pflichtfelder"
+    "failure_MISSING_KEY_FIELDS": "Fehlende Pflichtfelder",
+    "queuedAt": "Eingereiht",
+    "processedAt": "Verarbeitet"
   },
   "ReviewDisableEmail": {
     "subject": "Update zu Ihrer Bewertung — Kaufnachweis abgelehnt",
@@ -312,5 +320,58 @@
     "invalidLinkExpired": "Dieser Einspruchs-Link ist abgelaufen.",
     "invalidLinkMissing": "Diesem Einspruchs-Link fehlen erforderliche Informationen.",
     "invalidLinkInvalid": "Dieser Einspruchs-Link ist ungültig."
+  },
+  "Analytics": {
+    "title": "Analytik",
+    "subtitle": "Belegverarbeitungsmetriken und Volumentracking",
+    "tabMetrics": "Metriken",
+    "tabVolume": "Volumen",
+    "tabAuditLog": "Prüfprotokoll",
+    "totalReceipts": "Belege gesamt",
+    "approved": "Genehmigt",
+    "rejected": "Abgelehnt",
+    "pending": "Ausstehend",
+    "requiresReview": "Überprüfung erforderlich",
+    "flagged": "Markiert",
+    "approvalRate": "Genehmigungsrate",
+    "rejectionRate": "Ablehnungsrate",
+    "groupBy": "Gruppieren nach",
+    "hourly": "Stündlich",
+    "daily": "Täglich",
+    "weekly": "Wöchentlich",
+    "noData": "Keine Daten für diesen Zeitraum verfügbar",
+    "legendVerified": "Verifiziert",
+    "legendPending": "Ausstehend",
+    "legendRejected": "Abgelehnt",
+    "auditLogTitle": "Prüfprotokoll",
+    "auditLogDescription": "Die Prüfprotokoll-Funktion wird in einem zukünftigen Update verfügbar sein.",
+    "failedToLoad": "Analysedaten konnten nicht geladen werden"
+  },
+  "AuditLog": {
+    "columnTime": "Zeit",
+    "columnCategory": "Kategorie",
+    "columnAction": "Aktion",
+    "columnActor": "Akteur",
+    "columnSummary": "Zusammenfassung",
+    "auditFilterAll": "Alle",
+    "auditFilterAiJudgement": "KI-Beurteilung",
+    "auditFilterSecondaryAnalysis": "Sekundäranalyse",
+    "auditFilterModeration": "Moderation",
+    "auditFilterComment": "Kommentar",
+    "auditFilterUserManagement": "Benutzerverwaltung",
+    "auditFilterSettings": "Einstellungen",
+    "auditFilterSystem": "System",
+    "loadMore": "Mehr laden",
+    "loading": "Laden...",
+    "emptyState": "Keine Prüfprotokoll-Einträge entsprechen dem aktuellen Filter",
+    "systemActor": "System",
+    "summaryReceiptVerdict": "Beleg {receiptId} → {verdict}",
+    "summaryRoleChanged": "Rolle geändert zu {role}",
+    "summaryUpdated": "Aktualisiert: {keys}",
+    "summaryReceipt": "Beleg {receiptId}"
+  },
+  "UserSettings": {
+    "title": "Einstellungen",
+    "comingSoon": "Benutzereinstellungen werden in einem zukünftigen Update verfügbar sein."
   }
 }

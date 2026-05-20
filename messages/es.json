@@ -17,7 +17,9 @@
     "settings": "Configuración",
     "signOut": "Cerrar sesión",
     "signIn": "Iniciar sesión",
-    "getStarted": "Comenzar"
+    "getStarted": "Comenzar",
+    "analytics": "Analítica",
+    "adminSettings": "Admin"
   },
   "Login": {
     "subtitle": "Inicia sesión en tu cuenta",
@@ -107,7 +109,9 @@
     "reviewToggleFailed": "Error al cambiar reseña",
     "reviewToggleFailedDescription": "No se pudo actualizar el estado de la reseña",
     "disableReview": "Desactivar reseña en la plataforma",
-    "enableReview": "Reactivar reseña en la plataforma"
+    "enableReview": "Reactivar reseña en la plataforma",
+    "queuedAt": "En cola",
+    "processedAt": "Procesado"
   },
   "Archive": {
     "backToDashboard": "Volver al panel",
@@ -183,7 +187,9 @@
     "reviewToggleFailed": "Error al cambiar reseña",
     "reviewToggleFailedDescription": "No se pudo actualizar el estado de la reseña",
     "disableReview": "Desactivar reseña en la plataforma",
-    "enableReview": "Reactivar reseña en la plataforma"
+    "enableReview": "Reactivar reseña en la plataforma",
+    "queuedAt": "En cola",
+    "processedAt": "Procesado"
   },
   "Settings": {
     "title": "Configuración",
@@ -238,7 +244,9 @@
     "failure_RECEIPT_TOO_OLD": "Recibo demasiado antiguo",
     "failure_SUSPECTED_FRAUD": "Sospecha de fraude",
     "failure_UNREADABLE_TEXT": "Texto ilegible",
-    "failure_MISSING_KEY_FIELDS": "Campos obligatorios faltantes"
+    "failure_MISSING_KEY_FIELDS": "Campos obligatorios faltantes",
+    "queuedAt": "En cola",
+    "processedAt": "Procesado"
   },
   "ReviewDisableEmail": {
     "subject": "Actualización sobre tu reseña — comprobante de compra rechazado",
@@ -312,5 +320,58 @@
     "invalidLinkExpired": "Este enlace de disputa ha caducado.",
     "invalidLinkMissing": "A este enlace de disputa le falta información requerida.",
     "invalidLinkInvalid": "Este enlace de disputa no es válido."
+  },
+  "Analytics": {
+    "title": "Analítica",
+    "subtitle": "Métricas de procesamiento de recibos y seguimiento de volumen",
+    "tabMetrics": "Métricas",
+    "tabVolume": "Volumen",
+    "tabAuditLog": "Registro de auditoría",
+    "totalReceipts": "Total de recibos",
+    "approved": "Aprobados",
+    "rejected": "Rechazados",
+    "pending": "Pendientes",
+    "requiresReview": "Requiere revisión",
+    "flagged": "Marcados",
+    "approvalRate": "Tasa de aprobación",
+    "rejectionRate": "Tasa de rechazo",
+    "groupBy": "Agrupar por",
+    "hourly": "Por hora",
+    "daily": "Diario",
+    "weekly": "Semanal",
+    "noData": "No hay datos disponibles para este período",
+    "legendVerified": "Verificado",
+    "legendPending": "Pendiente",
+    "legendRejected": "Rechazado",
+    "auditLogTitle": "Registro de auditoría",
+    "auditLogDescription": "La funcionalidad del registro de auditoría estará disponible en una actualización futura.",
+    "failedToLoad": "No se pudieron cargar los datos analíticos"
+  },
+  "AuditLog": {
+    "columnTime": "Hora",
+    "columnCategory": "Categoría",
+    "columnAction": "Acción",
+    "columnActor": "Actor",
+    "columnSummary": "Resumen",
+    "auditFilterAll": "Todos",
+    "auditFilterAiJudgement": "Juicio IA",
+    "auditFilterSecondaryAnalysis": "Análisis secundario",
+    "auditFilterModeration": "Moderación",
+    "auditFilterComment": "Comentario",
+    "auditFilterUserManagement": "Gestión de usuarios",
+    "auditFilterSettings": "Configuración",
+    "auditFilterSystem": "Sistema",
+    "loadMore": "Cargar más",
+    "loading": "Cargando...",
+    "emptyState": "No hay entradas del registro de auditoría que coincidan con el filtro actual",
+    "systemActor": "Sistema",
+    "summaryReceiptVerdict": "Recibo {receiptId} → {verdict}",
+    "summaryRoleChanged": "Rol cambiado a {role}",
+    "summaryUpdated": "Actualizado: {keys}",
+    "summaryReceipt": "Recibo {receiptId}"
+  },
+  "UserSettings": {
+    "title": "Configuración",
+    "comingSoon": "La configuración de usuario estará disponible en una actualización futura."
   }
 }

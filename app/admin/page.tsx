@@ -125,6 +125,7 @@ interface ReceiptData {
   suspiciousPatterns: string | null;
   receiptReadable: boolean | null;
   createdAt: string;
+  queuedAt: string | null;
   processedAt: string | null;
   user: { id: string; name: string | null; email: string };
 }
@@ -607,9 +608,8 @@ export default function AdminPage() {
                   <thead className="bg-gray-50 border-b">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipt")}</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("user")}</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("date")}</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("amount")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("queuedAt")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("processedAt")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("confidence")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("risk")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("failureReason")}</th>
@@ -643,34 +643,17 @@ export default function AdminPage() {
                             </button>
                           </div>
                         </td>
-                        {/* User */}
+                        {/* Queued At */}
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-700 truncate max-w-[120px]">
-                              {receipt.user?.name || receipt.user?.email}
-                            </span>
-                          </div>
+                          <span className="text-sm text-gray-700">
+                            {formatDate(receipt.queuedAt)}
+                          </span>
                         </td>
-                        {/* Date */}
+                        {/* Processed At */}
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-700">
-                              {formatDate(receipt.extractedDate)}
-                            </span>
-                          </div>
-                        </td>
-                        {/* Amount */}
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-700">
-                              {receipt.extractedAmount != null
-                                ? `$${receipt.extractedAmount.toFixed(2)}`
-                                : "N/A"}
-                            </span>
-                          </div>
+                          <span className="text-sm text-gray-700">
+                            {formatDate(receipt.processedAt)}
+                          </span>
                         </td>
                         {/* Confidence */}
                         <td className="px-4 py-3">

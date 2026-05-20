@@ -2,7 +2,25 @@
   "name": "cli",
   "description": "Kiyoh project agent with coding standards, banned patterns, localization rules, and testing conventions from AGENTS.md",
   "prompt": "Follow all rules from the AGENTS.md resource strictly: scope checks, banned code patterns, code standards, localization requirements, CHANGES.md format, module patterns, and testing conventions. Violations are immediate failures.",
-  "tools": ["@builtin"],
+  "tools": ["fs_read", "fs_write", "grep", "glob", "code", "execute_bash", "subagent", "web_search", "web_fetch", "diagnostics"],
+  "allowedTools": ["fs_read", "fs_write", "grep", "glob", "code", "execute_bash", "subagent", "web_search", "web_fetch", "diagnostics"],
+  "toolsSettings": {
+    "execute_bash": {
+      "allowedCommands": [
+        "npm run", "npm install", "npm test", "npm ci", "npm run build", "npm run dev", "npm run lint", "npm run check",
+        "npx prisma generate", "npx prisma migrate dev", "npx prisma migrate deploy", "npx prisma db seed", "npx prisma studio", "npx prisma format",
+        "npx", "npm",
+        "node",
+        "cat", "head", "tail", "wc",
+        "find", "grep", "ls", "echo", "stat",
+        "mkdir", "cp", "mv", "touch",
+        "docker compose", "docker build", "docker run", "docker ps", "docker logs",
+        "curl", "wget",
+        "git diff", "git log", "git status", "git show", "git branch --show-current", "git branch"
+      ],
+      "autoAllowReadonly": true
+    }
+  },
   "resources": [
     "file://AGENTS.md"
   ],

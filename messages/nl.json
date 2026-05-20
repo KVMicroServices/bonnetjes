@@ -17,7 +17,9 @@
     "settings": "Instellingen",
     "signOut": "Uitloggen",
     "signIn": "Inloggen",
-    "getStarted": "Aan de slag"
+    "getStarted": "Aan de slag",
+    "analytics": "Analyse",
+    "adminSettings": "Admin"
   },
   "Login": {
     "subtitle": "Log in op je account",
@@ -107,7 +109,9 @@
     "reviewToggleFailed": "Review toggle mislukt",
     "reviewToggleFailedDescription": "Kon reviewstatus niet bijwerken",
     "disableReview": "Review uitschakelen op platform",
-    "enableReview": "Review weer inschakelen op platform"
+    "enableReview": "Review weer inschakelen op platform",
+    "queuedAt": "In wachtrij",
+    "processedAt": "Verwerkt"
   },
   "Archive": {
     "backToDashboard": "Terug naar Dashboard",
@@ -183,7 +187,9 @@
     "reviewToggleFailed": "Review toggle mislukt",
     "reviewToggleFailedDescription": "Kon reviewstatus niet bijwerken",
     "disableReview": "Review uitschakelen op platform",
-    "enableReview": "Review weer inschakelen op platform"
+    "enableReview": "Review weer inschakelen op platform",
+    "queuedAt": "In wachtrij",
+    "processedAt": "Verwerkt"
   },
   "Settings": {
     "title": "Instellingen",
@@ -238,7 +244,9 @@
     "failure_RECEIPT_TOO_OLD": "Bon te oud",
     "failure_SUSPECTED_FRAUD": "Vermoeden van fraude",
     "failure_UNREADABLE_TEXT": "Onleesbare tekst",
-    "failure_MISSING_KEY_FIELDS": "Ontbrekende velden"
+    "failure_MISSING_KEY_FIELDS": "Ontbrekende velden",
+    "queuedAt": "In wachtrij",
+    "processedAt": "Verwerkt"
   },
   "ReviewDisableEmail": {
     "subject": "Update over je beoordeling — aankoopbewijs afgewezen",
@@ -312,5 +320,58 @@
     "invalidLinkExpired": "Deze bezwaarlink is verlopen.",
     "invalidLinkMissing": "Deze bezwaarlink mist vereiste informatie.",
     "invalidLinkInvalid": "Deze bezwaarlink is ongeldig."
+  },
+  "Analytics": {
+    "title": "Analyse",
+    "subtitle": "Bonverwerking statistieken en volumetracking",
+    "tabMetrics": "Statistieken",
+    "tabVolume": "Volume",
+    "tabAuditLog": "Auditlog",
+    "totalReceipts": "Totaal bonnen",
+    "approved": "Goedgekeurd",
+    "rejected": "Afgewezen",
+    "pending": "In afwachting",
+    "requiresReview": "Beoordeling nodig",
+    "flagged": "Gemarkeerd",
+    "approvalRate": "Goedkeuringspercentage",
+    "rejectionRate": "Afwijzingspercentage",
+    "groupBy": "Groeperen op",
+    "hourly": "Per uur",
+    "daily": "Per dag",
+    "weekly": "Per week",
+    "noData": "Geen gegevens beschikbaar voor deze periode",
+    "legendVerified": "Geverifieerd",
+    "legendPending": "In afwachting",
+    "legendRejected": "Afgewezen",
+    "auditLogTitle": "Auditlog",
+    "auditLogDescription": "Auditlog functionaliteit wordt beschikbaar in een toekomstige update.",
+    "failedToLoad": "Kan analysegegevens niet laden"
+  },
+  "AuditLog": {
+    "columnTime": "Tijd",
+    "columnCategory": "Categorie",
+    "columnAction": "Actie",
+    "columnActor": "Uitvoerder",
+    "columnSummary": "Samenvatting",
+    "auditFilterAll": "Alles",
+    "auditFilterAiJudgement": "AI-beoordeling",
+    "auditFilterSecondaryAnalysis": "Secundaire analyse",
+    "auditFilterModeration": "Moderatie",
+    "auditFilterComment": "Opmerking",
+    "auditFilterUserManagement": "Gebruikersbeheer",
+    "auditFilterSettings": "Instellingen",
+    "auditFilterSystem": "Systeem",
+    "loadMore": "Meer laden",
+    "loading": "Laden...",
+    "emptyState": "Geen auditlog-items komen overeen met het huidige filter",
+    "systemActor": "Systeem",
+    "summaryReceiptVerdict": "Bon {receiptId} → {verdict}",
+    "summaryRoleChanged": "Rol gewijzigd naar {role}",
+    "summaryUpdated": "Bijgewerkt: {keys}",
+    "summaryReceipt": "Bon {receiptId}"
+  },
+  "UserSettings": {
+    "title": "Instellingen",
+    "comingSoon": "Gebruikersinstellingen worden beschikbaar in een toekomstige update."
   }
 }

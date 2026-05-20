@@ -35,7 +35,8 @@ export async function PATCH(request: NextRequest) {
   const result = await updateUserRole(
     { database: prisma },
     userId,
-    role
+    role,
+    (session.user as any).id
   );
 
   if (!result.success) {
