@@ -364,7 +364,11 @@
     "loadMore": "Meer laden",
     "loading": "Laden...",
     "emptyState": "Geen auditlog-items komen overeen met het huidige filter",
-    "systemActor": "Systeem"
+    "systemActor": "Systeem",
+    "summaryReceiptVerdict": "Bon {receiptId} → {verdict}",
+    "summaryRoleChanged": "Rol gewijzigd naar {role}",
+    "summaryUpdated": "Bijgewerkt: {keys}",
+    "summaryReceipt": "Bon {receiptId}"
   },
   "UserSettings": {
     "title": "Instellingen",

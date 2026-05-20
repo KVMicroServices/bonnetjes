@@ -50,7 +50,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === "volume") {
-      const granularity = searchParams.get("granularity") || "day";
+      const granularityParam = searchParams.get("granularity");
+      let granularity: string;
+      if (granularityParam) {
+        granularity = granularityParam;
+      } else {
+        granularity = "day";
+      }
       if (!VALID_GRANULARITIES.includes(granularity)) {
         return NextResponse.json(
           { error: "Invalid granularity. Use: hour, day, or week" },

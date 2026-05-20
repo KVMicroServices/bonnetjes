@@ -364,7 +364,11 @@
     "loadMore": "Charger plus",
     "loading": "Chargement...",
     "emptyState": "Aucune entrée du journal d'audit ne correspond au filtre actuel",
-    "systemActor": "Système"
+    "systemActor": "Système",
+    "summaryReceiptVerdict": "Reçu {receiptId} → {verdict}",
+    "summaryRoleChanged": "Rôle changé en {role}",
+    "summaryUpdated": "Mis à jour : {keys}",
+    "summaryReceipt": "Reçu {receiptId}"
   },
   "UserSettings": {
     "title": "Paramètres",

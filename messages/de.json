@@ -364,7 +364,11 @@
     "loadMore": "Mehr laden",
     "loading": "Laden...",
     "emptyState": "Keine Prüfprotokoll-Einträge entsprechen dem aktuellen Filter",
-    "systemActor": "System"
+    "systemActor": "System",
+    "summaryReceiptVerdict": "Beleg {receiptId} → {verdict}",
+    "summaryRoleChanged": "Rolle geändert zu {role}",
+    "summaryUpdated": "Aktualisiert: {keys}",
+    "summaryReceipt": "Beleg {receiptId}"
   },
   "UserSettings": {
     "title": "Einstellungen",

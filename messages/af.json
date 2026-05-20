@@ -364,7 +364,11 @@
     "loadMore": "Laai meer",
     "loading": "Laai...",
     "emptyState": "Geen ouditlog-inskrywings stem ooreen met die huidige filter nie",
-    "systemActor": "Stelsel"
+    "systemActor": "Stelsel",
+    "summaryReceiptVerdict": "Kwitansie {receiptId} → {verdict}",
+    "summaryRoleChanged": "Rol verander na {role}",
+    "summaryUpdated": "Opgedateer: {keys}",
+    "summaryReceipt": "Kwitansie {receiptId}"
   },
   "UserSettings": {
     "title": "Instellings",

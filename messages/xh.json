@@ -364,7 +364,11 @@
     "loadMore": "Layisha okungakumbi",
     "loading": "Iyalayisha...",
     "emptyState": "Akukho zingeniso zelog yokuhlola ezihambelana nefiltha yangoku",
-    "systemActor": "Inkqubo"
+    "systemActor": "Inkqubo",
+    "summaryReceiptVerdict": "Irisithi {receiptId} → {verdict}",
+    "summaryRoleChanged": "Indima itshintshwe yaba ngu-{role}",
+    "summaryUpdated": "Ihlaziyiwe: {keys}",
+    "summaryReceipt": "Irisithi {receiptId}"
   },
   "UserSettings": {
     "title": "Izicwangciso",

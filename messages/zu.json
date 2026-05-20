@@ -364,7 +364,11 @@
     "loadMore": "Layisha okwengeziwe",
     "loading": "Iyalayisha...",
     "emptyState": "Azikho izingeniso zelog yokuhlola ezihambelana nefiltha yamanje",
-    "systemActor": "Uhlelo"
+    "systemActor": "Uhlelo",
+    "summaryReceiptVerdict": "Irisidi {receiptId} → {verdict}",
+    "summaryRoleChanged": "Indima ishintshwe yaba ngu-{role}",
+    "summaryUpdated": "Kubuyekeziwe: {keys}",
+    "summaryReceipt": "Irisidi {receiptId}"
   },
   "UserSettings": {
     "title": "Izilungiselelo",

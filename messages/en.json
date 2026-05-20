@@ -368,6 +368,10 @@
     "loadMore": "Load more",
     "loading": "Loading...",
     "emptyState": "No audit log entries match the current filter",
-    "systemActor": "System"
+    "systemActor": "System",
+    "summaryReceiptVerdict": "Receipt {receiptId} → {verdict}",
+    "summaryRoleChanged": "Role changed to {role}",
+    "summaryUpdated": "Updated: {keys}",
+    "summaryReceipt": "Receipt {receiptId}"
   }
 }

@@ -1,5 +1,19 @@
 # Changes
 
+## [097] Fix review findings for analytics feature
+
+**What**: Resolved all 14 banned pattern violations and 1 localization issue from code review 26.05.20-analytics.
+**Decisions**:
+- Extracted time constants (`MILLISECONDS_PER_SECOND`, `SECONDS_PER_MINUTE`, etc.) and `PERCENTAGE_MULTIPLIER` in analytics-service
+- Extracted `RECEIPT_ID_PREVIEW_LENGTH` constant for `slice(0, 8)` calls
+- Replaced `buildSummary` hardcoded English strings with `t()` calls using new translation keys (`summaryReceiptVerdict`, `summaryRoleChanged`, `summaryUpdated`, `summaryReceipt`)
+- Added translation keys to all 8 locale files
+**Files**:
+- lib/services/analytics-service.ts
+- app/admin/analytics/page.tsx
+- app/api/admin/analytics/route.ts
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
 ## [096] Build AuditLogTab component with category filters, table, and pagination
 
 **What**: Replaced the placeholder audit log tab in the analytics page with a full implementation featuring category filter pills, a data table, cursor-based pagination, loading spinner, and empty state.

@@ -190,14 +190,17 @@ function TabButton({
   onClick: () => void;
   label: string;
 }) {
+  let buttonClassName = "whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium transition-colors ";
+  if (active) {
+    buttonClassName = buttonClassName + "border-blue-500 text-blue-600";
+  } else {
+    buttonClassName = buttonClassName + "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700";
+  }
+
   return (
     <button
       onClick={onClick}
-      className={`whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium transition-colors ${
-        active
-          ? "border-blue-500 text-blue-600"
-          : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-      }`}
+      className={buttonClassName}
     >
       {label}
     </button>
@@ -359,13 +362,15 @@ function VolumeTab({
 
       {/* Chart */}
       <div className="rounded-lg border bg-white p-6 shadow-sm">
-        {loading ? (
+        {loading && (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
-        ) : data.length === 0 ? (
+        )}
+        {!loading && data.length === 0 && (
           <div className="py-16 text-center text-gray-500">{t("noData")}</div>
-        ) : (
+        )}
+        {!loading && data.length > 0 && (
           <ResponsiveContainer width="100%" height={400}>
             <BarChart data={data as VolumeDataPoint[]}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -414,14 +419,17 @@ function GranularityButton({
   onClick: () => void;
   label: string;
 }) {
+  let buttonClassName = "rounded-md px-3 py-1.5 text-sm font-medium transition-colors ";
+  if (active) {
+    buttonClassName = buttonClassName + "bg-blue-100 text-blue-700";
+  } else {
+    buttonClassName = buttonClassName + "text-gray-600 hover:bg-gray-100";
+  }
+
   return (
     <button
       onClick={onClick}
-      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-        active
-          ? "bg-blue-100 text-blue-700"
-          : "text-gray-600 hover:bg-gray-100"
-      }`}
+      className={buttonClassName}
     >
       {label}
     </button>
@@ -450,6 +458,8 @@ interface AuditLogResponse {
 // ─── Audit Log Constants ─────────────────────────────────────────────────────
 
 const AUDIT_CATEGORY_ALL = "all";
+
+const RECEIPT_ID_PREVIEW_LENGTH = 8;
 
 const AUDIT_CATEGORIES: ReadonlyArray<string> = [
   AUDIT_CATEGORY_ALL,
@@ -506,7 +516,7 @@ function resolveActorName(entry: AuditLogEntry, systemLabel: string): string {
   return entry.actorId;
 }
 
-function buildSummary(entry: AuditLogEntry): string {
+function buildSummary(entry: AuditLogEntry, t: (key: string, values?: Record<string, string>) => string): string {
   if (!entry.metadata) {
     return entry.action;
   }
@@ -515,32 +525,37 @@ function buildSummary(entry: AuditLogEntry): string {
     const parsed = JSON.parse(entry.metadata);
 
     if (parsed.receiptId && parsed.verdict) {
-      return `Receipt ${parsed.receiptId.slice(0, 8)} → ${parsed.verdict}`;
+      const receiptPreview = parsed.receiptId.slice(0, RECEIPT_ID_PREVIEW_LENGTH);
+      return t("summaryReceiptVerdict", { receiptId: receiptPreview, verdict: parsed.verdict });
     }
 
     if (parsed.targetUserId && parsed.newRole) {
-      return `Role changed to ${parsed.newRole}`;
+      return t("summaryRoleChanged", { role: parsed.newRole });
     }
 
     if (parsed.changedKeys) {
       const keys = parsed.changedKeys as string[];
-      return `Updated: ${keys.join(", ")}`;
+      return t("summaryUpdated", { keys: keys.join(", ") });
     }
 
     if (parsed.receiptId && parsed.action) {
-      return `Receipt ${parsed.receiptId.slice(0, 8)} → ${parsed.action}`;
+      const receiptPreview = parsed.receiptId.slice(0, RECEIPT_ID_PREVIEW_LENGTH);
+      return t("summaryReceiptVerdict", { receiptId: receiptPreview, verdict: parsed.action });
     }
 
     if (parsed.receiptId && parsed.outcome) {
-      return `Receipt ${parsed.receiptId.slice(0, 8)} → ${parsed.outcome}`;
+      const receiptPreview = parsed.receiptId.slice(0, RECEIPT_ID_PREVIEW_LENGTH);
+      return t("summaryReceiptVerdict", { receiptId: receiptPreview, verdict: parsed.outcome });
     }
 
     if (parsed.receiptId && parsed.reviewId) {
-      return `Receipt ${parsed.receiptId.slice(0, 8)}`;
+      const receiptPreview = parsed.receiptId.slice(0, RECEIPT_ID_PREVIEW_LENGTH);
+      return t("summaryReceipt", { receiptId: receiptPreview });
     }
 
     if (parsed.receiptId) {
-      return `Receipt ${parsed.receiptId.slice(0, 8)}`;
+      const receiptPreview = parsed.receiptId.slice(0, RECEIPT_ID_PREVIEW_LENGTH);
+      return t("summaryReceipt", { receiptId: receiptPreview });
     }
   } catch {
     // metadata is not valid JSON, fall through
@@ -638,15 +653,17 @@ function AuditLogTab() {
         {AUDIT_CATEGORIES.map((category) => {
           const isActive = category === activeCategory;
           const translationKey = CATEGORY_TRANSLATION_KEYS[category];
+          let pillClassName = "rounded-full px-3 py-1.5 text-sm font-medium transition-colors ";
+          if (isActive) {
+            pillClassName = pillClassName + "bg-blue-600 text-white";
+          } else {
+            pillClassName = pillClassName + "bg-gray-100 text-gray-700 hover:bg-gray-200";
+          }
           return (
             <button
               key={category}
               onClick={() => handleCategoryChange(category)}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              className={pillClassName}
             >
               {t(translationKey)}
             </button>
@@ -687,10 +704,22 @@ function AuditLogTab() {
               {entries.map((entry) => {
                 const badgeColor = CATEGORY_BADGE_COLORS[entry.category];
                 const defaultBadgeColor = "bg-gray-100 text-gray-800";
+                let resolvedBadgeColor: string;
+                if (badgeColor) {
+                  resolvedBadgeColor = badgeColor;
+                } else {
+                  resolvedBadgeColor = defaultBadgeColor;
+                }
                 const categoryKey = CATEGORY_TRANSLATION_KEYS[entry.category];
+                let categoryLabel: string;
+                if (categoryKey) {
+                  categoryLabel = t(categoryKey);
+                } else {
+                  categoryLabel = entry.category;
+                }
                 const formattedTime = new Date(entry.createdAt).toLocaleString();
                 const actorName = resolveActorName(entry, t("systemActor"));
-                const summary = buildSummary(entry);
+                const summary = buildSummary(entry, t);
 
                 return (
                   <tr key={entry.id} className="hover:bg-gray-50">
@@ -698,8 +727,8 @@ function AuditLogTab() {
                       {formattedTime}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${badgeColor || defaultBadgeColor}`}>
-                        {categoryKey ? t(categoryKey) : entry.category}
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${resolvedBadgeColor}`}>
+                        {categoryLabel}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-900">{entry.action}</td>
@@ -721,14 +750,13 @@ function AuditLogTab() {
             disabled={isLoadingMore}
             className="rounded-lg border bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
           >
-            {isLoadingMore ? (
+            {isLoadingMore && (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 {t("loading")}
               </span>
-            ) : (
-              t("loadMore")
             )}
+            {!isLoadingMore && t("loadMore")}
           </button>
         </div>
       )}

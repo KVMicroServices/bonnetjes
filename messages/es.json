@@ -364,7 +364,11 @@
     "loadMore": "Cargar más",
     "loading": "Cargando...",
     "emptyState": "No hay entradas del registro de auditoría que coincidan con el filtro actual",
-    "systemActor": "Sistema"
+    "systemActor": "Sistema",
+    "summaryReceiptVerdict": "Recibo {receiptId} → {verdict}",
+    "summaryRoleChanged": "Rol cambiado a {role}",
+    "summaryUpdated": "Actualizado: {keys}",
+    "summaryReceipt": "Recibo {receiptId}"
   },
   "UserSettings": {
     "title": "Configuración",

@@ -11,6 +11,11 @@ export interface AnalyticsServiceDependencies {
 const HOURS_IN_DAY = 24;
 const DAYS_IN_WEEK = 7;
 const DAYS_IN_MONTH = 30;
+const MILLISECONDS_PER_SECOND = 1000;
+const SECONDS_PER_MINUTE = 60;
+const MINUTES_PER_HOUR = 60;
+const HOURS_PER_DAY = 24;
+const PERCENTAGE_MULTIPLIER = 100;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -67,13 +72,15 @@ export async function getAnalyticsMetrics(
     database.receipt.count({ where: { verificationStatus: "flagged" } }),
   ]);
 
-  const approvalRate = totalReceipts > 0
-    ? Math.round((approvedCount / totalReceipts) * 100)
-    : 0;
+  let approvalRate = 0;
+  if (totalReceipts > 0) {
+    approvalRate = Math.round((approvedCount / totalReceipts) * PERCENTAGE_MULTIPLIER);
+  }
 
-  const rejectionRate = totalReceipts > 0
-    ? Math.round((rejectedCount / totalReceipts) * 100)
-    : 0;
+  let rejectionRate = 0;
+  if (totalReceipts > 0) {
+    rejectionRate = Math.round((rejectedCount / totalReceipts) * PERCENTAGE_MULTIPLIER);
+  }
 
   return {
     success: true,
@@ -101,14 +108,18 @@ export async function getReceiptVolume(
   let startDate: Date;
   let bucketCount: number;
 
+  const millisecondsPerHour = MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE * MINUTES_PER_HOUR;
+  const millisecondsPerDay = millisecondsPerHour * HOURS_PER_DAY;
+  const millisecondsPerWeek = millisecondsPerDay * DAYS_IN_WEEK;
+
   if (granularity === "hour") {
-    startDate = new Date(now.getTime() - HOURS_IN_DAY * 60 * 60 * 1000);
+    startDate = new Date(now.getTime() - HOURS_IN_DAY * millisecondsPerHour);
     bucketCount = HOURS_IN_DAY;
   } else if (granularity === "day") {
-    startDate = new Date(now.getTime() - DAYS_IN_MONTH * 24 * 60 * 60 * 1000);
+    startDate = new Date(now.getTime() - DAYS_IN_MONTH * millisecondsPerDay);
     bucketCount = DAYS_IN_MONTH;
   } else {
-    startDate = new Date(now.getTime() - DAYS_IN_WEEK * 7 * 24 * 60 * 60 * 1000);
+    startDate = new Date(now.getTime() - DAYS_IN_WEEK * millisecondsPerWeek);
     bucketCount = DAYS_IN_WEEK;
   }
 
@@ -147,17 +158,21 @@ function buildVolumeDataPoints(
     let bucketEnd: Date;
     let label: string;
 
+    const millisecondsPerHour = MILLISECONDS_PER_SECOND * SECONDS_PER_MINUTE * MINUTES_PER_HOUR;
+    const millisecondsPerDay = millisecondsPerHour * HOURS_PER_DAY;
+    const millisecondsPerWeek = millisecondsPerDay * DAYS_IN_WEEK;
+
     if (granularity === "hour") {
-      bucketStart = new Date(startDate.getTime() + index * 60 * 60 * 1000);
-      bucketEnd = new Date(bucketStart.getTime() + 60 * 60 * 1000);
+      bucketStart = new Date(startDate.getTime() + index * millisecondsPerHour);
+      bucketEnd = new Date(bucketStart.getTime() + millisecondsPerHour);
       label = bucketStart.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     } else if (granularity === "day") {
-      bucketStart = new Date(startDate.getTime() + index * 24 * 60 * 60 * 1000);
-      bucketEnd = new Date(bucketStart.getTime() + 24 * 60 * 60 * 1000);
+      bucketStart = new Date(startDate.getTime() + index * millisecondsPerDay);
+      bucketEnd = new Date(bucketStart.getTime() + millisecondsPerDay);
       label = bucketStart.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
     } else {
-      bucketStart = new Date(startDate.getTime() + index * 7 * 24 * 60 * 60 * 1000);
-      bucketEnd = new Date(bucketStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+      bucketStart = new Date(startDate.getTime() + index * millisecondsPerWeek);
+      bucketEnd = new Date(bucketStart.getTime() + millisecondsPerWeek);
       const weekEndDisplay = new Date(Math.min(bucketEnd.getTime(), endDate.getTime()));
       label = `${bucketStart.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} - ${weekEndDisplay.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}`;
     }
@@ -167,8 +182,10 @@ function buildVolumeDataPoints(
     });
 
     const total = bucketReceipts.length;
-    const verified = bucketReceipts.filter((receipt) => receipt.verificationStatus === "verified").length;
-    const rejected = bucketReceipts.filter((receipt) => receipt.verificationStatus === "rejected" || receipt.verificationStatus === "flagged").length;
+    const verifiedReceipts = bucketReceipts.filter((receipt) => receipt.verificationStatus === "verified");
+    const verified = verifiedReceipts.length;
+    const rejectedReceipts = bucketReceipts.filter((receipt) => receipt.verificationStatus === "rejected" || receipt.verificationStatus === "flagged");
+    const rejected = rejectedReceipts.length;
     const pending = total - verified - rejected;
 
     points.push({ label, total, verified, rejected, pending });
