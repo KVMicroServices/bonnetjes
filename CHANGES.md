@@ -1,5 +1,31 @@
 # Changes
 
+## [102] Add manual review disable/enable form to admin page
+
+**What**: Added a "Manual Disable" tab to the admin dashboard with a form for review ID, location ID, and tenant ID that calls the existing `disable-manual`/`enable-manual` API actions.
+**Why**: Restores the previously removed manual testing form for directly disabling/enabling reviews on the platform.
+**Files**:
+- app/admin/page.tsx
+- messages/*.json (all 8 languages)
+
+## [101] Move SMTP configuration from env vars to admin settings page
+
+**What**: SMTP settings (host, port, user, pass, from) are now configurable via the admin settings page with DB persistence, falling back to env vars if not set in the database.
+**Decisions**:
+- Reused existing `AppSetting` key-value table — no migration needed
+- Both email-service and notification-service now read SMTP config via `getSmtpSettings()` (DB-first, env fallback)
+- Removed singleton transport pattern in email-service since settings can change at runtime
+**Files**:
+- lib/services/app-settings-service.ts
+- lib/services/notification-service.ts
+- lib/email/email-service.ts
+- app/api/admin/settings/route.ts
+- app/admin/settings/page.tsx
+- messages/*.json (all 8 languages)
+- tests/services/email-service.test.ts
+- tests/services/app-settings-service.test.ts
+- tests/routes/admin-settings.test.ts
+
 ## [100] Add date range picker and scrollable chart to analytics volume tab
 
 **What**: Volume chart now supports custom date ranges via date inputs and quick presets (Today, Last 7 days, Last 30 days). Chart is horizontally scrollable when many data points are shown. Service accepts optional `startDate`/`endDate` and computes bucket count dynamically.

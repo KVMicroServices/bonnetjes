@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { getSmtpSettings } from "@/lib/services/app-settings-service";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -114,13 +115,9 @@ async function sendSingleEmail(
   title: string,
   body: string
 ): Promise<void> {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = process.env.SMTP_PORT;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const smtpFrom = process.env.SMTP_FROM;
+  const smtp = await getSmtpSettings();
 
-  if (!smtpHost || !smtpPort || !smtpUser || !smtpPass || !smtpFrom) {
+  if (!smtp.smtpHost || !smtp.smtpPort || !smtp.smtpUser || !smtp.smtpPass || !smtp.smtpFrom) {
     logger.warn("SMTP not configured, skipping notification email");
     return;
   }
@@ -128,19 +125,19 @@ async function sendSingleEmail(
   const { createTransport } = await import("nodemailer");
 
   const SECURE_SMTP_PORT = 465;
-  const portNumber = Number(smtpPort);
+  const portNumber = Number(smtp.smtpPort);
 
   const transport = createTransport({
-    host: smtpHost,
+    host: smtp.smtpHost,
     port: portNumber,
     secure: portNumber === SECURE_SMTP_PORT,
-    auth: { user: smtpUser, pass: smtpPass },
+    auth: { user: smtp.smtpUser, pass: smtp.smtpPass },
   });
 
   const htmlBody = buildNotificationEmailHtml(title, body);
 
   await transport.sendMail({
-    from: smtpFrom,
+    from: smtp.smtpFrom,
     to: recipientEmail,
     subject: title,
     html: htmlBody,

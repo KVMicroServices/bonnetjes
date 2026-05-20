@@ -8,11 +8,17 @@ import {
   getAppSettings,
   setSettingBoolean,
   setSettingInteger,
+  setSettingString,
   setSettingStringArray,
   SETTING_AUTO_VERIFY_ENABLED,
   SETTING_AUTO_DISABLE_ENABLED,
   SETTING_HIGH_CONFIDENCE_THRESHOLD,
   SETTING_AUTO_DISABLE_LOCATION_WHITELIST,
+  SETTING_SMTP_HOST,
+  SETTING_SMTP_PORT,
+  SETTING_SMTP_USER,
+  SETTING_SMTP_PASS,
+  SETTING_SMTP_FROM,
 } from "@/lib/services/app-settings-service";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
@@ -99,6 +105,41 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: "autoDisableLocationWhitelist must contain non-empty strings" }, { status: 400 });
       }
       await setSettingStringArray(SETTING_AUTO_DISABLE_LOCATION_WHITELIST, payload.autoDisableLocationWhitelist as string[]);
+    }
+
+    if ("smtpHost" in payload) {
+      if (typeof payload.smtpHost !== "string") {
+        return NextResponse.json({ error: "smtpHost must be a string" }, { status: 400 });
+      }
+      await setSettingString(SETTING_SMTP_HOST, payload.smtpHost);
+    }
+
+    if ("smtpPort" in payload) {
+      if (typeof payload.smtpPort !== "string") {
+        return NextResponse.json({ error: "smtpPort must be a string" }, { status: 400 });
+      }
+      await setSettingString(SETTING_SMTP_PORT, payload.smtpPort);
+    }
+
+    if ("smtpUser" in payload) {
+      if (typeof payload.smtpUser !== "string") {
+        return NextResponse.json({ error: "smtpUser must be a string" }, { status: 400 });
+      }
+      await setSettingString(SETTING_SMTP_USER, payload.smtpUser);
+    }
+
+    if ("smtpPass" in payload) {
+      if (typeof payload.smtpPass !== "string") {
+        return NextResponse.json({ error: "smtpPass must be a string" }, { status: 400 });
+      }
+      await setSettingString(SETTING_SMTP_PASS, payload.smtpPass);
+    }
+
+    if ("smtpFrom" in payload) {
+      if (typeof payload.smtpFrom !== "string") {
+        return NextResponse.json({ error: "smtpFrom must be a string" }, { status: 400 });
+      }
+      await setSettingString(SETTING_SMTP_FROM, payload.smtpFrom);
     }
 
     const settings = await getAppSettings();

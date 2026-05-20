@@ -159,7 +159,7 @@ export default function AdminPage() {
   const [receipts, setReceipts] = useState<ReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<"queue" | "disputes">("queue");
+  const [activeTab, setActiveTab] = useState<"queue" | "disputes" | "manual-disable">("queue");
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -168,6 +168,12 @@ export default function AdminPage() {
   const [syncing, setSyncing] = useState(false);
   const [disablingReviewId, setDisablingReviewId] = useState<string | null>(null);
   const [reviewDisabledReceipts, setReviewDisabledReceipts] = useState<Set<string>>(new Set());
+
+  // Manual disable form state
+  const [manualReviewId, setManualReviewId] = useState("");
+  const [manualLocationId, setManualLocationId] = useState("");
+  const [manualTenantId, setManualTenantId] = useState("");
+  const [manualDisableLoading, setManualDisableLoading] = useState(false);
 
   // Review-required list state
   const [reviewRequiredReceipts, setReviewRequiredReceipts] = useState<ReceiptData[]>([]);
@@ -231,6 +237,60 @@ export default function AdminPage() {
       // silent fail
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleManualDisable = async (action: "disable-manual" | "enable-manual") => {
+    const trimmedReviewId = manualReviewId.trim();
+    const trimmedLocationId = manualLocationId.trim();
+    const parsedTenantId = parseInt(manualTenantId.trim(), 10);
+
+    if (!trimmedReviewId || !trimmedLocationId || isNaN(parsedTenantId) || parsedTenantId <= 0) {
+      toast({
+        title: t("manualDisableValidationError"),
+        description: t("manualDisableValidationDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setManualDisableLoading(true);
+    try {
+      const response = await fetch("/api/admin/reviews/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          reviewId: trimmedReviewId,
+          locationId: trimmedLocationId,
+          tenantId: parsedTenantId,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        const isDisable = action === "disable-manual";
+        toast({
+          title: t("reviewToggled"),
+          description: isDisable ? t("reviewDisabled") : t("reviewEnabled"),
+        });
+        setManualReviewId("");
+        setManualLocationId("");
+        setManualTenantId("");
+      } else {
+        toast({
+          title: t("reviewToggleFailed"),
+          description: data.error || t("reviewToggleFailedDescription"),
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: t("reviewToggleFailed"),
+        description: t("reviewToggleFailedDescription"),
+        variant: "destructive",
+      });
+    } finally {
+      setManualDisableLoading(false);
     }
   };
 
@@ -833,6 +893,17 @@ export default function AdminPage() {
             <Scale className="h-4 w-4" />
             {t("disputesTab")}
           </button>
+          <button
+            onClick={() => setActiveTab("manual-disable")}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
+              activeTab === "manual-disable"
+                ? "bg-kv-green text-white"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <Power className="h-4 w-4" />
+            {t("manualDisableTab")}
+          </button>
         </div>
 
         {activeTab === "queue" && (
@@ -1109,6 +1180,79 @@ export default function AdminPage() {
               </div>
             )}
           </>
+        )}
+
+        {activeTab === "manual-disable" && (
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">{t("manualDisableTitle")}</h2>
+              <p className="text-sm text-gray-600">{t("manualDisableDescription")}</p>
+            </div>
+
+            <div className="max-w-md space-y-4">
+              <div>
+                <label htmlFor="manual-review-id" className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("manualDisableReviewIdLabel")}
+                </label>
+                <input
+                  id="manual-review-id"
+                  type="text"
+                  value={manualReviewId}
+                  onChange={(e) => setManualReviewId(e.target.value)}
+                  placeholder={t("manualDisableReviewIdPlaceholder")}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="manual-location-id" className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("manualDisableLocationIdLabel")}
+                </label>
+                <input
+                  id="manual-location-id"
+                  type="text"
+                  value={manualLocationId}
+                  onChange={(e) => setManualLocationId(e.target.value)}
+                  placeholder={t("manualDisableLocationIdPlaceholder")}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="manual-tenant-id" className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("manualDisableTenantIdLabel")}
+                </label>
+                <input
+                  id="manual-tenant-id"
+                  type="number"
+                  value={manualTenantId}
+                  onChange={(e) => setManualTenantId(e.target.value)}
+                  placeholder={t("manualDisableTenantIdPlaceholder")}
+                  min="1"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => handleManualDisable("disable-manual")}
+                  disabled={manualDisableLoading}
+                  className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {manualDisableLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+                  {t("manualDisableButton")}
+                </button>
+                <button
+                  onClick={() => handleManualDisable("enable-manual")}
+                  disabled={manualDisableLoading}
+                  className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  {manualDisableLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+                  {t("manualEnableButton")}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
       </main>

@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/header";
-import { Settings, Users, Loader2, Zap, SlidersHorizontal, MapPin, Plus, X } from "lucide-react";
+import { Settings, Users, Loader2, Zap, SlidersHorizontal, MapPin, Plus, X, Mail } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
@@ -23,6 +23,13 @@ interface AppSettings {
   autoDisableEnabled: boolean;
   autoDisableLocationWhitelist: string[];
   highConfidenceThreshold: number;
+  smtp: {
+    smtpHost: string | null;
+    smtpPort: string | null;
+    smtpUser: string | null;
+    smtpPass: string | null;
+    smtpFrom: string | null;
+  };
 }
 
 export default function SettingsPage() {
@@ -38,10 +45,25 @@ export default function SettingsPage() {
     autoDisableEnabled: false,
     autoDisableLocationWhitelist: [],
     highConfidenceThreshold: 70,
+    smtp: {
+      smtpHost: null,
+      smtpPort: null,
+      smtpUser: null,
+      smtpPass: null,
+      smtpFrom: null,
+    },
   });
   const [updatingSetting, setUpdatingSetting] = useState<string | null>(null);
   const [highThresholdInput, setHighThresholdInput] = useState("70");
   const [newLocationId, setNewLocationId] = useState("");
+  const [smtpForm, setSmtpForm] = useState({
+    smtpHost: "",
+    smtpPort: "",
+    smtpUser: "",
+    smtpPass: "",
+    smtpFrom: "",
+  });
+  const [savingSmtp, setSavingSmtp] = useState(false);
 
   const isAdmin = (session?.user as any)?.role === "admin";
 
@@ -64,6 +86,13 @@ export default function SettingsPage() {
         const data = await response.json();
         setSettings(data);
         setHighThresholdInput(String(data.highConfidenceThreshold));
+        setSmtpForm({
+          smtpHost: data.smtp?.smtpHost || "",
+          smtpPort: data.smtp?.smtpPort || "",
+          smtpUser: data.smtp?.smtpUser || "",
+          smtpPass: data.smtp?.smtpPass || "",
+          smtpFrom: data.smtp?.smtpFrom || "",
+        });
       }
     } catch {
       // Fetch failed silently
@@ -153,6 +182,46 @@ export default function SettingsPage() {
       (item) => item !== locationId
     );
     await updateSetting("autoDisableLocationWhitelist", updatedList);
+  };
+
+  const handleSmtpSave = async () => {
+    setSavingSmtp(true);
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          smtpHost: smtpForm.smtpHost,
+          smtpPort: smtpForm.smtpPort,
+          smtpUser: smtpForm.smtpUser,
+          smtpPass: smtpForm.smtpPass,
+          smtpFrom: smtpForm.smtpFrom,
+        }),
+      });
+
+      if (response.ok) {
+        const updatedSettings = await response.json();
+        setSettings(updatedSettings);
+        toast({
+          title: t("settingUpdated"),
+          description: t("smtpSaved"),
+        });
+      } else {
+        toast({
+          title: t("settingUpdateFailed"),
+          description: t("settingUpdateFailedDescription"),
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: t("settingUpdateFailed"),
+        description: t("settingUpdateFailedDescription"),
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSmtp(false);
+    }
   };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
@@ -358,6 +427,102 @@ export default function SettingsPage() {
                 />
                 <span className="text-sm text-gray-500">%</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* SMTP Configuration Section */}
+        <div className="mb-8 rounded-xl bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-2">
+            <Mail className="h-5 w-5 text-kv-green" />
+            <h2 className="text-lg font-semibold text-gray-900">
+              {t("smtpTitle")}
+            </h2>
+          </div>
+
+          <p className="mb-6 text-sm text-gray-500">{t("smtpDescription")}</p>
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="smtp-host" className="mb-1 block text-sm font-medium text-gray-900">
+                {t("smtpHostLabel")}
+              </label>
+              <input
+                id="smtp-host"
+                type="text"
+                value={smtpForm.smtpHost}
+                onChange={(event) => setSmtpForm({ ...smtpForm, smtpHost: event.target.value })}
+                placeholder={t("smtpHostPlaceholder")}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="smtp-port" className="mb-1 block text-sm font-medium text-gray-900">
+                {t("smtpPortLabel")}
+              </label>
+              <input
+                id="smtp-port"
+                type="text"
+                value={smtpForm.smtpPort}
+                onChange={(event) => setSmtpForm({ ...smtpForm, smtpPort: event.target.value })}
+                placeholder={t("smtpPortPlaceholder")}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="smtp-user" className="mb-1 block text-sm font-medium text-gray-900">
+                {t("smtpUserLabel")}
+              </label>
+              <input
+                id="smtp-user"
+                type="text"
+                value={smtpForm.smtpUser}
+                onChange={(event) => setSmtpForm({ ...smtpForm, smtpUser: event.target.value })}
+                placeholder={t("smtpUserPlaceholder")}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="smtp-pass" className="mb-1 block text-sm font-medium text-gray-900">
+                {t("smtpPassLabel")}
+              </label>
+              <input
+                id="smtp-pass"
+                type="password"
+                value={smtpForm.smtpPass}
+                onChange={(event) => setSmtpForm({ ...smtpForm, smtpPass: event.target.value })}
+                placeholder={t("smtpPassPlaceholder")}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="smtp-from" className="mb-1 block text-sm font-medium text-gray-900">
+                {t("smtpFromLabel")}
+              </label>
+              <input
+                id="smtp-from"
+                type="text"
+                value={smtpForm.smtpFrom}
+                onChange={(event) => setSmtpForm({ ...smtpForm, smtpFrom: event.target.value })}
+                placeholder={t("smtpFromPlaceholder")}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400"
+              />
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleSmtpSave}
+                disabled={savingSmtp}
+                className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-kv-green/90 disabled:opacity-50"
+              >
+                {savingSmtp && <Loader2 className="h-4 w-4 animate-spin" />}
+                {t("smtpSaveButton")}
+              </button>
             </div>
           </div>
         </div>
