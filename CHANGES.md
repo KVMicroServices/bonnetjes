@@ -1,5 +1,13 @@
 # Changes
 
+## [126] Simplify dispute page rejection response and rename escalation action
+
+**What**: Removed AI analysis (`ocrReasoning`) from the rejected state display and renamed "Request human review" to "Escalate ticket" across all 8 languages.
+**Why**: The OCR reasoning exposed AI internals to end users — only the failure reason matters. "Escalate ticket" is clearer and less robotic.
+**Files**:
+- components/dispute-uploader.tsx
+- messages/*.json (all 8 languages)
+
 ## [125] Add HEIC, DOC, and DOCX file format support with preview conversion
 
 **What**: Files in HEIC (Apple), DOC, and DOCX formats are now accepted for upload, converted to viewable images for preview, and processed through the OCR pipeline.
