@@ -260,7 +260,8 @@ export default function AdminPage() {
     } catch {
       // silent fail
     } finally {
-      setSyncing(false);
+      // Keep the syncing indicator visible briefly so the user sees feedback
+      setTimeout(() => setSyncing(false), 3000);
     }
   };
 
@@ -794,8 +795,11 @@ export default function AdminPage() {
             disabled={syncing}
             className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
-            <CloudDownload className={`h-4 w-4 ${syncing ? "animate-pulse" : ""}`} />
-            {t("syncNow")}
+            {syncing
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <CloudDownload className="h-4 w-4" />
+            }
+            {syncing ? t("syncing") : t("syncNow")}
           </button>
         </div>
 

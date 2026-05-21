@@ -1,5 +1,17 @@
 # Changes
 
+## [122] Make sync trigger fire-and-forget with spinner feedback
+
+**What**: The "Sync Now" button no longer blocks until the full tick completes — the API returns immediately and the tick runs in the background.
+**Why**: `executeTick` can take many seconds; awaiting it made the button appear frozen with no meaningful progress indication.
+**Decisions**:
+- API route fires `executeTick()` without awaiting, catches errors via `.catch()` for logging
+- Button shows a `Loader2` spinner and "Syncing..." text for 3 seconds after triggering
+**Files**:
+- app/api/admin/receipt-sync/trigger/route.ts
+- app/admin/page.tsx
+- messages/*.json (all 8 languages)
+
 ## [121] Show location ID on receipt queue table, dispute table, and receipt preview modal
 
 **What**: Added locationId display to the admin queue table rows, dispute table rows, and the receipt preview modal.
