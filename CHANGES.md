@@ -1,5 +1,16 @@
 # Changes
 
+## [113] Fix missing messages directory in Docker images breaking email translations and dispute URLs
+
+**What**: Added `COPY --from=builder /app/messages ./messages` to all Docker targets (production, worker, staging) so email translations resolve at runtime instead of falling back to raw keys.
+**Why**: The `email-translations.ts` reads JSON files from `messages/` via `process.cwd()` — without the directory in the image, all translations silently fall back to key names.
+**Decisions**:
+- Also affects the standalone `Dockerfile.worker`
+- The broken dispute URL (`http:///dispute`) is a separate env issue — `APP_URL` must be set on the staging worker service
+**Files**:
+- Dockerfile
+- Dockerfile.worker
+
 ## [112] Wire audit logs into receipt activity timeline
 
 **What**: Merged existing audit log entries for a receipt into the comment thread as a unified activity timeline, showing both comments and system events chronologically.
