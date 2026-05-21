@@ -1,5 +1,10 @@
 # Changes
 
+## [115] Fix "Load More" in human review section resetting list back to page 1
+
+**What**: Moved the cursor for review-required pagination into a ref so the `fetchReviewRequired` callback identity stays stable and doesn't trigger the initial-load effect on every page fetch.
+**Why**: `reviewRequiredCursor` in the `useCallback` dep array caused the callback to be recreated on each load, which cascaded into the auth-status effect calling `fetchReviewRequired(true)` (a reset).
+
 ## [114] Fix mention notifications leaking to all users instead of only the mentioned user
 
 **What**: Added `userId` field to the Notification model so mention notifications are targeted to the specific mentioned user rather than broadcast globally.

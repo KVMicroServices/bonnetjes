@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Header } from "@/components/header";
 import {
   Shield,
@@ -193,6 +193,7 @@ export default function AdminPage() {
   // Review-required list state
   const [reviewRequiredReceipts, setReviewRequiredReceipts] = useState<ReceiptData[]>([]);
   const [reviewRequiredCursor, setReviewRequiredCursor] = useState<string | null>(null);
+  const reviewRequiredCursorRef = useRef<string | null>(null);
   const [reviewRequiredHasMore, setReviewRequiredHasMore] = useState(false);
   const [reviewRequiredLoading, setReviewRequiredLoading] = useState(false);
   const [reviewTimeRange, setReviewTimeRange] = useState<string>("all");
@@ -394,8 +395,8 @@ export default function AdminPage() {
       if (timeParams.to) {
         params.set("to", timeParams.to);
       }
-      if (!reset && reviewRequiredCursor) {
-        params.set("cursor", reviewRequiredCursor);
+      if (!reset && reviewRequiredCursorRef.current) {
+        params.set("cursor", reviewRequiredCursorRef.current);
       }
 
       const response = await fetch(`/api/admin/receipts/review-required?${params.toString()}`);
@@ -406,6 +407,7 @@ export default function AdminPage() {
         } else {
           setReviewRequiredReceipts(prev => [...prev, ...data.receipts]);
         }
+        reviewRequiredCursorRef.current = data.nextCursor;
         setReviewRequiredCursor(data.nextCursor);
         setReviewRequiredHasMore(data.hasMore);
       }
@@ -414,7 +416,7 @@ export default function AdminPage() {
     } finally {
       setReviewRequiredLoading(false);
     }
-  }, [reviewTimeRange, reviewRequiredCursor]);
+  }, [reviewTimeRange]);
 
   const fetchDisputes = useCallback(async (reset: boolean = false) => {
     setDisputesLoading(true);
@@ -521,6 +523,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (status === "authenticated") {
       setReviewRequiredCursor(null);
+      reviewRequiredCursorRef.current = null;
       fetchReviewRequired(true);
     }
   }, [reviewTimeRange]);
