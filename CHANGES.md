@@ -1,5 +1,12 @@
 # Changes
 
+## [120] Add cursor-based pagination to admin receipts queue tab
+
+**What**: The queue tab now fetches receipts in pages of 20 with a "Load More" button, matching the pattern used by the review-required section.
+**Why**: `fetchData` was calling `/api/receipts` without pagination params, so only the first 15 receipts (the API default) ever loaded.
+**Files**:
+- app/admin/page.tsx
+
 ## [119] Log dispute actions on original receipt activity timeline
 
 **What**: Dispute events (processed, human review requested, accept/reject) now appear in the original receipt's activity timeline by logging audit entries against the original receipt ID looked up via ReceiptSyncState.

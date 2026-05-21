@@ -69,6 +69,7 @@ Deniz, Review adviseur`;
 const CONFIDENCE_HIGH_THRESHOLD = 80;
 const CONFIDENCE_MEDIUM_THRESHOLD = 50;
 const POLLING_INTERVAL_MS = 15000;
+const QUEUE_PAGE_SIZE = 20;
 const REVIEW_REQUIRED_PAGE_SIZE = 10;
 const DISPUTES_PAGE_SIZE = 20;
 const FRAUD_HIGH_THRESHOLD = 50;
@@ -183,6 +184,12 @@ export default function AdminPage() {
   const [syncing, setSyncing] = useState(false);
   const [disablingReviewId, setDisablingReviewId] = useState<string | null>(null);
   const [reviewDisabledReceipts, setReviewDisabledReceipts] = useState<Set<string>>(new Set());
+
+  // Queue pagination state
+  const [queueCursor, setQueueCursor] = useState<string | null>(null);
+  const queueCursorRef = useRef<string | null>(null);
+  const [queueHasMore, setQueueHasMore] = useState(false);
+  const [queueLoadingMore, setQueueLoadingMore] = useState(false);
 
   // Manual disable form state
   const [manualReviewId, setManualReviewId] = useState("");
@@ -356,14 +363,29 @@ export default function AdminPage() {
 
   // ─── Data Fetching ─────────────────────────────────────────────────────────
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (reset: boolean = true) => {
+    if (!reset) {
+      setQueueLoadingMore(true);
+    }
     try {
-      const [statsRes, receiptsRes] = await Promise.all([
-        fetch("/api/admin/stats"),
-        fetch("/api/receipts")
-      ]);
+      const params = new URLSearchParams();
+      params.set("limit", String(QUEUE_PAGE_SIZE));
+      if (!reset && queueCursorRef.current) {
+        params.set("cursor", queueCursorRef.current);
+      }
 
-      if (statsRes.ok) {
+      const fetches: Promise<Response>[] = [
+        fetch(`/api/receipts?${params.toString()}`)
+      ];
+      if (reset) {
+        fetches.push(fetch("/api/admin/stats"));
+      }
+
+      const responses = await Promise.all(fetches);
+      const receiptsRes = responses[0];
+      const statsRes = responses[1];
+
+      if (statsRes && statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(statsData);
       }
@@ -373,12 +395,23 @@ export default function AdminPage() {
         const receiptsList = Array.isArray(receiptsData)
           ? receiptsData
           : receiptsData.receipts;
-        setReceipts(receiptsList || []);
+
+        if (reset) {
+          setReceipts(receiptsList || []);
+        } else {
+          setReceipts(previous => [...previous, ...(receiptsList || [])]);
+        }
+
+        const nextCursor = receiptsData.nextCursor || null;
+        queueCursorRef.current = nextCursor;
+        setQueueCursor(nextCursor);
+        setQueueHasMore(receiptsData.hasMore || false);
       }
     } catch (error) {
       clientLogger.error({ error }, "Failed to fetch admin data");
     } finally {
       setLoading(false);
+      setQueueLoadingMore(false);
     }
   }, []);
 
@@ -1106,6 +1139,22 @@ export default function AdminPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+            {queueHasMore && (
+              <div className="border-t px-4 py-3 text-center">
+                <button
+                  onClick={() => fetchData(false)}
+                  disabled={queueLoadingMore}
+                  className="text-sm font-medium text-kv-green hover:text-kv-green/80 disabled:opacity-50"
+                >
+                  {(() => {
+                    if (queueLoadingMore) {
+                      return <Loader2 className="inline h-4 w-4 animate-spin" />;
+                    }
+                    return t("loadMore");
+                  })()}
+                </button>
               </div>
             )}
           </>
