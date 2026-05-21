@@ -492,6 +492,9 @@
     "auditActionAutoDisableEnqueued": "Ukuvala ngokuzenzakalelayo kuhleliwe",
     "auditActionReceiptSynced": "Irisidi ivumelaniswe kusuka kuplatifomi",
     "auditActionDisputeProcessed": "Ukuphikisana kusetshenzwe",
+    "auditActionDisputeHumanReviewRequested": "Ukubuyekezwa komuntu kokuphikisana kucelwe",
+    "auditActionDisputeAccept": "Ukuphikisana kwamukelwe",
+    "auditActionDisputeReject": "Ukuphikisana kwenqatshiwe",
     "auditActionDisableReview": "Ukubuyekeza kuvalwe",
     "auditActionEnableReview": "Ukubuyekeza kuvulwe kabusha",
     "auditActionGeneric": "{action}"

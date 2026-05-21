@@ -492,6 +492,9 @@
     "auditActionAutoDisableEnqueued": "Outomatiese deaktivering ingeskeduleer",
     "auditActionReceiptSynced": "Kwitansie gesinkroniseer vanaf platform",
     "auditActionDisputeProcessed": "Beswaar verwerk",
+    "auditActionDisputeHumanReviewRequested": "Menslike hersiening van beswaar aangevra",
+    "auditActionDisputeAccept": "Beswaar aanvaar",
+    "auditActionDisputeReject": "Beswaar afgewys",
     "auditActionDisableReview": "Resensie gedeaktiveer",
     "auditActionEnableReview": "Resensie heraktiveer",
     "auditActionGeneric": "{action}"

@@ -525,3 +525,23 @@ function appendDisputeMarker(reasoning: string | null, reviewId: string): string
   }
   return `${reasoning} | ${marker}`;
 }
+
+/**
+ * Look up the original receipt ID linked to a review via ReceiptSyncState.
+ * Returns null if no sync state exists for the given reviewId.
+ */
+export async function findOriginalReceiptIdByReviewId(
+  database: PrismaClient,
+  reviewId: string
+): Promise<string | null> {
+  const syncState = await database.receiptSyncState.findUnique({
+    where: { reviewId },
+    select: { receiptId: true },
+  });
+
+  if (!syncState || !syncState.receiptId) {
+    return null;
+  }
+
+  return syncState.receiptId;
+}

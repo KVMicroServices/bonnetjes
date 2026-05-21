@@ -492,6 +492,9 @@
     "auditActionAutoDisableEnqueued": "Desactivation automatique planifiee",
     "auditActionReceiptSynced": "Recu synchronise depuis la plateforme",
     "auditActionDisputeProcessed": "Contestation traitee",
+    "auditActionDisputeHumanReviewRequested": "Revision humaine de la contestation demandee",
+    "auditActionDisputeAccept": "Contestation acceptee",
+    "auditActionDisputeReject": "Contestation rejetee",
     "auditActionDisableReview": "Avis desactive",
     "auditActionEnableReview": "Avis reactive",
     "auditActionGeneric": "{action}"

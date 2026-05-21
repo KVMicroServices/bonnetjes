@@ -122,6 +122,9 @@ function formatAuditAction(category: string, action: string, translations: {
   actionAutoDisableEnqueued: string;
   actionReceiptSynced: string;
   actionDisputeProcessed: string;
+  actionDisputeHumanReviewRequested: string;
+  actionDisputeAccept: string;
+  actionDisputeReject: string;
   actionDisableReview: string;
   actionEnableReview: string;
   actionGeneric: (action: string) => string;
@@ -148,6 +151,15 @@ function formatAuditAction(category: string, action: string, translations: {
   }
   if (actionLower === "dispute_processed") {
     return translations.actionDisputeProcessed;
+  }
+  if (actionLower === "dispute_human_review_requested") {
+    return translations.actionDisputeHumanReviewRequested;
+  }
+  if (actionLower === "dispute_accept") {
+    return translations.actionDisputeAccept;
+  }
+  if (actionLower === "dispute_reject") {
+    return translations.actionDisputeReject;
   }
   if (actionLower === "disable_review") {
     return translations.actionDisableReview;
@@ -368,6 +380,9 @@ export function CommentThread({ receiptId, currentUserId, isAdmin }: CommentThre
     actionAutoDisableEnqueued: t("auditActionAutoDisableEnqueued"),
     actionReceiptSynced: t("auditActionReceiptSynced"),
     actionDisputeProcessed: t("auditActionDisputeProcessed"),
+    actionDisputeHumanReviewRequested: t("auditActionDisputeHumanReviewRequested"),
+    actionDisputeAccept: t("auditActionDisputeAccept"),
+    actionDisputeReject: t("auditActionDisputeReject"),
     actionDisableReview: t("auditActionDisableReview"),
     actionEnableReview: t("auditActionEnableReview"),
     actionGeneric: (action: string) => t("auditActionGeneric", { action }),

@@ -1,5 +1,24 @@
 # Changes
 
+## [119] Log dispute actions on original receipt activity timeline
+
+**What**: Dispute events (processed, human review requested, accept/reject) now appear in the original receipt's activity timeline by logging audit entries against the original receipt ID looked up via ReceiptSyncState.
+**Why**: Audit events were only logged against the new dispute receipt ID, which never matched when viewing the original receipt's timeline.
+**Decisions**:
+- Added `findOriginalReceiptIdByReviewId` helper that resolves reviewId → original receiptId via ReceiptSyncState
+- Audit events are logged on both the dispute receipt AND the original receipt (dual-write) so both timelines stay in sync
+- Added `dispute_human_review_requested` audit event to request-review route (previously had no audit logging)
+- Added `dispute_accept`/`dispute_reject` audit events to admin dispute PATCH handler
+- `getAuditLogsForReceipt` now matches entries where either `receiptId` or `originalReceiptId` equals the target
+**Files**:
+- lib/services/audit-log-service.ts
+- lib/services/dispute-service.ts
+- app/api/dispute/verify/route.ts
+- app/api/dispute/request-review/route.ts
+- app/api/admin/disputes/route.ts
+- components/comment-thread.tsx
+- messages/*.json (all 8 languages)
+
 ## [118] Remove nested scrollbar from comments/activity timeline
 
 **What**: Removed `max-h-72 overflow-y-auto` from the timeline list container so it no longer creates a second scrollbar inside the panel.

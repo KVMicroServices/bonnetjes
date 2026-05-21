@@ -492,6 +492,9 @@
     "auditActionAutoDisableEnqueued": "Ukucima ngokuzenzekelayo kulungiselelwe",
     "auditActionReceiptSynced": "Irisithi ivumelaniswe kwiplatfom",
     "auditActionDisputeProcessed": "Impikiswano iqhutyiwe",
+    "auditActionDisputeHumanReviewRequested": "Ukuhlolwa komntu kwimpikiswano kucelwe",
+    "auditActionDisputeAccept": "Impikiswano yamkelwe",
+    "auditActionDisputeReject": "Impikiswano yaliwe",
     "auditActionDisableReview": "Uphononongo lucinyiwe",
     "auditActionEnableReview": "Uphononongo luvuliwe kwakhona",
     "auditActionGeneric": "{action}"

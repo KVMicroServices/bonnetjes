@@ -26,6 +26,7 @@ import {
 } from "@/lib/services/ocr-service";
 import {
   verifyDisputeReceipt,
+  findOriginalReceiptIdByReviewId,
   type DisputeOcrAdapter,
 } from "@/lib/services/dispute-service";
 import { resolveDisputeToken } from "@/lib/dispute/dispute-token-http";
@@ -95,12 +96,23 @@ export async function POST(request: NextRequest) {
       outcome: result.receipt.verificationStatus,
     });
 
+    const originalReceiptId = await findOriginalReceiptIdByReviewId(prisma, tokenResult.payload.reviewId);
+    if (originalReceiptId) {
+      recordAuditEvent("system", "dispute_processed", undefined, {
+        receiptId: originalReceiptId,
+        disputeReceiptId: result.receipt.id,
+        reviewId: tokenResult.payload.reviewId,
+        outcome: result.receipt.verificationStatus,
+      });
+    }
+
     sendNotification({
       type: "dispute_received",
       title: "New dispute received",
       body: `A customer submitted a dispute for review ${tokenResult.payload.reviewId}. Outcome: ${result.receipt.verificationStatus}`,
       metadata: {
-        receiptId: result.receipt.id,
+        receiptId: originalReceiptId || result.receipt.id,
+        disputeReceiptId: result.receipt.id,
         reviewId: tokenResult.payload.reviewId,
         verificationStatus: result.receipt.verificationStatus,
       },

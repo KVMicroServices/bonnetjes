@@ -492,6 +492,9 @@
     "auditActionAutoDisableEnqueued": "Auto-disable queued",
     "auditActionReceiptSynced": "Receipt synced from platform",
     "auditActionDisputeProcessed": "Dispute processed",
+    "auditActionDisputeHumanReviewRequested": "Dispute human review requested",
+    "auditActionDisputeAccept": "Dispute accepted",
+    "auditActionDisputeReject": "Dispute rejected",
     "auditActionDisableReview": "Review disabled",
     "auditActionEnableReview": "Review re-enabled",
     "auditActionGeneric": "{action}"

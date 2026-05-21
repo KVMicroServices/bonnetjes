@@ -492,6 +492,9 @@
     "auditActionAutoDisableEnqueued": "Automatische Deaktivierung eingeplant",
     "auditActionReceiptSynced": "Beleg von Plattform synchronisiert",
     "auditActionDisputeProcessed": "Einspruch verarbeitet",
+    "auditActionDisputeHumanReviewRequested": "Manuelle Uberprufung des Einspruchs angefordert",
+    "auditActionDisputeAccept": "Einspruch akzeptiert",
+    "auditActionDisputeReject": "Einspruch abgelehnt",
     "auditActionDisableReview": "Bewertung deaktiviert",
     "auditActionEnableReview": "Bewertung wieder aktiviert",
     "auditActionGeneric": "{action}"

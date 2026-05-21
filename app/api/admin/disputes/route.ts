@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -135,6 +136,28 @@ export async function PATCH(request: NextRequest) {
         data: { verificationStatus: newStatus },
       }),
     ]);
+
+    recordAuditEvent("moderation", `dispute_${action}`, (session.user as any).id, {
+      receiptId: dispute.receiptId,
+      disputeId: disputeId,
+      reviewId: dispute.reviewId,
+      outcome: newStatus,
+    });
+
+    const originalSyncState = await prisma.receiptSyncState.findUnique({
+      where: { reviewId: dispute.reviewId },
+      select: { receiptId: true },
+    });
+
+    if (originalSyncState && originalSyncState.receiptId) {
+      recordAuditEvent("moderation", `dispute_${action}`, (session.user as any).id, {
+        receiptId: originalSyncState.receiptId,
+        disputeReceiptId: dispute.receiptId,
+        disputeId: disputeId,
+        reviewId: dispute.reviewId,
+        outcome: newStatus,
+      });
+    }
 
     return NextResponse.json({ success: true, dispute: updatedDispute });
   } catch (error) {

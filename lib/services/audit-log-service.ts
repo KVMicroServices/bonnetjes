@@ -74,6 +74,7 @@ export function recordAuditEvent(
 
 /**
  * Fetches audit log entries for a specific receipt by searching the metadata JSON.
+ * Matches entries where receiptId OR originalReceiptId equals the given ID.
  * Orders by createdAt ascending (oldest first) for timeline display.
  */
 export async function getAuditLogsForReceipt(receiptId: string): Promise<ReadonlyArray<AuditLogEntry>> {
@@ -93,7 +94,7 @@ export async function getAuditLogsForReceipt(receiptId: string): Promise<Readonl
     }
     try {
       const parsed = JSON.parse(entry.metadata) as Record<string, unknown>;
-      if (parsed.receiptId === receiptId) {
+      if (parsed.receiptId === receiptId || parsed.originalReceiptId === receiptId) {
         filtered.push(entry);
       }
     } catch {

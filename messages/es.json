@@ -492,6 +492,9 @@
     "auditActionAutoDisableEnqueued": "Desactivacion automatica programada",
     "auditActionReceiptSynced": "Recibo sincronizado desde la plataforma",
     "auditActionDisputeProcessed": "Disputa procesada",
+    "auditActionDisputeHumanReviewRequested": "Revision humana de disputa solicitada",
+    "auditActionDisputeAccept": "Disputa aceptada",
+    "auditActionDisputeReject": "Disputa rechazada",
     "auditActionDisableReview": "Resena desactivada",
     "auditActionEnableReview": "Resena reactivada",
     "auditActionGeneric": "{action}"

@@ -492,6 +492,9 @@
     "auditActionAutoDisableEnqueued": "Automatisch uitschakelen ingepland",
     "auditActionReceiptSynced": "Bon gesynchroniseerd van platform",
     "auditActionDisputeProcessed": "Bezwaar verwerkt",
+    "auditActionDisputeHumanReviewRequested": "Menselijke beoordeling bezwaar aangevraagd",
+    "auditActionDisputeAccept": "Bezwaar geaccepteerd",
+    "auditActionDisputeReject": "Bezwaar afgewezen",
     "auditActionDisableReview": "Review uitgeschakeld",
     "auditActionEnableReview": "Review opnieuw ingeschakeld",
     "auditActionGeneric": "{action}"
