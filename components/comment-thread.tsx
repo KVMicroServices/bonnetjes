@@ -559,7 +559,7 @@ export function CommentThread({ receiptId, currentUserId, isAdmin }: CommentThre
       <h4 className="text-sm font-semibold text-gray-700">{t("activityLog")}</h4>
 
       {/* Timeline List */}
-      <div className="flex flex-col gap-3 max-h-72 overflow-y-auto">
+      <div className="flex flex-col gap-3">
         {loading && (
           <p className="text-sm text-gray-500">...</p>
         )}

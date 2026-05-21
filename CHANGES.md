@@ -1,5 +1,12 @@
 # Changes
 
+## [118] Remove nested scrollbar from comments/activity timeline
+
+**What**: Removed `max-h-72 overflow-y-auto` from the timeline list container so it no longer creates a second scrollbar inside the panel.
+**Why**: The parent panel already handles scrolling — the inner constraint was redundant and caused a confusing double-scroll UX.
+**Files**:
+- components/comment-thread.tsx
+
 ## [117] Add dispute_received notification type and clarify access model
 
 **What**: Added `dispute_received` notification type for incoming disputes. Clarified across steering docs and codebase that all features are available to all authenticated users — only system settings require admin role.
