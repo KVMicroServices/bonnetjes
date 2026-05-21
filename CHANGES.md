@@ -1,5 +1,30 @@
 # Changes
 
+## [125] Add HEIC, DOC, and DOCX file format support with preview conversion
+
+**What**: Files in HEIC (Apple), DOC, and DOCX formats are now accepted for upload, converted to viewable images for preview, and processed through the OCR pipeline.
+**Why**: Users uploading receipts from iPhones (HEIC) or exported from email/accounting software (DOC/DOCX) were blocked.
+**Decisions**:
+- HEIC→JPEG via `heic-convert` (pure JS, no native deps)
+- DOCX→PNG via `mammoth` text extraction + `@napi-rs/canvas` rendering
+- DOC→PDF via LibreOffice headless, then existing PDF→image pipeline
+- Converted preview stored in S3 (`previewStoragePath` field), served for browser display
+- LibreOffice added to Docker Alpine images for DOC support
+- Client-side validation uses extension fallback for browsers that misreport HEIC MIME type
+**Files**:
+- lib/file-conversion.ts (new)
+- lib/services/ocr-service.ts
+- lib/services/upload-service.ts
+- lib/services/dispute-service.ts
+- lib/services/receipt-service.ts
+- lib/queue/receipt-worker.ts
+- lib/s3.ts
+- components/receipt-upload.tsx
+- prisma/schema.prisma
+- prisma/migrations/20260601000009_add_preview_storage_path/migration.sql
+- Dockerfile
+- Dockerfile.worker
+
 ## [124] Format secondary analysis display in receipt modal
 
 **What**: Replaced raw JSON dump with structured display showing verdict badge, reasoning, confidence, and extracted fields.

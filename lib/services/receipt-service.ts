@@ -478,9 +478,12 @@ export async function getDownloadUrl(
     });
   }
 
+  // Use preview image for non-browser-viewable formats (HEIC, DOC, DOCX)
+  const effectivePath = receipt.previewStoragePath || receipt.cloudStoragePath;
+
   // Handle KV-synced receipts (stored in external S3 bucket, not R2)
-  if (receipt.cloudStoragePath.startsWith(KV_SYNC_PATH_PREFIX)) {
-    const s3Key = receipt.cloudStoragePath.substring(KV_SYNC_PATH_PREFIX.length);
+  if (effectivePath.startsWith(KV_SYNC_PATH_PREFIX)) {
+    const s3Key = effectivePath.substring(KV_SYNC_PATH_PREFIX.length);
     const downloadUrl = await getKvSyncDownloadUrl(s3Key);
     if (!downloadUrl) {
       return { success: false, error: "KV S3 bucket not configured", statusCode: 503 };
@@ -493,7 +496,7 @@ export async function getDownloadUrl(
   }
 
   const downloadUrl = await dependencies.storage.getFileUrl(
-    receipt.cloudStoragePath,
+    effectivePath,
     receipt.isPublic
   );
 

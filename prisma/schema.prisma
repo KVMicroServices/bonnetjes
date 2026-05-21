@@ -51,9 +51,10 @@ model Receipt {
   
   // File info
   cloudStoragePath    String
+  previewStoragePath  String?   // converted preview image path (for HEIC, DOC, DOCX)
   isPublic            Boolean   @default(false)
   originalFilename    String
-  fileType            String    // "image" or "pdf"
+  fileType            String    // "image", "pdf", "heic", "doc", "docx"
   fileSize            Int
   
   // Archive

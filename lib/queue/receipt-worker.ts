@@ -4,13 +4,14 @@ import { RECEIPT_PROCESSING_QUEUE } from "./receipt-queue";
 import type { ReceiptProcessingJobData } from "./receipt-queue";
 import { enqueueReviewDisable } from "./review-disable-queue";
 import { prisma } from "@/lib/db";
-import { getFileAsBuffer } from "@/lib/s3";
+import { getFileAsBuffer, uploadBuffer, generatePreviewStoragePath } from "@/lib/s3";
 import { processReceiptOcr } from "@/lib/services/ocr-service";
 import {
   detectSuspiciousPatterns,
   calculateFraudRiskScore,
 } from "@/lib/fraud-detection";
 import { isAutoDisableEnabled, isLocationAllowedForAutoDisable } from "@/lib/services/app-settings-service";
+import { needsConversion, convertToViewableFormat } from "@/lib/file-conversion";
 import { logger } from "@/lib/logger";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
@@ -78,6 +79,45 @@ async function processReceiptJob(job: Job<ReceiptProcessingJobData>): Promise<vo
   });
 
   try {
+    // Generate preview image for non-browser-viewable formats (HEIC, DOC, DOCX)
+    const originalFilename = receipt.originalFilename || "receipt";
+    if (needsConversion(originalFilename) && !receipt.previewStoragePath) {
+      try {
+        const fileBuffer = await getFileAsBufferWithKvRouting(receipt.cloudStoragePath);
+        const conversionResult = await convertToViewableFormat(fileBuffer, originalFilename);
+
+        if (conversionResult.success) {
+          const previewPath = generatePreviewStoragePath(
+            receipt.cloudStoragePath,
+            conversionResult.extension
+          );
+
+          await uploadBuffer(conversionResult.buffer, previewPath, conversionResult.mimeType);
+
+          await prisma.receipt.update({
+            where: { id: receiptId },
+            data: { previewStoragePath: previewPath },
+          });
+
+          logger.info(
+            { receiptId, previewPath },
+            "Preview image generated and stored"
+          );
+        } else {
+          logger.warn(
+            { receiptId, error: conversionResult.error },
+            "Preview generation failed, continuing with OCR"
+          );
+        }
+      } catch (previewError) {
+        const errorMessage = previewError instanceof Error ? previewError.message : String(previewError);
+        logger.warn(
+          { receiptId, error: errorMessage },
+          "Preview generation threw, continuing with OCR"
+        );
+      }
+    }
+
     // Run OCR processing (includes fraud re-scoring with OCR confidence)
     const ocrResult = await processReceiptOcr(
       {

@@ -27,6 +27,24 @@ interface FileUpload {
   error?: string;
 }
 
+const EXTENSION_MIME_MAP: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".heic": "image/heic",
+  ".heif": "image/heif",
+  ".pdf": "application/pdf",
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+};
+
+function resolveContentType(filename: string): string {
+  const extension = filename.toLowerCase().slice(filename.lastIndexOf("."));
+  return EXTENSION_MIME_MAP[extension] || "application/octet-stream";
+}
+
 export function ReceiptUpload({ onClose, onComplete }: ReceiptUploadProps) {
   const { toast } = useToast();
   const [files, setFiles] = useState<FileUpload[]>([]);
@@ -59,13 +77,27 @@ export function ReceiptUpload({ onClose, onComplete }: ReceiptUploadProps) {
       "image/png",
       "image/gif",
       "image/webp",
-      "application/pdf"
+      "image/heic",
+      "image/heif",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ];
+
+    const allowedExtensions = [
+      ".jpg", ".jpeg", ".png", ".gif", ".webp",
+      ".heic", ".heif",
+      ".pdf",
+      ".doc", ".docx"
     ];
 
     const validFiles: FileUpload[] = [];
 
     for (const file of selectedFiles) {
-      if (!allowedTypes.includes(file.type)) {
+      const extension = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
+      const isTypeAllowed = allowedTypes.includes(file.type) || allowedExtensions.includes(extension);
+
+      if (!isTypeAllowed) {
         toast({
           title: "Invalid file type",
           description: `${file.name} is not a supported format`,
@@ -107,12 +139,13 @@ export function ReceiptUpload({ onClose, onComplete }: ReceiptUploadProps) {
       );
 
       // Get presigned URL
+      const contentTypeForUpload = file.type || resolveContentType(file.name);
       const presignResponse = await fetch("/api/upload/presigned", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fileName: file.name,
-          contentType: file.type,
+          contentType: contentTypeForUpload,
           isPublic: false
         })
       });
@@ -130,7 +163,7 @@ export function ReceiptUpload({ onClose, onComplete }: ReceiptUploadProps) {
 
       // Upload file to S3
       const uploadHeaders: Record<string, string> = {
-        "Content-Type": file.type
+        "Content-Type": contentTypeForUpload
       };
 
       if (needsContentDisposition) {
@@ -327,7 +360,7 @@ export function ReceiptUpload({ onClose, onComplete }: ReceiptUploadProps) {
                   className={`rounded-lg p-4 ${f.status === "completed" ? "bg-green-50" : "bg-red-50"}`}
                 >
                   <div className="flex items-center gap-3">
-                    {f.file.type.includes("pdf") ? (
+                    {f.file.type.includes("pdf") || f.file.type.includes("msword") || f.file.type.includes("wordprocessingml") || f.file.name.toLowerCase().endsWith(".doc") || f.file.name.toLowerCase().endsWith(".docx") ? (
                       <FileText className={`h-6 w-6 ${f.status === "completed" ? "text-green-600" : "text-red-600"}`} />
                     ) : (
                       <FileImage className={`h-6 w-6 ${f.status === "completed" ? "text-green-600" : "text-red-600"}`} />
@@ -378,7 +411,7 @@ export function ReceiptUpload({ onClose, onComplete }: ReceiptUploadProps) {
             >
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.heic,.heif,.doc,.docx"
                 multiple
                 onChange={(e) => e.target.files && handleFilesSelect(Array.from(e.target.files))}
                 className="absolute inset-0 cursor-pointer opacity-0"
@@ -403,7 +436,7 @@ export function ReceiptUpload({ onClose, onComplete }: ReceiptUploadProps) {
                       exit={{ opacity: 0, y: -10 }}
                       className="flex items-center gap-3 rounded-lg bg-gray-50 p-3"
                     >
-                      {f.file.type.includes("pdf") ? (
+                      {f.file.type.includes("pdf") || f.file.type.includes("msword") || f.file.type.includes("wordprocessingml") || f.file.name.toLowerCase().endsWith(".doc") || f.file.name.toLowerCase().endsWith(".docx") ? (
                         <FileText className="h-8 w-8 text-kv-green" />
                       ) : (
                         <FileImage className="h-8 w-8 text-kv-green" />

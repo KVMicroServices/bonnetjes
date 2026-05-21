@@ -19,14 +19,15 @@ COPY . .
 
 RUN npx prisma generate
 
-# --- Worker stage ---
-FROM base
+# --- Worker stage (includes LibreOffice for DOC conversion) ---
+FROM node:20-alpine
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN apk add --no-cache libc6-compat openssl libreoffice font-noto \
+    && addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
 
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
