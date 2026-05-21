@@ -1,5 +1,14 @@
 # Changes
 
+## [117] Add dispute_received notification type
+
+**What**: Added a new `dispute_received` notification type that fires when a customer submits a dispute, separate from the existing `dispute_outcome` type.
+**Why**: Admins need to know immediately when a dispute comes in, not just after it's been processed.
+**Files**:
+- lib/services/notification-service.ts
+- app/api/dispute/verify/route.ts
+- messages/*.json (all 8 languages)
+
 ## [116] Separate requires_review from pending in volume analytics chart
 
 **What**: Added a distinct `requiresReview` field to volume data points so receipts awaiting human review no longer inflate the "pending" count in the analytics chart.

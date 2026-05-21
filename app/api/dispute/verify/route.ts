@@ -30,6 +30,7 @@ import {
 } from "@/lib/services/dispute-service";
 import { resolveDisputeToken } from "@/lib/dispute/dispute-token-http";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
+import { sendNotification } from "@/lib/services/notification-service";
 
 const verifyRequestSchema = z.object({
   token: z.string().min(1),
@@ -92,6 +93,17 @@ export async function POST(request: NextRequest) {
     recordAuditEvent("system", "dispute_processed", undefined, {
       receiptId: result.receipt.id,
       outcome: result.receipt.verificationStatus,
+    });
+
+    sendNotification({
+      type: "dispute_received",
+      title: "New dispute received",
+      body: `A customer submitted a dispute for review ${tokenResult.payload.reviewId}. Outcome: ${result.receipt.verificationStatus}`,
+      metadata: {
+        receiptId: result.receipt.id,
+        reviewId: tokenResult.payload.reviewId,
+        verificationStatus: result.receipt.verificationStatus,
+      },
     });
 
     return NextResponse.json(result.receipt);

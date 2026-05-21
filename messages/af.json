@@ -442,6 +442,8 @@
     "typeDescription_review_disabled": "'n Kliënt se resensie is op die platform gedeaktiveer",
     "type_dispute_outcome": "Beswaar-uitkoms",
     "typeDescription_dispute_outcome": "'n Kliënt se beswaar is verwerk",
+    "type_dispute_received": "Beswaar ontvang",
+    "typeDescription_dispute_received": "'n Kliënt het 'n nuwe beswaar ingedien",
     "type_role_changed": "Rol verander",
     "typeDescription_role_changed": "Jou gebruikersrol is deur 'n administrateur verander",
     "type_comment_mention": "Kommentaar-vermelding",

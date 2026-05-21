@@ -442,6 +442,8 @@
     "typeDescription_review_disabled": "L'avis d'un client a été désactivé sur la plateforme",
     "type_dispute_outcome": "Résultat de la contestation",
     "typeDescription_dispute_outcome": "La contestation d'un client a été traitée",
+    "type_dispute_received": "Contestation reçue",
+    "typeDescription_dispute_received": "Un client a soumis une nouvelle contestation",
     "type_role_changed": "Rôle modifié",
     "typeDescription_role_changed": "Votre rôle utilisateur a été modifié par un administrateur",
     "type_comment_mention": "Mention dans un commentaire",

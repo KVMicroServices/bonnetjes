@@ -442,6 +442,8 @@
     "typeDescription_review_disabled": "Eine Kundenbewertung wurde auf der Plattform deaktiviert",
     "type_dispute_outcome": "Einspruch-Ergebnis",
     "typeDescription_dispute_outcome": "Ein Kundeneinspruch wurde bearbeitet",
+    "type_dispute_received": "Einspruch eingegangen",
+    "typeDescription_dispute_received": "Ein Kunde hat einen neuen Einspruch eingereicht",
     "type_role_changed": "Rolle geändert",
     "typeDescription_role_changed": "Deine Benutzerrolle wurde von einem Administrator geändert",
     "type_comment_mention": "Kommentar-Erwähnung",

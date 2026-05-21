@@ -442,6 +442,8 @@
     "typeDescription_review_disabled": "Uphononongo lomthengi lucinywe kwiqonga",
     "type_dispute_outcome": "Isiphumo sengxabano",
     "typeDescription_dispute_outcome": "Ingxabano yomthengi iqhutyiwe",
+    "type_dispute_received": "Ingxabano ifunyenwe",
+    "typeDescription_dispute_received": "Umthengi ungenise ingxabano entsha",
     "type_role_changed": "Indima itshintshiwe",
     "typeDescription_role_changed": "Indima yakho yomsebenzisi itshintshwe ngumlawuli",
     "type_comment_mention": "Ukuchazwa kwizimvo",

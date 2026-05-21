@@ -442,6 +442,8 @@
     "typeDescription_review_disabled": "Een review van een klant is uitgeschakeld op het platform",
     "type_dispute_outcome": "Bezwaar uitkomst",
     "typeDescription_dispute_outcome": "Een bezwaar van een klant is verwerkt",
+    "type_dispute_received": "Bezwaar ontvangen",
+    "typeDescription_dispute_received": "Een klant heeft een nieuw bezwaar ingediend",
     "type_role_changed": "Rol gewijzigd",
     "typeDescription_role_changed": "Je gebruikersrol is gewijzigd door een beheerder",
     "type_comment_mention": "Vermelding in opmerking",

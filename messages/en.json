@@ -292,6 +292,8 @@
     "typeDescription_review_disabled": "A customer's review was disabled on the platform",
     "type_dispute_outcome": "Dispute outcome",
     "typeDescription_dispute_outcome": "A customer's dispute has been processed",
+    "type_dispute_received": "Dispute received",
+    "typeDescription_dispute_received": "A customer has submitted a new dispute",
     "type_role_changed": "Role changed",
     "typeDescription_role_changed": "Your user role has been changed by an admin",
     "type_comment_mention": "Comment mention",

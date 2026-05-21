@@ -442,6 +442,8 @@
     "typeDescription_review_disabled": "La reseña de un cliente fue desactivada en la plataforma",
     "type_dispute_outcome": "Resultado de disputa",
     "typeDescription_dispute_outcome": "La disputa de un cliente ha sido procesada",
+    "type_dispute_received": "Disputa recibida",
+    "typeDescription_dispute_received": "Un cliente ha enviado una nueva disputa",
     "type_role_changed": "Rol cambiado",
     "typeDescription_role_changed": "Tu rol de usuario ha sido cambiado por un administrador",
     "type_comment_mention": "Mención en comentario",

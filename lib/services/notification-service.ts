@@ -8,6 +8,7 @@ export type NotificationType =
   | "receipt_requires_review"
   | "receipt_processed"
   | "review_disabled"
+  | "dispute_received"
   | "dispute_outcome"
   | "role_changed"
   | "comment_mention";
@@ -45,6 +46,7 @@ export const NOTIFICATION_TYPES: ReadonlyArray<NotificationType> = [
   "receipt_requires_review",
   "receipt_processed",
   "review_disabled",
+  "dispute_received",
   "dispute_outcome",
   "role_changed",
   "comment_mention",

@@ -442,6 +442,8 @@
     "typeDescription_review_disabled": "Ukubuyekezwa kwekhasimende kukhutshazwe enkundleni",
     "type_dispute_outcome": "Umphumela wengxabano",
     "typeDescription_dispute_outcome": "Ingxabano yekhasimende iqediwe",
+    "type_dispute_received": "Ingxabano itholakele",
+    "typeDescription_dispute_received": "Ikhasimende lingenise ingxabano entsha",
     "type_role_changed": "Indima ishintshiwe",
     "typeDescription_role_changed": "Indima yakho yomsebenzisi ishintshwe umlawuli",
     "type_comment_mention": "Ukubalulwa kumazwana",
