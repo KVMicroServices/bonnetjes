@@ -395,6 +395,7 @@
     "noData": "Aucune donnée disponible pour cette période",
     "legendVerified": "Vérifié",
     "legendPending": "En attente",
+    "legendRequiresReview": "Examen requis",
     "legendRejected": "Rejeté",
     "auditLogTitle": "Journal d'audit",
     "auditLogDescription": "La fonctionnalité du journal d'audit sera disponible dans une mise à jour future.",

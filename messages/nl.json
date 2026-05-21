@@ -395,6 +395,7 @@
     "noData": "Geen gegevens beschikbaar voor deze periode",
     "legendVerified": "Geverifieerd",
     "legendPending": "In afwachting",
+    "legendRequiresReview": "Beoordeling vereist",
     "legendRejected": "Afgewezen",
     "auditLogTitle": "Auditlog",
     "auditLogDescription": "Auditlog functionaliteit wordt beschikbaar in een toekomstige update.",

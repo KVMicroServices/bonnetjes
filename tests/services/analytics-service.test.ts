@@ -149,6 +149,7 @@ describe("getReceiptVolume", () => {
       { createdAt: oneHourAgo, verificationStatus: "verified" },
       { createdAt: oneHourAgo, verificationStatus: "rejected" },
       { createdAt: oneHourAgo, verificationStatus: "pending" },
+      { createdAt: oneHourAgo, verificationStatus: "requires_review" },
     ];
 
     const database = createMockDatabase({ receipts });
@@ -162,10 +163,12 @@ describe("getReceiptVolume", () => {
     const totalVerified = result.data.reduce((sum, point) => sum + point.verified, 0);
     const totalRejected = result.data.reduce((sum, point) => sum + point.rejected, 0);
     const totalPending = result.data.reduce((sum, point) => sum + point.pending, 0);
+    const totalRequiresReview = result.data.reduce((sum, point) => sum + point.requiresReview, 0);
 
     expect(totalVerified).toBe(2);
     expect(totalRejected).toBe(1);
     expect(totalPending).toBe(1);
+    expect(totalRequiresReview).toBe(1);
   });
 
   it("respects custom date range", async () => {

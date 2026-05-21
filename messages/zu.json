@@ -395,6 +395,7 @@
     "noData": "Ayikho idatha etholakalayo kulesi sikhathi",
     "legendVerified": "Iqinisekisiwe",
     "legendPending": "Ilindile",
+    "legendRequiresReview": "Kudingeka ukubuyekezwa",
     "legendRejected": "Yenqatshiwe",
     "auditLogTitle": "Ilog yokuhlola",
     "auditLogDescription": "Ukusebenza kwelog yokuhlola kuzotholakala ku-update ezayo.",

@@ -395,6 +395,7 @@
     "noData": "Keine Daten für diesen Zeitraum verfügbar",
     "legendVerified": "Verifiziert",
     "legendPending": "Ausstehend",
+    "legendRequiresReview": "Überprüfung erforderlich",
     "legendRejected": "Abgelehnt",
     "auditLogTitle": "Prüfprotokoll",
     "auditLogDescription": "Die Prüfprotokoll-Funktion wird in einem zukünftigen Update verfügbar sein.",

@@ -395,6 +395,7 @@
     "noData": "Geen data beskikbaar vir hierdie tydperk",
     "legendVerified": "Geverifieer",
     "legendPending": "Hangende",
+    "legendRequiresReview": "Hersiening vereis",
     "legendRejected": "Afgekeur",
     "auditLogTitle": "Ouditlog",
     "auditLogDescription": "Ouditlog-funksionaliteit sal beskikbaar wees in 'n toekomstige opdatering.",

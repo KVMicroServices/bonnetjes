@@ -47,6 +47,7 @@ interface VolumeDataPoint {
   verified: number;
   rejected: number;
   pending: number;
+  requiresReview: number;
 }
 
 type TabId = "metrics" | "volume" | "audit";
@@ -508,6 +509,12 @@ function VolumeTab({
                     dataKey="verified"
                     name={t("legendVerified")}
                     fill="#22c55e"
+                    stackId="stack"
+                  />
+                  <Bar
+                    dataKey="requiresReview"
+                    name={t("legendRequiresReview")}
+                    fill="#f97316"
                     stackId="stack"
                   />
                   <Bar

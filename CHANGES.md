@@ -1,5 +1,15 @@
 # Changes
 
+## [116] Separate requires_review from pending in volume analytics chart
+
+**What**: Added a distinct `requiresReview` field to volume data points so receipts awaiting human review no longer inflate the "pending" count in the analytics chart.
+**Why**: The catch-all `pending = total - verified - rejected` was including `requires_review` receipts, making it look like unprocessed receipts existed when all had actually been handled by AI.
+**Files**:
+- lib/services/analytics-service.ts
+- app/admin/analytics/page.tsx
+- tests/services/analytics-service.test.ts
+- messages/*.json (all 8 languages)
+
 ## [115] Fix "Load More" in human review section resetting list back to page 1
 
 **What**: Moved the cursor for review-required pagination into a ref so the `fetchReviewRequired` callback identity stays stable and doesn't trigger the initial-load effect on every page fetch.

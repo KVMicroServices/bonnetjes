@@ -395,6 +395,7 @@
     "noData": "No hay datos disponibles para este período",
     "legendVerified": "Verificado",
     "legendPending": "Pendiente",
+    "legendRequiresReview": "Requiere revisión",
     "legendRejected": "Rechazado",
     "auditLogTitle": "Registro de auditoría",
     "auditLogDescription": "La funcionalidad del registro de auditoría estará disponible en una actualización futura.",
