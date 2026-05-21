@@ -1,12 +1,19 @@
 # Changes
 
-## [117] Add dispute_received notification type
+## [117] Add dispute_received notification type and clarify access model
 
-**What**: Added a new `dispute_received` notification type that fires when a customer submits a dispute, separate from the existing `dispute_outcome` type.
-**Why**: Admins need to know immediately when a dispute comes in, not just after it's been processed.
+**What**: Added `dispute_received` notification type for incoming disputes. Clarified across steering docs and codebase that all features are available to all authenticated users — only system settings require admin role.
+**Decisions**:
+- Access model comment added to `lib/auth-options.ts` as the canonical reference for developers
+- Steering docs updated: product.md rewritten with explicit access model section, tech.md auth section expanded, structure.md annotations corrected
+- `dispute_received` notification fires as a global notification (no userId) so all users see it
 **Files**:
 - lib/services/notification-service.ts
 - app/api/dispute/verify/route.ts
+- lib/auth-options.ts
+- .kiro/steering/product.md
+- .kiro/steering/tech.md
+- .kiro/steering/structure.md
 - messages/*.json (all 8 languages)
 
 ## [116] Separate requires_review from pending in volume analytics chart

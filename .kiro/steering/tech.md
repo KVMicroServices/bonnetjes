@@ -34,6 +34,8 @@
 - **NextAuth.js 4** with Prisma adapter
 - Google OAuth + credentials provider
 - JWT sessions
+- Role stored in JWT, refreshed from DB on every request
+- Admin role only gates system settings — all other features are available to every authenticated user
 
 ## Storage & Cloud
 
