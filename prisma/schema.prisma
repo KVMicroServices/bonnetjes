@@ -23,6 +23,7 @@ model User {
   adminActions  AdminAction[]
   accounts      Account[]
   comments      Comment[]
+  bookmarks     Bookmark[]
 }
 
 model Account {
@@ -95,6 +96,9 @@ model Receipt {
 
   // Comments
   comments            Comment[]
+
+  // Bookmarks
+  bookmarks           Bookmark[]
 }
 
 model AdminAction {
@@ -240,4 +244,17 @@ model Comment {
 
   @@index([receiptId, createdAt])
   @@index([authorId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  receiptId String
+  receipt   Receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, receiptId])
+  @@index([userId])
+  @@index([receiptId])
 }

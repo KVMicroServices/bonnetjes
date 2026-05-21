@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const cursor = searchParams.get("cursor") || undefined;
     const limitParam = searchParams.get("limit");
+    const search = searchParams.get("search") || undefined;
     let limit = 15;
     if (limitParam) {
       limit = parseInt(limitParam, 10);
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
       { database: prisma, storage: { getFileUrl, getFileAsBuffer } },
       userId,
       isAdmin,
-      { cursor, limit }
+      { cursor, limit, search }
     );
 
     if (!result.success) {

@@ -240,7 +240,15 @@
     "manualDisableValidationDescription": "Vul alle velden in. Tenant ID moet een positief getal zijn.",
     "shop": "Winkel",
     "aiAnalysis": "AI-analyse",
-    "failedToLoadPreview": "Voorbeeld laden mislukt"
+    "failedToLoadPreview": "Voorbeeld laden mislukt",
+    "searchPlaceholder": "Zoek op review-ID of locatie-ID...",
+    "filterBookmarked": "Bladwijzers",
+    "addBookmark": "Bon als bladwijzer opslaan",
+    "removeBookmark": "Bladwijzer verwijderen",
+    "bookmarkAdded": "Bladwijzer toegevoegd",
+    "bookmarkAddedDescription": "Bon is als bladwijzer opgeslagen",
+    "bookmarkRemoved": "Bladwijzer verwijderd",
+    "bookmarkRemovedDescription": "Bladwijzer is verwijderd"
   },
   "Settings": {
     "title": "Instellingen",

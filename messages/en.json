@@ -240,7 +240,15 @@
     "manualDisableValidationError": "Validation Error",
     "manualDisableValidationDescription": "Please fill in all fields. Tenant ID must be a positive number.",
     "shop": "Shop",
-    "aiAnalysis": "AI Analysis"
+    "aiAnalysis": "AI Analysis",
+    "searchPlaceholder": "Search by review ID or location ID...",
+    "filterBookmarked": "Bookmarked",
+    "addBookmark": "Bookmark this receipt",
+    "removeBookmark": "Remove bookmark",
+    "bookmarkAdded": "Bookmarked",
+    "bookmarkAddedDescription": "Receipt has been bookmarked",
+    "bookmarkRemoved": "Bookmark removed",
+    "bookmarkRemovedDescription": "Receipt bookmark has been removed"
   },
   "Settings": {
     "title": "Settings",

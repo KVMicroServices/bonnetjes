@@ -199,10 +199,37 @@ export async function listReceipts(
   dependencies: ReceiptServiceDependencies,
   userId: string,
   isAdmin: boolean,
-  options?: { cursor?: string; limit?: number }
+  options?: { cursor?: string; limit?: number; search?: string }
 ): Promise<ListReceiptsResult> {
-  const whereClause = {};
   const limit = options?.limit ?? 15;
+
+  // If a search term is provided, find matching receipt IDs via ReceiptSyncState
+  let searchReceiptIds: string[] | null = null;
+  if (options?.search && options.search.trim().length > 0) {
+    const searchTerm = options.search.trim();
+    const matchingSyncStates = await dependencies.database.receiptSyncState.findMany({
+      where: {
+        OR: [
+          { reviewId: { contains: searchTerm, mode: "insensitive" } },
+          { locationId: { contains: searchTerm, mode: "insensitive" } },
+        ],
+        receiptId: { not: null },
+      },
+      select: { receiptId: true },
+    });
+    searchReceiptIds = matchingSyncStates
+      .map((state) => state.receiptId)
+      .filter((id): id is string => id !== null);
+
+    if (searchReceiptIds.length === 0) {
+      return { success: true, receipts: [], nextCursor: null, hasMore: false };
+    }
+  }
+
+  const whereClause: Record<string, unknown> = {};
+  if (searchReceiptIds !== null) {
+    whereClause.id = { in: searchReceiptIds };
+  }
 
   const findOptions: Record<string, unknown> = {
     where: whereClause,

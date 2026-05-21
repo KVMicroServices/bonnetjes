@@ -240,7 +240,15 @@
     "manualDisableValidationDescription": "Vul asseblief alle velde in. Huurder-ID moet 'n positiewe getal wees.",
     "shop": "Winkel",
     "aiAnalysis": "KI-analise",
-    "failedToLoadPreview": "Kon nie voorskou laai nie"
+    "failedToLoadPreview": "Kon nie voorskou laai nie",
+    "searchPlaceholder": "Soek op resensie-ID of ligging-ID...",
+    "filterBookmarked": "Boekmerk",
+    "addBookmark": "Boekmerk hierdie kwitansie",
+    "removeBookmark": "Verwyder boekmerk",
+    "bookmarkAdded": "Boekmerk bygevoeg",
+    "bookmarkAddedDescription": "Kwitansie is as boekmerk gestoor",
+    "bookmarkRemoved": "Boekmerk verwyder",
+    "bookmarkRemovedDescription": "Kwitansie-boekmerk is verwyder"
   },
   "Settings": {
     "title": "Instellings",

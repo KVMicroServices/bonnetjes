@@ -240,7 +240,15 @@
     "manualDisableValidationDescription": "Bitte füllen Sie alle Felder aus. Mandanten-ID muss eine positive Zahl sein.",
     "shop": "Geschäft",
     "aiAnalysis": "KI-Analyse",
-    "failedToLoadPreview": "Vorschau konnte nicht geladen werden"
+    "failedToLoadPreview": "Vorschau konnte nicht geladen werden",
+    "searchPlaceholder": "Suche nach Review-ID oder Standort-ID...",
+    "filterBookmarked": "Lesezeichen",
+    "addBookmark": "Beleg als Lesezeichen speichern",
+    "removeBookmark": "Lesezeichen entfernen",
+    "bookmarkAdded": "Lesezeichen gesetzt",
+    "bookmarkAddedDescription": "Beleg wurde als Lesezeichen gespeichert",
+    "bookmarkRemoved": "Lesezeichen entfernt",
+    "bookmarkRemovedDescription": "Lesezeichen wurde entfernt"
   },
   "Settings": {
     "title": "Einstellungen",

@@ -1,5 +1,22 @@
 # Changes
 
+## [129] Add receipt search by review/location ID and bookmark feature
+
+**What**: Search bar on the admin dashboard filters receipts by review ID or location ID via ReceiptSyncState. Users can bookmark receipts for quick access with a dedicated filter toggle.
+**Decisions**:
+- Search queries ReceiptSyncState (contains reviewId/locationId) then fetches matching receipts — avoids denormalizing IDs onto Receipt
+- Bookmark model uses unique constraint on (userId, receiptId) with upsert for idempotency
+- Debounced search (400ms) resets cursor pagination on each new query
+- Bookmark filter is client-side on already-fetched receipts
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260601000010_add_bookmarks/migration.sql
+- lib/services/receipt-service.ts
+- app/api/receipts/route.ts
+- app/api/bookmarks/route.ts (new)
+- app/admin/page.tsx
+- messages/*.json (all 8 languages)
+
 ## [128] Fetch location locale from Kiyoh API for email translations
 
 **What**: All transactional emails now use the location's configured locale (fetched from `GET v1/location?id={locationId}&tenantId={tenantId}`) instead of hardcoded English.

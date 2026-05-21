@@ -28,6 +28,9 @@ import {
   CloudDownload,
   Power,
   Scale,
+  Search,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -217,6 +220,16 @@ export default function AdminPage() {
   const [disputePreviewLoading, setDisputePreviewLoading] = useState(false);
   const [updatingDisputeId, setUpdatingDisputeId] = useState<string | null>(null);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Bookmark state
+  const [bookmarkedReceiptIds, setBookmarkedReceiptIds] = useState<Set<string>>(new Set());
+  const [bookmarkFilter, setBookmarkFilter] = useState(false);
+  const [togglingBookmarkId, setTogglingBookmarkId] = useState<string | null>(null);
+
   const isAdmin = (session?.user as any)?.role === "admin";
 
   // ─── Time Range Helpers ──────────────────────────────────────────────────────
@@ -247,6 +260,82 @@ export default function AdminPage() {
       title: t("copied"),
       description: t("copiedDescription")
     });
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      setActiveSearch(value.trim());
+      queueCursorRef.current = null;
+      setQueueCursor(null);
+    }, 400);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setActiveSearch("");
+    queueCursorRef.current = null;
+    setQueueCursor(null);
+  };
+
+  const fetchBookmarks = useCallback(async () => {
+    try {
+      const response = await fetch("/api/bookmarks");
+      if (response.ok) {
+        const data = await response.json();
+        setBookmarkedReceiptIds(new Set(data.bookmarkedReceiptIds));
+      }
+    } catch (error) {
+      clientLogger.error({ error }, "Failed to fetch bookmarks");
+    }
+  }, []);
+
+  const handleToggleBookmark = async (receiptId: string) => {
+    setTogglingBookmarkId(receiptId);
+    const isCurrentlyBookmarked = bookmarkedReceiptIds.has(receiptId);
+
+    try {
+      if (isCurrentlyBookmarked) {
+        const response = await fetch(`/api/bookmarks?receiptId=${receiptId}`, {
+          method: "DELETE",
+        });
+        if (response.ok) {
+          setBookmarkedReceiptIds((previous) => {
+            const updated = new Set(previous);
+            updated.delete(receiptId);
+            return updated;
+          });
+          toast({
+            title: t("bookmarkRemoved"),
+            description: t("bookmarkRemovedDescription"),
+          });
+        }
+      } else {
+        const response = await fetch("/api/bookmarks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ receiptId }),
+        });
+        if (response.ok) {
+          setBookmarkedReceiptIds((previous) => {
+            const updated = new Set(previous);
+            updated.add(receiptId);
+            return updated;
+          });
+          toast({
+            title: t("bookmarkAdded"),
+            description: t("bookmarkAddedDescription"),
+          });
+        }
+      }
+    } catch (error) {
+      clientLogger.error({ error }, "Failed to toggle bookmark");
+    } finally {
+      setTogglingBookmarkId(null);
+    }
   };
 
   const triggerSync = async () => {
@@ -378,6 +467,9 @@ export default function AdminPage() {
       if (!reset && queueCursorRef.current) {
         params.set("cursor", queueCursorRef.current);
       }
+      if (activeSearch.length > 0) {
+        params.set("search", activeSearch);
+      }
 
       const fetches: Promise<Response>[] = [
         fetch(`/api/receipts?${params.toString()}`)
@@ -418,7 +510,7 @@ export default function AdminPage() {
       setLoading(false);
       setQueueLoadingMore(false);
     }
-  }, []);
+  }, [activeSearch]);
 
   const fetchReviewRequired = useCallback(async (reset: boolean = false) => {
     setReviewRequiredLoading(true);
@@ -542,8 +634,9 @@ export default function AdminPage() {
     } else if (status === "authenticated") {
       fetchData();
       fetchReviewRequired(true);
+      fetchBookmarks();
     }
-  }, [status, router, fetchData, fetchReviewRequired]);
+  }, [status, router, fetchData, fetchReviewRequired, fetchBookmarks]);
 
   useEffect(() => {
     if (status !== "authenticated") {
@@ -556,6 +649,14 @@ export default function AdminPage() {
       clearInterval(intervalId);
     };
   }, [status, fetchData]);
+
+  // Refetch when search changes
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSearch]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -699,6 +800,9 @@ export default function AdminPage() {
   // ─── Derived State ─────────────────────────────────────────────────────────
 
   const filteredReceipts = (receipts ?? []).filter((r) => {
+    if (bookmarkFilter && !bookmarkedReceiptIds.has(r?.id)) {
+      return false;
+    }
     if (filter === "all") return true;
     if (filter === "rejected") {
       return r?.verificationStatus === "rejected" || r?.verificationStatus === "flagged";
@@ -978,6 +1082,28 @@ export default function AdminPage() {
 
         {activeTab === "queue" && (
           <>
+            {/* Search Bar */}
+            <div className="mb-4">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                  className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+                />
+                {searchQuery.length > 0 && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:text-gray-600"
+                  >
+                    <XIcon className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Filter */}
             <div className="mb-6 flex items-center gap-4">
               <Filter className="h-5 w-5 text-gray-500" />
@@ -1001,6 +1127,20 @@ export default function AdminPage() {
                     {item.label}
                   </button>
                 ))}
+                <button
+                  onClick={() => setBookmarkFilter(!bookmarkFilter)}
+                  className={`flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    bookmarkFilter
+                      ? "bg-kv-green/10 text-kv-green/90"
+                      : "bg-white text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  {bookmarkFilter
+                    ? <BookmarkCheck className="h-4 w-4" />
+                    : <Bookmark className="h-4 w-4" />
+                  }
+                  {t("filterBookmarked")}
+                </button>
               </div>
             </div>
 
@@ -1086,6 +1226,26 @@ export default function AdminPage() {
                           <div className="flex items-center justify-end gap-1">
                             <button onClick={() => handleViewReceipt(receipt)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700" title={t("viewReceipt")}>
                               <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleToggleBookmark(receipt.id)}
+                              disabled={togglingBookmarkId === receipt.id}
+                              className={`rounded-lg p-2 disabled:opacity-50 ${
+                                bookmarkedReceiptIds.has(receipt.id)
+                                  ? "text-kv-green hover:bg-green-50"
+                                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                              }`}
+                              title={bookmarkedReceiptIds.has(receipt.id) ? t("removeBookmark") : t("addBookmark")}
+                            >
+                              {(() => {
+                                if (togglingBookmarkId === receipt.id) {
+                                  return <Loader2 className="h-4 w-4 animate-spin" />;
+                                }
+                                if (bookmarkedReceiptIds.has(receipt.id)) {
+                                  return <BookmarkCheck className="h-4 w-4" />;
+                                }
+                                return <Bookmark className="h-4 w-4" />;
+                              })()}
                             </button>
                             <button onClick={() => handleDownload(receipt)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700" title={t("download")}>
                               <Download className="h-4 w-4" />

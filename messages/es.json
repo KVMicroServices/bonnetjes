@@ -240,7 +240,15 @@
     "manualDisableValidationDescription": "Complete todos los campos. El ID de inquilino debe ser un número positivo.",
     "shop": "Tienda",
     "aiAnalysis": "Análisis IA",
-    "failedToLoadPreview": "Error al cargar la vista previa"
+    "failedToLoadPreview": "Error al cargar la vista previa",
+    "searchPlaceholder": "Buscar por ID de reseña o ID de ubicación...",
+    "filterBookmarked": "Marcados",
+    "addBookmark": "Marcar este recibo",
+    "removeBookmark": "Quitar marcador",
+    "bookmarkAdded": "Marcado",
+    "bookmarkAddedDescription": "El recibo ha sido marcado",
+    "bookmarkRemoved": "Marcador eliminado",
+    "bookmarkRemovedDescription": "El marcador del recibo ha sido eliminado"
   },
   "Settings": {
     "title": "Configuración",

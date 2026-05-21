@@ -240,7 +240,15 @@
     "manualDisableValidationDescription": "Nceda uzalise zonke iindawo. I-ID yomqeshi kufuneka ibe linani elipositifu.",
     "shop": "Ivenkile",
     "aiAnalysis": "Uhlalutyo lwe-AI",
-    "failedToLoadPreview": "Ayikwazanga ukulayisha imboniso"
+    "failedToLoadPreview": "Ayikwazanga ukulayisha imboniso",
+    "searchPlaceholder": "Khangela nge-ID yohlolo okanye i-ID yendawo...",
+    "filterBookmarked": "Eziphawuliweyo",
+    "addBookmark": "Phawula le risithi",
+    "removeBookmark": "Susa uphawu",
+    "bookmarkAdded": "Iphawuliwe",
+    "bookmarkAddedDescription": "Irisithi iphawuliwe",
+    "bookmarkRemoved": "Uphawu lususiwe",
+    "bookmarkRemovedDescription": "Uphawu lwerisithi lususiwe"
   },
   "Settings": {
     "title": "Izicwangciso",

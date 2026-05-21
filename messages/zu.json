@@ -240,7 +240,15 @@
     "manualDisableValidationDescription": "Sicela ugcwalise zonke izindawo. I-ID yomqashi kufuneka ibe yinombolo enhle.",
     "shop": "Isitolo",
     "aiAnalysis": "Ukuhlaziywa kwe-AI",
-    "failedToLoadPreview": "Yehlulekile ukulayisha ukubuka kuqala"
+    "failedToLoadPreview": "Yehlulekile ukulayisha ukubuka kuqala",
+    "searchPlaceholder": "Sesha nge-ID yokubuyekeza noma i-ID yendawo...",
+    "filterBookmarked": "Eziphawuliwe",
+    "addBookmark": "Phawula le risidi",
+    "removeBookmark": "Susa uphawu",
+    "bookmarkAdded": "Iphawuliwe",
+    "bookmarkAddedDescription": "Irisidi iphawuliwe",
+    "bookmarkRemoved": "Uphawu lususiwe",
+    "bookmarkRemovedDescription": "Uphawu lwerisidi lususiwe"
   },
   "Settings": {
     "title": "Izilungiselelo",

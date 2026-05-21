@@ -240,7 +240,15 @@
     "manualDisableValidationDescription": "Veuillez remplir tous les champs. L'ID du locataire doit être un nombre positif.",
     "shop": "Magasin",
     "aiAnalysis": "Analyse IA",
-    "failedToLoadPreview": "Échec du chargement de l'aperçu"
+    "failedToLoadPreview": "Échec du chargement de l'aperçu",
+    "searchPlaceholder": "Rechercher par ID d'avis ou ID de lieu...",
+    "filterBookmarked": "Favoris",
+    "addBookmark": "Ajouter aux favoris",
+    "removeBookmark": "Retirer des favoris",
+    "bookmarkAdded": "Ajouté aux favoris",
+    "bookmarkAddedDescription": "Le reçu a été ajouté aux favoris",
+    "bookmarkRemoved": "Favori retiré",
+    "bookmarkRemovedDescription": "Le reçu a été retiré des favoris"
   },
   "Settings": {
     "title": "Paramètres",
