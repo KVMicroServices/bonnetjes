@@ -1,9 +1,16 @@
 import type { Transporter } from "nodemailer";
 import { createTransport } from "nodemailer";
 import { logger } from "@/lib/logger";
-import { loadDisableEmailTranslations } from "@/lib/email/email-translations";
-import { renderDisableEmailHtml, renderDisableEmailSubject } from "@/lib/email/email-templates";
-import type { DisableEmailData } from "@/lib/email/email-templates";
+import { loadDisableEmailTranslations, loadVerifiedEmailTranslations, loadFinalRejectionEmailTranslations } from "@/lib/email/email-translations";
+import {
+  renderDisableEmailHtml,
+  renderDisableEmailSubject,
+  renderVerifiedEmailHtml,
+  renderVerifiedEmailSubject,
+  renderFinalRejectionEmailHtml,
+  renderFinalRejectionEmailSubject,
+} from "@/lib/email/email-templates";
+import type { DisableEmailData, VerifiedEmailData, FinalRejectionEmailData } from "@/lib/email/email-templates";
 import { resolveBrandConfig } from "@/lib/email/email-brand";
 import { signDisputeToken } from "@/lib/dispute/dispute-token";
 import { getSmtpSettings } from "@/lib/services/app-settings-service";
@@ -15,6 +22,34 @@ export interface SendDisableEmailParams {
   readonly locale: string;
   readonly reviewId: string;
   readonly locationId: string;
+  readonly tenantId: number;
+  readonly failureReason: string;
+}
+
+export interface SendVerifiedEmailParams {
+  readonly recipientEmail: string;
+  readonly locale: string;
+  readonly reviewId: string;
+  readonly tenantId: number;
+  readonly extractedShopName: string | null;
+  readonly extractedDate: string | null;
+  readonly extractedAmount: number | null;
+}
+
+export interface SendDisputeVerifiedEmailParams {
+  readonly recipientEmail: string;
+  readonly locale: string;
+  readonly reviewId: string;
+  readonly tenantId: number;
+  readonly extractedShopName: string | null;
+  readonly extractedDate: string | null;
+  readonly extractedAmount: number | null;
+}
+
+export interface SendFinalRejectionEmailParams {
+  readonly recipientEmail: string;
+  readonly locale: string;
+  readonly reviewId: string;
   readonly tenantId: number;
   readonly failureReason: string;
 }
@@ -166,6 +201,166 @@ export async function sendReviewDisableEmail(
     logger.error(
       { recipientEmail: params.recipientEmail, reviewId: params.reviewId, error: errorMessage },
       "Failed to send review disable notification email"
+    );
+    return { success: false, error: errorMessage };
+  }
+}
+
+export async function sendReceiptVerifiedEmail(
+  params: SendVerifiedEmailParams
+): Promise<EmailResult> {
+  try {
+    const smtpConfig = await resolveSmtpConfig();
+    if (!smtpConfig) {
+      return { success: false, error: "SMTP not configured" };
+    }
+
+    const brand = resolveBrandConfig(params.tenantId);
+    const translations = loadVerifiedEmailTranslations(params.locale, "receipt");
+
+    const emailData: VerifiedEmailData = {
+      reviewId: params.reviewId,
+      extractedShopName: params.extractedShopName,
+      extractedDate: params.extractedDate,
+      extractedAmount: params.extractedAmount,
+      translations: translations,
+      brand: brand,
+    };
+
+    const subject = renderVerifiedEmailSubject(emailData);
+    const htmlBody = renderVerifiedEmailHtml(emailData);
+
+    const transport = createSmtpTransport(smtpConfig);
+
+    await transport.sendMail({
+      from: smtpConfig.from,
+      to: params.recipientEmail,
+      subject: subject,
+      html: htmlBody,
+    });
+
+    logger.info(
+      { recipientEmail: params.recipientEmail, reviewId: params.reviewId, tenantId: params.tenantId },
+      "Receipt verified notification email sent successfully"
+    );
+
+    return { success: true };
+  } catch (error) {
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = "Unknown email transport error";
+    }
+    logger.error(
+      { recipientEmail: params.recipientEmail, reviewId: params.reviewId, error: errorMessage },
+      "Failed to send receipt verified notification email"
+    );
+    return { success: false, error: errorMessage };
+  }
+}
+
+export async function sendDisputeVerifiedEmail(
+  params: SendDisputeVerifiedEmailParams
+): Promise<EmailResult> {
+  try {
+    const smtpConfig = await resolveSmtpConfig();
+    if (!smtpConfig) {
+      return { success: false, error: "SMTP not configured" };
+    }
+
+    const brand = resolveBrandConfig(params.tenantId);
+    const translations = loadVerifiedEmailTranslations(params.locale, "dispute");
+
+    const emailData: VerifiedEmailData = {
+      reviewId: params.reviewId,
+      extractedShopName: params.extractedShopName,
+      extractedDate: params.extractedDate,
+      extractedAmount: params.extractedAmount,
+      translations: translations,
+      brand: brand,
+    };
+
+    const subject = renderVerifiedEmailSubject(emailData);
+    const htmlBody = renderVerifiedEmailHtml(emailData);
+
+    const transport = createSmtpTransport(smtpConfig);
+
+    await transport.sendMail({
+      from: smtpConfig.from,
+      to: params.recipientEmail,
+      subject: subject,
+      html: htmlBody,
+    });
+
+    logger.info(
+      { recipientEmail: params.recipientEmail, reviewId: params.reviewId, tenantId: params.tenantId },
+      "Dispute verified notification email sent successfully"
+    );
+
+    return { success: true };
+  } catch (error) {
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = "Unknown email transport error";
+    }
+    logger.error(
+      { recipientEmail: params.recipientEmail, reviewId: params.reviewId, error: errorMessage },
+      "Failed to send dispute verified notification email"
+    );
+    return { success: false, error: errorMessage };
+  }
+}
+
+export async function sendDisputeFinalRejectionEmail(
+  params: SendFinalRejectionEmailParams
+): Promise<EmailResult> {
+  try {
+    const smtpConfig = await resolveSmtpConfig();
+    if (!smtpConfig) {
+      return { success: false, error: "SMTP not configured" };
+    }
+
+    const brand = resolveBrandConfig(params.tenantId);
+    const translations = loadFinalRejectionEmailTranslations(params.locale, params.failureReason);
+
+    const emailData: FinalRejectionEmailData = {
+      reviewId: params.reviewId,
+      failureReasonText: translations.failureReasonText,
+      translations: translations,
+      brand: brand,
+    };
+
+    const subject = renderFinalRejectionEmailSubject(emailData);
+    const htmlBody = renderFinalRejectionEmailHtml(emailData);
+
+    const transport = createSmtpTransport(smtpConfig);
+
+    await transport.sendMail({
+      from: smtpConfig.from,
+      to: params.recipientEmail,
+      subject: subject,
+      html: htmlBody,
+    });
+
+    logger.info(
+      { recipientEmail: params.recipientEmail, reviewId: params.reviewId, tenantId: params.tenantId },
+      "Dispute final rejection notification email sent successfully"
+    );
+
+    return { success: true };
+  } catch (error) {
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = "Unknown email transport error";
+    }
+    logger.error(
+      { recipientEmail: params.recipientEmail, reviewId: params.reviewId, error: errorMessage },
+      "Failed to send dispute final rejection notification email"
     );
     return { success: false, error: errorMessage };
   }

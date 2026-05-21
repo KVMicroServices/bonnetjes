@@ -1,5 +1,22 @@
 # Changes
 
+## [127] Add receipt verified, dispute verified, and dispute final rejection emails
+
+**What**: Three new transactional emails: receipt verified (fires automatically from receipt worker), dispute verified (when dispute passes), and dispute final rejection (2nd rejection, no dispute button, shows support email).
+**Decisions**:
+- Reuses existing branded template structure (banner, logo, footer) with different body content
+- Final rejection email shows support email (marketing@kiyoh.co.za) instead of dispute button
+- Verified emails include extracted receipt details (shop, date, amount) when available
+- Dispute emails fire-and-forget from the verify route to avoid blocking the response
+- Failure reason text for final rejection reuses the existing `ReviewDisableEmail` namespace strings
+**Files**:
+- lib/email/email-templates.ts
+- lib/email/email-translations.ts
+- lib/email/email-service.ts
+- lib/queue/receipt-worker.ts
+- app/api/dispute/verify/route.ts
+- messages/*.json (all 8 languages)
+
 ## [126] Simplify dispute page rejection response and rename escalation action
 
 **What**: Removed AI analysis (`ocrReasoning`) from the rejected state display and renamed "Request human review" to "Escalate ticket" across all 8 languages.

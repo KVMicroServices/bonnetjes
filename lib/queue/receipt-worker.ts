@@ -14,6 +14,8 @@ import { isAutoDisableEnabled, isLocationAllowedForAutoDisable } from "@/lib/ser
 import { needsConversion, convertToViewableFormat } from "@/lib/file-conversion";
 import { logger } from "@/lib/logger";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
+import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
+import { sendReceiptVerifiedEmail } from "@/lib/email/email-service";
 
 // ─── KV-Sync Storage Routing ─────────────────────────────────────────────────
 
@@ -152,6 +154,11 @@ async function processReceiptJob(job: Job<ReceiptProcessingJobData>): Promise<vo
       }
     }
 
+    // Send verified email notification to the reviewer
+    if (ocrResult.verificationStatus === "verified") {
+      await sendVerifiedNotificationEmail(receiptId);
+    }
+
     logger.info(
       { receiptId, verificationStatus: ocrResult.verificationStatus },
       "Receipt processing completed"
@@ -258,6 +265,95 @@ async function enqueueAutoDisableIfEligible(receiptId: string): Promise<void> {
     { receiptId, reviewId: syncState.reviewId, locationId: syncState.locationId },
     "Enqueued review disable after confirmed rejection"
   );
+}
+
+// ─── Verified Email Helper ───────────────────────────────────────────────────
+
+const VERIFIED_EMAIL_LOCALE = "en";
+
+async function sendVerifiedNotificationEmail(receiptId: string): Promise<void> {
+  try {
+    const syncState = await prisma.receiptSyncState.findFirst({
+      where: { receiptId },
+    });
+
+    if (!syncState) {
+      logger.info(
+        { receiptId },
+        "No ReceiptSyncState linked to receipt, skipping verified email"
+      );
+      return;
+    }
+
+    const locationAllowed = await isLocationAllowedForAutoDisable(syncState.locationId);
+    if (!locationAllowed) {
+      logger.info(
+        { receiptId, locationId: syncState.locationId },
+        "Location not in whitelist, skipping verified email"
+      );
+      return;
+    }
+
+    const emailResolution = await resolveReviewerEmail(
+      syncState.reviewId,
+      syncState.locationId,
+      syncState.tenantId
+    );
+
+    if (!emailResolution.success || !emailResolution.email) {
+      logger.warn(
+        { receiptId, reviewId: syncState.reviewId, error: emailResolution.error },
+        "Could not resolve reviewer email, skipping verified notification"
+      );
+      return;
+    }
+
+    const receipt = await prisma.receipt.findUnique({
+      where: { id: receiptId },
+      select: { extractedShopName: true, extractedDate: true, extractedAmount: true },
+    });
+
+    let extractedShopName: string | null = null;
+    let extractedDate: string | null = null;
+    let extractedAmount: number | null = null;
+
+    if (receipt) {
+      extractedShopName = receipt.extractedShopName;
+      if (receipt.extractedDate) {
+        const isoString = receipt.extractedDate.toISOString();
+        extractedDate = isoString.split("T")[0];
+      }
+      extractedAmount = receipt.extractedAmount;
+    }
+
+    const sendResult = await sendReceiptVerifiedEmail({
+      recipientEmail: emailResolution.email,
+      locale: VERIFIED_EMAIL_LOCALE,
+      reviewId: syncState.reviewId,
+      tenantId: syncState.tenantId,
+      extractedShopName: extractedShopName,
+      extractedDate: extractedDate,
+      extractedAmount: extractedAmount,
+    });
+
+    if (!sendResult.success) {
+      logger.warn(
+        { receiptId, reviewId: syncState.reviewId, error: sendResult.error },
+        "Failed to send receipt verified notification email"
+      );
+    }
+  } catch (notificationError) {
+    let errorMessage: string;
+    if (notificationError instanceof Error) {
+      errorMessage = notificationError.message;
+    } else {
+      errorMessage = String(notificationError);
+    }
+    logger.warn(
+      { receiptId, error: errorMessage },
+      "Unexpected error during verified email notification, skipping"
+    );
+  }
 }
 
 // ─── Worker Lifecycle ────────────────────────────────────────────────────────
