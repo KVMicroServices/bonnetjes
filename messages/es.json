@@ -159,6 +159,7 @@
     "amount": "Monto",
     "confidence": "Confianza",
     "risk": "Riesgo",
+    "locationId": "ID de ubicación",
     "status": "Estado",
     "actions": "Acciones",
     "approve": "Aprobar",

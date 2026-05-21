@@ -91,6 +91,7 @@ interface ReceiptWithUser {
   updatedAt: Date;
   queuedAt: Date | null;
   processedAt: Date | null;
+  locationId: string | null;
   user: ReceiptUser;
 }
 
@@ -235,7 +236,22 @@ export async function listReceipts(
     nextCursor = resultReceipts[resultReceipts.length - 1].id;
   }
 
-  return { success: true, receipts: resultReceipts, nextCursor, hasMore };
+  // Fetch locationId from ReceiptSyncState for each receipt
+  const receiptIds = resultReceipts.map((receipt) => receipt.id);
+  const syncStates = await dependencies.database.receiptSyncState.findMany({
+    where: { receiptId: { in: receiptIds } },
+    select: { receiptId: true, locationId: true },
+  });
+  const locationIdMap = new Map(
+    syncStates.map((state) => [state.receiptId, state.locationId])
+  );
+
+  const enrichedReceipts = resultReceipts.map((receipt) => ({
+    ...receipt,
+    locationId: locationIdMap.get(receipt.id) || null,
+  }));
+
+  return { success: true, receipts: enrichedReceipts, nextCursor, hasMore };
 }
 
 /** Retrieve a single receipt with access control. */
@@ -264,7 +280,7 @@ export async function getReceipt(
     return { success: false, error: "Receipt not found", statusCode: 404 };
   }
 
-  return { success: true, receipt };
+  return { success: true, receipt: { ...receipt, locationId: null } };
 }
 
 /** Create a receipt with fraud detection pipeline. */

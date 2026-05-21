@@ -97,6 +97,7 @@ describe("listReceipts", () => {
   it("returns all receipts for admin users", async () => {
     const allReceipts = [SAMPLE_RECEIPT, OTHER_USER_RECEIPT];
     dependencies.database.receipt.findMany.mockResolvedValue(allReceipts as any);
+    dependencies.database.receiptSyncState.findMany.mockResolvedValue([]);
 
     const result = await listReceipts(dependencies, ADMIN_ID, true);
 
@@ -113,6 +114,7 @@ describe("listReceipts", () => {
   it("returns all receipts for non-admin users", async () => {
     const allReceipts = [SAMPLE_RECEIPT, OTHER_USER_RECEIPT];
     dependencies.database.receipt.findMany.mockResolvedValue(allReceipts as any);
+    dependencies.database.receiptSyncState.findMany.mockResolvedValue([]);
 
     const result = await listReceipts(dependencies, USER_ID, false);
 
@@ -128,6 +130,7 @@ describe("listReceipts", () => {
 
   it("orders receipts by createdAt descending", async () => {
     dependencies.database.receipt.findMany.mockResolvedValue([]);
+    dependencies.database.receiptSyncState.findMany.mockResolvedValue([]);
 
     await listReceipts(dependencies, USER_ID, false);
 

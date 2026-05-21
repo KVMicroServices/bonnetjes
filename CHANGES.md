@@ -1,5 +1,18 @@
 # Changes
 
+## [121] Show location ID on receipt queue table, dispute table, and receipt preview modal
+
+**What**: Added locationId display to the admin queue table rows, dispute table rows, and the receipt preview modal.
+**Decisions**:
+- locationId is fetched from ReceiptSyncState via a batch lookup after loading receipts (avoids N+1)
+- Displays as monospace text with "—" fallback when no sync state exists
+**Files**:
+- lib/services/receipt-service.ts
+- app/admin/page.tsx
+- tests/services/receipt-service.test.ts
+- tests/routes/receipts.test.ts
+- messages/*.json (all 8 languages)
+
 ## [120] Add cursor-based pagination to admin receipts queue tab
 
 **What**: The queue tab now fetches receipts in pages of 20 with a "Load More" button, matching the pattern used by the review-required section.

@@ -159,6 +159,7 @@
     "amount": "Amount",
     "confidence": "Confidence",
     "risk": "Risk",
+    "locationId": "Location ID",
     "status": "Status",
     "actions": "Actions",
     "approve": "Approve",

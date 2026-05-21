@@ -159,6 +159,7 @@
     "amount": "Bedrag",
     "confidence": "Vertrouensvlak",
     "risk": "Risiko",
+    "locationId": "Ligging-ID",
     "status": "Status",
     "actions": "Aksies",
     "approve": "Goedkeur",

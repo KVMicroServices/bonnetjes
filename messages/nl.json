@@ -159,6 +159,7 @@
     "amount": "Bedrag",
     "confidence": "Betrouwbaarheid",
     "risk": "Risico",
+    "locationId": "Locatie-ID",
     "status": "Status",
     "actions": "Acties",
     "approve": "Goedkeuren",

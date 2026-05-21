@@ -159,6 +159,7 @@
     "amount": "Betrag",
     "confidence": "Konfidenz",
     "risk": "Risiko",
+    "locationId": "Standort-ID",
     "status": "Status",
     "actions": "Aktionen",
     "approve": "Genehmigen",

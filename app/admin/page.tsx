@@ -147,6 +147,7 @@ interface ReceiptData {
   createdAt: string;
   queuedAt: string | null;
   processedAt: string | null;
+  locationId: string | null;
   user: { id: string; name: string | null; email: string };
 }
 
@@ -1011,6 +1012,7 @@ export default function AdminPage() {
                   <thead className="bg-gray-50 border-b">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipt")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("locationId")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("queuedAt")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("processedAt")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("confidence")}</th>
@@ -1045,6 +1047,7 @@ export default function AdminPage() {
                             </button>
                           </div>
                         </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 font-mono">{receipt.locationId || "—"}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{formatDate(receipt.queuedAt)}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{formatDate(receipt.processedAt)}</td>
                         <td className="px-4 py-3">
@@ -1184,6 +1187,7 @@ export default function AdminPage() {
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipt")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("disputeReviewId")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("locationId")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("disputeDate")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("confidence")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("failureReason")}</th>
@@ -1215,6 +1219,7 @@ export default function AdminPage() {
                           </button>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700 font-mono">{dispute.reviewId}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 font-mono">{dispute.locationId || "—"}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{formatDate(dispute.createdAt)}</td>
                         <td className="px-4 py-3">
                           <span className={`text-sm font-medium ${getConfidenceColorClass(dispute.receipt?.ocrConfidence)}`}>
@@ -1437,6 +1442,13 @@ export default function AdminPage() {
                     <p className="text-xs text-gray-500 flex items-center gap-1"><User className="h-3 w-3" /> Submitted by</p>
                     <p className="font-medium text-gray-900">{selectedReceipt.user?.name || selectedReceipt.user?.email}</p>
                   </div>
+
+                  {selectedReceipt.locationId && (
+                    <div className="rounded-lg bg-gray-50 p-3">
+                      <p className="text-xs text-gray-500">{t("locationId")}</p>
+                      <p className="font-medium text-gray-900 font-mono text-sm">{selectedReceipt.locationId}</p>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <div className="rounded-lg bg-gray-50 p-3">

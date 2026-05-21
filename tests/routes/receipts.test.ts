@@ -150,6 +150,7 @@ describe("GET /api/receipts", () => {
     mockGetServerSession.mockResolvedValue(session);
 
     mockPrisma.receipt.findMany.mockResolvedValue([SAMPLE_RECEIPT] as any);
+    mockPrisma.receiptSyncState.findMany.mockResolvedValue([]);
 
     const request = createRequest("/api/receipts");
     const response = await getReceipts(request);
@@ -172,6 +173,7 @@ describe("GET /api/receipts", () => {
     mockGetServerSession.mockResolvedValue(session);
 
     mockPrisma.receipt.findMany.mockResolvedValue([SAMPLE_RECEIPT, SAMPLE_ADMIN_RECEIPT] as any);
+    mockPrisma.receiptSyncState.findMany.mockResolvedValue([]);
 
     const request = createRequest("/api/receipts");
     const response = await getReceipts(request);
@@ -193,6 +195,7 @@ describe("GET /api/receipts", () => {
     mockGetServerSession.mockResolvedValue(session);
 
     mockPrisma.receipt.findMany.mockResolvedValue([]);
+    mockPrisma.receiptSyncState.findMany.mockResolvedValue([]);
 
     const request = createRequest("/api/receipts");
     await getReceipts(request);
