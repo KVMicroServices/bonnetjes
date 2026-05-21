@@ -1,5 +1,21 @@
 # Changes
 
+## [128] Fetch location locale from Kiyoh API for email translations
+
+**What**: All transactional emails now use the location's configured locale (fetched from `GET v1/location?id={locationId}&tenantId={tenantId}`) instead of hardcoded English.
+**Why**: Customers of non-English locations were receiving emails in English regardless of their location's language setting.
+**Decisions**:
+- New `kiyoh-location-client.ts` follows the same pattern as `kiyoh-review-client.ts` (auth, tenant-based URL, never throws)
+- `resolveLocationLocaleWithFallback` always returns a usable locale string (falls back to "en")
+- Optional `KIYOH_LOCATION_API_URL` env var for URL override, otherwise auto-derived from tenantId
+**Files**:
+- lib/review-disable/kiyoh-location-client.ts (new)
+- lib/queue/receipt-worker.ts
+- lib/queue/review-disable-worker.ts
+- app/api/admin/reviews/disable/route.ts
+- app/api/dispute/verify/route.ts
+- .env.example
+
 ## [127] Add receipt verified, dispute verified, and dispute final rejection emails
 
 **What**: Three new transactional emails: receipt verified (fires automatically from receipt worker), dispute verified (when dispute passes), and dispute final rejection (2nd rejection, no dispute button, shows support email).

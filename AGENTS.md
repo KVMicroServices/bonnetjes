@@ -12,6 +12,7 @@
 ## Spec Scope
 
 **Parallelizability** Include wave config similar to this for parallel execution:
+
 ## Task Dependency Graph
 
 ```json
@@ -23,7 +24,6 @@
   ]
 }
 ```
-
 
 **Checkpoints** Never include checkpoints tasks. all tasks need to be based on actual features and test execution will happen when the user decides.
 

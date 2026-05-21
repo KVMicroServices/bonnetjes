@@ -33,6 +33,7 @@ import { resolveDisputeToken } from "@/lib/dispute/dispute-token-http";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
 import { sendNotification } from "@/lib/services/notification-service";
 import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
+import { resolveLocationLocaleWithFallback } from "@/lib/review-disable/kiyoh-location-client";
 import { sendDisputeVerifiedEmail, sendDisputeFinalRejectionEmail } from "@/lib/email/email-service";
 
 const verifyRequestSchema = z.object({
@@ -213,8 +214,6 @@ function toParsedOcrResult(input: {
 
 // ─── Dispute Outcome Email Helper ────────────────────────────────────────────
 
-const DISPUTE_EMAIL_LOCALE = "en";
-
 function sendDisputeOutcomeEmail(
   reviewId: string,
   locationId: string | null,
@@ -274,10 +273,12 @@ async function resolveAndSendDisputeEmail(
 
   const recipientEmail = emailResolution.email;
 
+  const locale = await resolveLocationLocaleWithFallback(resolvedLocationId, resolvedTenantId);
+
   if (verificationStatus === "verified") {
     const sendResult = await sendDisputeVerifiedEmail({
       recipientEmail: recipientEmail,
-      locale: DISPUTE_EMAIL_LOCALE,
+      locale: locale,
       reviewId: reviewId,
       tenantId: resolvedTenantId,
       extractedShopName: extractedShopName,
@@ -296,7 +297,7 @@ async function resolveAndSendDisputeEmail(
 
     const sendResult = await sendDisputeFinalRejectionEmail({
       recipientEmail: recipientEmail,
-      locale: DISPUTE_EMAIL_LOCALE,
+      locale: locale,
       reviewId: reviewId,
       tenantId: resolvedTenantId,
       failureReason: resolvedFailureReason,

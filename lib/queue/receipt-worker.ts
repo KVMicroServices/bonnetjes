@@ -15,6 +15,7 @@ import { needsConversion, convertToViewableFormat } from "@/lib/file-conversion"
 import { logger } from "@/lib/logger";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
 import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
+import { resolveLocationLocaleWithFallback } from "@/lib/review-disable/kiyoh-location-client";
 import { sendReceiptVerifiedEmail } from "@/lib/email/email-service";
 
 // ─── KV-Sync Storage Routing ─────────────────────────────────────────────────
@@ -269,8 +270,6 @@ async function enqueueAutoDisableIfEligible(receiptId: string): Promise<void> {
 
 // ─── Verified Email Helper ───────────────────────────────────────────────────
 
-const VERIFIED_EMAIL_LOCALE = "en";
-
 async function sendVerifiedNotificationEmail(receiptId: string): Promise<void> {
   try {
     const syncState = await prisma.receiptSyncState.findFirst({
@@ -308,6 +307,11 @@ async function sendVerifiedNotificationEmail(receiptId: string): Promise<void> {
       return;
     }
 
+    const locale = await resolveLocationLocaleWithFallback(
+      syncState.locationId,
+      syncState.tenantId
+    );
+
     const receipt = await prisma.receipt.findUnique({
       where: { id: receiptId },
       select: { extractedShopName: true, extractedDate: true, extractedAmount: true },
@@ -328,7 +332,7 @@ async function sendVerifiedNotificationEmail(receiptId: string): Promise<void> {
 
     const sendResult = await sendReceiptVerifiedEmail({
       recipientEmail: emailResolution.email,
-      locale: VERIFIED_EMAIL_LOCALE,
+      locale: locale,
       reviewId: syncState.reviewId,
       tenantId: syncState.tenantId,
       extractedShopName: extractedShopName,
