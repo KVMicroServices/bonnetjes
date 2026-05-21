@@ -1,5 +1,23 @@
 # Changes
 
+## [124] Format secondary analysis display in receipt modal
+
+**What**: Replaced raw JSON dump with structured display showing verdict badge, reasoning, confidence, and extracted fields.
+**Why**: Raw JSON in the UI is poor UX — users need to quickly see the verdict and reasoning at a glance.
+**Files**:
+- app/admin/page.tsx
+- components/admin-receipt-card.tsx
+- messages/*.json (all 8 languages)
+
+## [123] Add Cache-Control headers to receipt API routes and refetch after sync
+
+**What**: Added `Cache-Control: no-store, no-cache, must-revalidate` to `/api/receipts` and `/api/admin/receipts` responses, and trigger a receipt list refetch after the sync spinner completes.
+**Why**: Browsers could heuristically cache fetch responses, causing stale receipt data until a hard refresh. The sync button also never refreshed the list.
+**Files**:
+- app/api/receipts/route.ts
+- app/api/admin/receipts/route.ts
+- app/admin/page.tsx
+
 ## [122] Make sync trigger fire-and-forget with spinner feedback
 
 **What**: The "Sync Now" button no longer blocks until the full tick completes — the API returns immediately and the tick runs in the background.

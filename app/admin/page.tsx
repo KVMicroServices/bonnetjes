@@ -260,8 +260,11 @@ export default function AdminPage() {
     } catch {
       // silent fail
     } finally {
-      // Keep the syncing indicator visible briefly so the user sees feedback
-      setTimeout(() => setSyncing(false), 3000);
+      // Keep the syncing indicator visible briefly, then refetch receipts
+      setTimeout(() => {
+        setSyncing(false);
+        fetchData(true);
+      }, 3000);
     }
   };
 
@@ -1495,12 +1498,65 @@ export default function AdminPage() {
                     </div>
                   )}
 
-                  {selectedReceipt.secondaryAnalysis && (
-                    <div className="rounded-lg bg-amber-50 p-3">
-                      <p className="text-xs font-medium text-amber-700 mb-1">{t("secondaryAnalysis")}</p>
-                      <p className="text-sm text-amber-900">{selectedReceipt.secondaryAnalysis}</p>
-                    </div>
-                  )}
+                  {selectedReceipt.secondaryAnalysis && (() => {
+                    try {
+                      const parsed = JSON.parse(selectedReceipt.secondaryAnalysis);
+                      const verdictLabels: Record<string, string> = {
+                        confirmed_rejection: t("verdictConfirmedRejection"),
+                        overturned_to_verified: t("verdictOverturnedToVerified"),
+                        requires_review: t("verdictRequiresReview"),
+                      };
+                      const verdictColors: Record<string, string> = {
+                        confirmed_rejection: "bg-red-100 text-red-800",
+                        overturned_to_verified: "bg-green-100 text-green-800",
+                        requires_review: "bg-amber-100 text-amber-800",
+                      };
+                      const verdictKey = parsed.verdict || "";
+                      return (
+                        <div className="rounded-lg bg-amber-50 p-3 space-y-2">
+                          <p className="text-xs font-medium text-amber-700 mb-1">{t("secondaryAnalysis")}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-gray-600">{t("secondaryVerdict")}:</span>
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${verdictColors[verdictKey] || "bg-gray-100 text-gray-800"}`}>
+                              {verdictLabels[verdictKey] || verdictKey}
+                            </span>
+                          </div>
+                          {parsed.reasoning && (
+                            <div>
+                              <span className="text-xs font-medium text-gray-600">{t("secondaryReasoning")}:</span>
+                              <p className="text-sm text-amber-900 mt-0.5">{parsed.reasoning}</p>
+                            </div>
+                          )}
+                          {parsed.confidence !== undefined && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-gray-600">{t("secondaryConfidence")}:</span>
+                              <span className="text-sm text-amber-900">{parsed.confidence}%</span>
+                            </div>
+                          )}
+                          {(parsed.extractedShopName || parsed.extractedDate || parsed.extractedAmount !== null) && (
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-amber-900">
+                              {parsed.extractedShopName && (
+                                <span><span className="text-xs font-medium text-gray-600">{t("secondaryExtractedShop")}:</span> {parsed.extractedShopName}</span>
+                              )}
+                              {parsed.extractedDate && (
+                                <span><span className="text-xs font-medium text-gray-600">{t("secondaryExtractedDate")}:</span> {parsed.extractedDate}</span>
+                              )}
+                              {parsed.extractedAmount !== null && parsed.extractedAmount !== undefined && (
+                                <span><span className="text-xs font-medium text-gray-600">{t("secondaryExtractedAmount")}:</span> €{parsed.extractedAmount}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    } catch {
+                      return (
+                        <div className="rounded-lg bg-amber-50 p-3">
+                          <p className="text-xs font-medium text-amber-700 mb-1">{t("secondaryAnalysis")}</p>
+                          <p className="text-sm text-amber-900">{selectedReceipt.secondaryAnalysis}</p>
+                        </div>
+                      );
+                    }
+                  })()}
 
                   <div className="flex gap-2 pt-4 border-t">
                     <button

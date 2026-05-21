@@ -54,12 +54,14 @@ export async function GET(request: NextRequest) {
       pollIntervalSeconds = pollIntervalSecondsRaw;
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       receipts: result.receipts,
       nextCursor: result.nextCursor,
       hasMore: result.hasMore,
       pollIntervalSeconds,
     });
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    return response;
   } catch (error) {
     console.error("Get receipts error:", error);
     return NextResponse.json(

@@ -22,7 +22,9 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json(receipts);
+    const response = NextResponse.json(receipts);
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    return response;
   } catch (error) {
     logger.error({ error }, "Admin receipts error");
     return NextResponse.json({ error: "Failed to fetch receipts" }, { status: 500 });
