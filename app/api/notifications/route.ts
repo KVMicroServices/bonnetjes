@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ count });
     }
 
-    const notifications = await getNotifications();
+    const notifications = await getNotifications(userId);
 
     return NextResponse.json({ notifications });
   } catch (error) {

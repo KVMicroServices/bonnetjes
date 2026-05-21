@@ -131,6 +131,7 @@ export async function createComment(params: CreateCommentParams): Promise<Commen
         type: "comment_mention",
         title: `${displayName} mentioned you in a comment`,
         body: bodyPreview,
+        userId: mentionedUserId,
         metadata: {
           receiptId: params.receiptId,
           commentId: comment.id,
@@ -231,6 +232,7 @@ export async function editComment(params: EditCommentParams): Promise<CommentWit
           type: "comment_mention",
           title: `${displayName} mentioned you in a comment`,
           body: bodyPreview,
+          userId: mentionedUserId,
           metadata: {
             receiptId: updatedComment.receiptId,
             commentId: updatedComment.id,

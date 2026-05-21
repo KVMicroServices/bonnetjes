@@ -209,9 +209,11 @@ model Notification {
   title     String
   body      String
   metadata  String?  @db.Text // JSON blob with action-specific context (receiptId, etc.)
+  userId    String?  // Target user — null means global (visible to all)
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@index([userId, createdAt])
 }
 
 model NotificationPreference {

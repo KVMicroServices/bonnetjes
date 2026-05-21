@@ -1,5 +1,20 @@
 # Changes
 
+## [114] Fix mention notifications leaking to all users instead of only the mentioned user
+
+**What**: Added `userId` field to the Notification model so mention notifications are targeted to the specific mentioned user rather than broadcast globally.
+**Why**: The notification system was originally designed for global broadcasts only — when comment mentions were added, they reused the same global path, causing all users (including admin) to see every mention notification.
+**Decisions**:
+- `userId` is nullable — null means global (existing behavior for system notifications)
+- `getNotifications` and `getUnreadCount` now filter: show global (userId=null) + user-targeted notifications
+- Email delivery for targeted notifications only checks the target user's preference, not all users
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260601000008_add_user_id_to_notification/migration.sql
+- lib/services/notification-service.ts
+- lib/services/comment-service.ts
+- app/api/notifications/route.ts
+
 ## [113] Fix missing messages directory in Docker images breaking email translations and dispute URLs
 
 **What**: Added `COPY --from=builder /app/messages ./messages` to all Docker targets (production, worker, staging) so email translations resolve at runtime instead of falling back to raw keys.
