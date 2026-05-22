@@ -208,7 +208,7 @@ export async function sendReceiptVerifiedEmail(
     }
 
     const brand = resolveBrandConfig(params.tenantId);
-    const translations = loadVerifiedEmailTranslations(params.locale, "receipt");
+    const translations = await loadVerifiedEmailTranslations(params.locale, "receipt");
 
     const emailData: VerifiedEmailData = {
       reviewId: params.reviewId,
@@ -262,7 +262,7 @@ export async function sendDisputeVerifiedEmail(
     }
 
     const brand = resolveBrandConfig(params.tenantId);
-    const translations = loadVerifiedEmailTranslations(params.locale, "dispute");
+    const translations = await loadVerifiedEmailTranslations(params.locale, "dispute");
 
     const emailData: VerifiedEmailData = {
       reviewId: params.reviewId,

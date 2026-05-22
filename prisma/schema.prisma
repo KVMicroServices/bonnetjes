@@ -274,3 +274,16 @@ model FailureReasonDefinition {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model EmailTemplateOverride {
+  id        String   @id @default(cuid())
+  emailType String
+  key       String
+  locale    String
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([emailType, key, locale])
+  @@index([emailType, locale])
+}

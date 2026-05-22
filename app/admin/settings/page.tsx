@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/header";
 import { FailureReasonManagement } from "@/components/failure-reason-management";
-import { Settings, Users, Loader2, Zap, SlidersHorizontal, MapPin, Plus, X, Mail, MessageSquare, AlertTriangle } from "lucide-react";
+import { EmailTemplateEditor } from "@/components/email-template-editor";
+import { Settings, Users, Loader2, Zap, SlidersHorizontal, MapPin, Plus, X, Mail, MessageSquare, AlertTriangle, FileText } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
@@ -853,6 +854,21 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Email Templates Section */}
+        <div className="mb-8 rounded-xl bg-white p-4 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-kv-green" />
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {t("emailTemplatesTitle")}
+              </h2>
+              <p className="text-sm text-gray-500">{t("emailTemplatesDescription")}</p>
+            </div>
+          </div>
+
+          <EmailTemplateEditor />
         </div>
 
         {/* User Management Section */}

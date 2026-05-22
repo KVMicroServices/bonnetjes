@@ -3,6 +3,7 @@ import { join } from "path";
 import { logger } from "@/lib/logger";
 import { SUPPORTED_LOCALES } from "@/lib/i18n-config";
 import { getFailureReasonTranslation } from "@/lib/services/failure-reason-service";
+import { getOverridesForEmailType } from "@/lib/services/email-template-override-service";
 import type { SupportedLocale } from "@/lib/i18n-config";
 import type { DisableEmailTranslations, VerifiedEmailTranslations, FinalRejectionEmailTranslations } from "@/lib/email/email-templates";
 
@@ -146,6 +147,18 @@ export async function loadDisableEmailTranslations(
     result[key] = getTranslationValue(localeMessages, fallbackMessages, key);
   }
 
+  // Merge DB overrides (override wins over message file)
+  try {
+    const overrides = await getOverridesForEmailType("disable", resolvedLocale);
+    for (const key of TRANSLATION_KEYS) {
+      if (overrides[key]) {
+        result[key] = overrides[key];
+      }
+    }
+  } catch (error) {
+    logger.error({ emailType: "disable", locale: resolvedLocale, error }, "Failed to load email template overrides, using message file values");
+  }
+
   // DB-first lookup for failure reason text
   let failureReasonText: string | null = null;
   try {
@@ -170,10 +183,10 @@ export async function loadDisableEmailTranslations(
   return result as unknown as DisableEmailTranslations;
 }
 
-export function loadVerifiedEmailTranslations(
+export async function loadVerifiedEmailTranslations(
   locale: string,
   namespace: "receipt" | "dispute"
-): VerifiedEmailTranslations {
+): Promise<VerifiedEmailTranslations> {
   let resolvedLocale: SupportedLocale;
   if (isSupportedLocale(locale)) {
     resolvedLocale = locale;
@@ -182,10 +195,13 @@ export function loadVerifiedEmailTranslations(
   }
 
   let namespaceName: string;
+  let emailType: string;
   if (namespace === "receipt") {
     namespaceName = VERIFIED_NAMESPACE;
+    emailType = "verified";
   } else {
     namespaceName = DISPUTE_VERIFIED_NAMESPACE;
+    emailType = "disputeVerified";
   }
 
   const localeMessages = loadMessagesForLocale(resolvedLocale, namespaceName);
@@ -197,6 +213,18 @@ export function loadVerifiedEmailTranslations(
   const result: Record<string, string> = {};
   for (const key of VERIFIED_TRANSLATION_KEYS) {
     result[key] = getTranslationValue(localeMessages, fallbackMessages, key);
+  }
+
+  // Merge DB overrides (override wins over message file)
+  try {
+    const overrides = await getOverridesForEmailType(emailType, resolvedLocale);
+    for (const key of VERIFIED_TRANSLATION_KEYS) {
+      if (overrides[key]) {
+        result[key] = overrides[key];
+      }
+    }
+  } catch (error) {
+    logger.error({ emailType, locale: resolvedLocale, error }, "Failed to load email template overrides, using message file values");
   }
 
   return result as unknown as VerifiedEmailTranslations;
@@ -222,6 +250,18 @@ export async function loadFinalRejectionEmailTranslations(
   const result: Record<string, string> = {};
   for (const key of FINAL_REJECTION_TRANSLATION_KEYS) {
     result[key] = getTranslationValue(localeMessages, fallbackMessages, key);
+  }
+
+  // Merge DB overrides (override wins over message file)
+  try {
+    const overrides = await getOverridesForEmailType("finalRejection", resolvedLocale);
+    for (const key of FINAL_REJECTION_TRANSLATION_KEYS) {
+      if (overrides[key]) {
+        result[key] = overrides[key];
+      }
+    }
+  } catch (error) {
+    logger.error({ emailType: "finalRejection", locale: resolvedLocale, error }, "Failed to load email template overrides, using message file values");
   }
 
   // DB-first lookup for failure reason text

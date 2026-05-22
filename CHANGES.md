@@ -1,5 +1,69 @@
 # Changes
 
+## [147] Fix email template editor layout and preview logo
+
+**What**: Made email templates section more compact (title left, reduced padding/spacing), use local kiyoh-logo.png in preview instead of placeholder URL.
+**Files**:
+- app/admin/settings/page.tsx
+- components/email-template-editor.tsx
+- app/api/admin/email-templates/preview/route.ts
+
+## [146] Add unit tests for email template API routes
+
+**What**: Route tests covering auth guards, validation, CRUD success paths, translate endpoint, and preview endpoint.
+**Files**:
+- tests/routes/email-templates.test.ts
+
+## [145] Add email template editor UI to admin settings
+
+**What**: New EmailTemplateEditor component with email type dropdown, editable fields, save/auto-translate/preview buttons, and preview modal with iframe.
+**Files**:
+- components/email-template-editor.tsx
+- app/admin/settings/page.tsx
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [144] Integrate email template overrides into translation loader
+
+**What**: Each email translation loader now queries DB overrides before falling back to message files.
+**Decisions**:
+- `loadVerifiedEmailTranslations` changed from sync to async (callers already async)
+- Override merge wrapped in try/catch — DB failures never break email sending
+**Files**:
+- lib/email/email-translations.ts
+- lib/email/email-service.ts
+
+## [143] Add email template API routes and translator service
+
+**What**: CRUD, translate, and preview API routes for admin email template editing, plus an AI translation service.
+**Decisions**:
+- Translate endpoint processes entries sequentially to avoid overwhelming the AI API
+- Preview uses sample brand/data constants for WYSIWYG rendering without sending emails
+- Translator service follows same pattern as failure-reason-translator with configurable source locale
+**Files**:
+- app/api/admin/email-templates/route.ts
+- app/api/admin/email-templates/translate/route.ts
+- app/api/admin/email-templates/preview/route.ts
+- lib/services/email-template-translator.ts
+
+## [142] Add email-template-override-service
+
+**What**: Service layer for CRUD operations on email template overrides with DB fallback and default value loading from message files.
+**Decisions**:
+- All DB operations wrapped in try/catch with structured logger.error
+- `getOverridesForEmailType` returns empty map on failure (graceful fallback)
+- `bulkUpsertOverrides` uses Prisma transaction for atomicity
+- Exported constants for email type→namespace and email type→valid keys mapping
+
+## [141] Add EmailTemplateOverride Prisma model and migration
+
+**What**: New `EmailTemplateOverride` table for storing admin email text overrides per email type, key, and locale.
+**Decisions**:
+- Composite unique on (emailType, key, locale) enforces one override per slot
+- Index on (emailType, locale) for efficient lookup at send time
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260522110023_add_email_template_override/migration.sql
+
 ## [140] Code review fixes for verification-criteria-adjuster
 
 **What**: Implemented all fixes from code review 26.05.22.1 — standards compliance, security hardening, stability improvements, and functional bug fixes.
