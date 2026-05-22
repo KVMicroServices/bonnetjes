@@ -2,7 +2,14 @@
 // Shared between ocr-service.ts and admin settings route.
 // This file must NOT import heavy dependencies (file-conversion, pdf-to-image, etc.)
 
-const OCR_REASONING_MAX_TOKENS = parseInt(process.env.OCR_REASONING_MAX_TOKENS || "150", 10);
+const OCR_REASONING_MAX_TOKENS_ENV = process.env.OCR_REASONING_MAX_TOKENS;
+let ocrReasoningMaxTokensRaw: string;
+if (OCR_REASONING_MAX_TOKENS_ENV) {
+  ocrReasoningMaxTokensRaw = OCR_REASONING_MAX_TOKENS_ENV;
+} else {
+  ocrReasoningMaxTokensRaw = "150";
+}
+const OCR_REASONING_MAX_TOKENS = parseInt(ocrReasoningMaxTokensRaw, 10);
 
 // ─── Failure Reason Constants ─────────────────────────────────────────────────
 
@@ -94,9 +101,12 @@ Respond with raw JSON only. All text must be in English.`;
 
 /** Build the full OCR prompt by combining criteria (custom or default) with the fixed response format. */
 export function buildOcrPrompt(customCriteria: string | null): string {
-  const criteria = (customCriteria && customCriteria.trim().length > 0)
-    ? customCriteria.trim()
-    : OCR_PROMPT_DEFAULT_CRITERIA;
+  let criteria: string;
+  if (customCriteria && customCriteria.trim().length > 0) {
+    criteria = customCriteria.trim();
+  } else {
+    criteria = OCR_PROMPT_DEFAULT_CRITERIA;
+  }
   return criteria + OCR_PROMPT_RESPONSE_FORMAT;
 }
 
@@ -126,8 +136,11 @@ export function buildOcrPromptWithDynamicReasons(customCriteria: string | null, 
 
 /** Build the full secondary analysis prompt by combining criteria (custom or default) with the fixed response format. */
 export function buildSecondaryPrompt(customCriteria: string | null): string {
-  const criteria = (customCriteria && customCriteria.trim().length > 0)
-    ? customCriteria.trim()
-    : SECONDARY_PROMPT_DEFAULT_CRITERIA;
+  let criteria: string;
+  if (customCriteria && customCriteria.trim().length > 0) {
+    criteria = customCriteria.trim();
+  } else {
+    criteria = SECONDARY_PROMPT_DEFAULT_CRITERIA;
+  }
   return criteria + SECONDARY_PROMPT_RESPONSE_FORMAT;
 }

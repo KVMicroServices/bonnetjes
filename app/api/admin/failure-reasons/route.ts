@@ -9,7 +9,16 @@ import {
   createFailureReason,
   updateFailureReasonDescription,
   deleteFailureReason,
+  toggleFailureReasonEnabled,
 } from "@/lib/services/failure-reason-service";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface SessionUser {
+  id: string;
+  email: string;
+  role: string;
+}
 
 // ─── Auth Helper ─────────────────────────────────────────────────────────────
 
@@ -19,7 +28,7 @@ async function requireAdmin(): Promise<{ authorized: true } | { authorized: fals
     return { authorized: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 
-  const isAdmin = (session.user as any).role === "admin";
+  const isAdmin = (session.user as SessionUser).role === "admin";
   if (!isAdmin) {
     return { authorized: false, response: NextResponse.json({ error: "Admin access required" }, { status: 403 }) };
   }
@@ -77,7 +86,12 @@ export async function POST(request: NextRequest) {
     const created = await createFailureReason(payload.code, payload.description);
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create failure reason";
+    let message: string;
+    if (error instanceof Error) {
+      message = error.message;
+    } else {
+      message = "Failed to create failure reason";
+    }
     logger.warn({ error, code: payload.code }, "Failed to create failure reason");
     return NextResponse.json({ error: message }, { status: 400 });
   }
@@ -111,14 +125,15 @@ export async function PATCH(request: NextRequest) {
   // Handle enabled toggle
   if (typeof payload.enabled === "boolean") {
     try {
-      const { prisma } = await import("@/lib/db");
-      const updated = await prisma.failureReasonDefinition.update({
-        where: { code: payload.code },
-        data: { enabled: payload.enabled },
-      });
+      const updated = await toggleFailureReasonEnabled(payload.code, payload.enabled);
       return NextResponse.json(updated);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to update failure reason";
+      let message: string;
+      if (error instanceof Error) {
+        message = error.message;
+      } else {
+        message = "Failed to update failure reason";
+      }
       logger.warn({ error, code: payload.code }, "Failed to toggle failure reason enabled status");
       return NextResponse.json({ error: message }, { status: 400 });
     }
@@ -133,7 +148,12 @@ export async function PATCH(request: NextRequest) {
     const updated = await updateFailureReasonDescription(payload.code, payload.description);
     return NextResponse.json(updated);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update failure reason";
+    let message: string;
+    if (error instanceof Error) {
+      message = error.message;
+    } else {
+      message = "Failed to update failure reason";
+    }
     logger.warn({ error, code: payload.code }, "Failed to update failure reason");
     return NextResponse.json({ error: message }, { status: 400 });
   }
@@ -168,7 +188,12 @@ export async function DELETE(request: NextRequest) {
     await deleteFailureReason(payload.code);
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to delete failure reason";
+    let message: string;
+    if (error instanceof Error) {
+      message = error.message;
+    } else {
+      message = "Failed to delete failure reason";
+    }
     logger.warn({ error, code: payload.code }, "Failed to delete failure reason");
     return NextResponse.json({ error: message }, { status: 400 });
   }

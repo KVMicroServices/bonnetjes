@@ -29,6 +29,7 @@ const DEFAULT_AI_MODEL = "gpt-5.4-nano";
 const DEFAULT_SECONDARY_AI_MODEL = "gpt-5.4-mini";
 const MAX_TOKENS = 2000;
 const HIGH_CONFIDENCE_THRESHOLD = 70;
+const DEFAULT_MAX_AGE_MONTHS = 6;
 
 // ─── Dependencies ────────────────────────────────────────────────────────────
 
@@ -332,7 +333,7 @@ export function parseOcrResult(rawJson: string, allowedReasons?: readonly string
     extractedAmount = parseFloat(String(parsed.extractedAmount));
   }
 
-  const validReasons = allowedReasons || FAILURE_REASONS;
+  const validReasons: readonly string[] = allowedReasons ? allowedReasons : FAILURE_REASONS;
 
   let failureReason: FailureReason | null = null;
   if (parsed.failureReason && validReasons.includes(parsed.failureReason as FailureReason)) {
@@ -357,8 +358,14 @@ export function determineVerificationStatus(
   receiptDate: Date | null,
   thresholds?: { highConfidence?: number; maxAgeMonths?: number }
 ): VerificationDecision {
-  const confidenceThreshold = thresholds?.highConfidence ?? HIGH_CONFIDENCE_THRESHOLD;
-  const maxAgeMonths = thresholds?.maxAgeMonths ?? 6;
+  let confidenceThreshold = HIGH_CONFIDENCE_THRESHOLD;
+  if (thresholds && thresholds.highConfidence !== undefined) {
+    confidenceThreshold = thresholds.highConfidence;
+  }
+  let maxAgeMonths = DEFAULT_MAX_AGE_MONTHS;
+  if (thresholds && thresholds.maxAgeMonths !== undefined) {
+    maxAgeMonths = thresholds.maxAgeMonths;
+  }
 
   let isDateTooOld = false;
   let dateValidationMessage = "";
@@ -413,8 +420,15 @@ export async function runSecondaryAnalysis(
 
   const fullSecondaryPrompt = buildSecondaryPrompt(customSecondaryCriteria);
 
+  let shopNameForPrompt: string;
+  if (ocrResult.extractedShopName) {
+    shopNameForPrompt = ocrResult.extractedShopName;
+  } else {
+    shopNameForPrompt = "null";
+  }
+
   const filledPrompt = fullSecondaryPrompt
-    .replace("{shopName}", ocrResult.extractedShopName || "null")
+    .replace("{shopName}", shopNameForPrompt)
     .replace("{date}", dateString)
     .replace("{amount}", amountString)
     .replace("{confidence}", String(ocrResult.confidence))
@@ -433,7 +447,12 @@ export async function runSecondaryAnalysis(
     }
   ];
 
-  const secondaryModel = process.env.SECONDARY_AI_MODEL_NAME || DEFAULT_SECONDARY_AI_MODEL;
+  let secondaryModel: string;
+  if (process.env.SECONDARY_AI_MODEL_NAME) {
+    secondaryModel = process.env.SECONDARY_AI_MODEL_NAME;
+  } else {
+    secondaryModel = DEFAULT_SECONDARY_AI_MODEL;
+  }
 
   const requestBody = {
     model: secondaryModel,
@@ -506,12 +525,37 @@ export async function processReceiptOcr(
 
   const fileBuffer = await dependencies.storage.getFileAsBuffer(receipt.cloudStoragePath);
 
-  const fileType = receipt.fileType || "image";
-  const originalFilename = receipt.originalFilename || "receipt";
+  let fileType: string;
+  if (receipt.fileType) {
+    fileType = receipt.fileType;
+  } else {
+    fileType = "image";
+  }
+  let originalFilename: string;
+  if (receipt.originalFilename) {
+    originalFilename = receipt.originalFilename;
+  } else {
+    originalFilename = "receipt";
+  }
 
-  const aiBaseUrl = process.env.AI_API_BASE_URL || DEFAULT_AI_BASE_URL;
-  const aiModel = process.env.AI_MODEL_NAME || DEFAULT_AI_MODEL;
-  const aiApiKey = process.env.AI_API_KEY || "";
+  let aiBaseUrl: string;
+  if (process.env.AI_API_BASE_URL) {
+    aiBaseUrl = process.env.AI_API_BASE_URL;
+  } else {
+    aiBaseUrl = DEFAULT_AI_BASE_URL;
+  }
+  let aiModel: string;
+  if (process.env.AI_MODEL_NAME) {
+    aiModel = process.env.AI_MODEL_NAME;
+  } else {
+    aiModel = DEFAULT_AI_MODEL;
+  }
+  let aiApiKey: string;
+  if (process.env.AI_API_KEY) {
+    aiApiKey = process.env.AI_API_KEY;
+  } else {
+    aiApiKey = "";
+  }
 
   const config: OcrApiConfig = {
     baseUrl: aiBaseUrl,
@@ -628,9 +672,11 @@ export async function processReceiptOcr(
     finalAmount
   );
 
+  const manipulationScore = receipt.manipulationScore ? receipt.manipulationScore : 0;
+
   const newFraudRiskScore = dependencies.fraudDetection.calculateFraudRiskScore(
     receipt.isDuplicate,
-    receipt.manipulationScore || 0,
+    manipulationScore,
     patternAnalysis.riskScore,
     finalConfidence
   );
@@ -678,11 +724,35 @@ export async function processReceiptOcr(
 
 /** Create an OcrApiConfig from environment variables with defaults. */
 export function createOcrApiConfig(overrides?: Partial<OcrApiConfig>): OcrApiConfig {
-  const baseUrl = overrides?.baseUrl || process.env.AI_API_BASE_URL || DEFAULT_AI_BASE_URL;
-  const apiKey = overrides?.apiKey || process.env.AI_API_KEY || "";
-  const model = overrides?.model || process.env.AI_MODEL_NAME || DEFAULT_AI_MODEL;
+  let baseUrl: string;
+  if (overrides && overrides.baseUrl) {
+    baseUrl = overrides.baseUrl;
+  } else if (process.env.AI_API_BASE_URL) {
+    baseUrl = process.env.AI_API_BASE_URL;
+  } else {
+    baseUrl = DEFAULT_AI_BASE_URL;
+  }
+
+  let apiKey: string;
+  if (overrides && overrides.apiKey) {
+    apiKey = overrides.apiKey;
+  } else if (process.env.AI_API_KEY) {
+    apiKey = process.env.AI_API_KEY;
+  } else {
+    apiKey = "";
+  }
+
+  let model: string;
+  if (overrides && overrides.model) {
+    model = overrides.model;
+  } else if (process.env.AI_MODEL_NAME) {
+    model = process.env.AI_MODEL_NAME;
+  } else {
+    model = DEFAULT_AI_MODEL;
+  }
+
   let streaming = false;
-  if (overrides?.streaming !== undefined) {
+  if (overrides && overrides.streaming !== undefined) {
     streaming = overrides.streaming;
   }
 

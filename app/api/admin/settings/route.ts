@@ -30,8 +30,19 @@ import {
   FAILURE_REASONS,
 } from "@/lib/services/ocr-constants";
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface SessionUser {
+  id: string;
+  email: string;
+  role: string;
+}
+
 const MIN_THRESHOLD = 0;
 const MAX_THRESHOLD = 100;
+const MIN_RECEIPT_MAX_AGE_MONTHS = 1;
+const MAX_RECEIPT_MAX_AGE_MONTHS = 120;
+const MAXIMUM_PROMPT_CRITERIA_LENGTH = 50000;
 
 export async function GET() {
   try {
@@ -40,7 +51,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isAdmin = (session.user as any).role === "admin";
+    const isAdmin = (session.user as SessionUser).role === "admin";
     if (!isAdmin) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
@@ -70,7 +81,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isAdmin = (session.user as any).role === "admin";
+    const isAdmin = (session.user as SessionUser).role === "admin";
     if (!isAdmin) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
@@ -164,12 +175,18 @@ export async function PATCH(request: NextRequest) {
       if (typeof payload.ocrPromptCriteria !== "string") {
         return NextResponse.json({ error: "ocrPromptCriteria must be a string" }, { status: 400 });
       }
+      if (payload.ocrPromptCriteria.length > MAXIMUM_PROMPT_CRITERIA_LENGTH) {
+        return NextResponse.json({ error: `ocrPromptCriteria must not exceed ${MAXIMUM_PROMPT_CRITERIA_LENGTH} characters` }, { status: 400 });
+      }
       await setSettingString(SETTING_OCR_PROMPT_CRITERIA, payload.ocrPromptCriteria);
     }
 
     if ("secondaryPromptCriteria" in payload) {
       if (typeof payload.secondaryPromptCriteria !== "string") {
         return NextResponse.json({ error: "secondaryPromptCriteria must be a string" }, { status: 400 });
+      }
+      if (payload.secondaryPromptCriteria.length > MAXIMUM_PROMPT_CRITERIA_LENGTH) {
+        return NextResponse.json({ error: `secondaryPromptCriteria must not exceed ${MAXIMUM_PROMPT_CRITERIA_LENGTH} characters` }, { status: 400 });
       }
       await setSettingString(SETTING_SECONDARY_PROMPT_CRITERIA, payload.secondaryPromptCriteria);
     }
@@ -178,8 +195,8 @@ export async function PATCH(request: NextRequest) {
       if (typeof payload.receiptMaxAgeMonths !== "number") {
         return NextResponse.json({ error: "receiptMaxAgeMonths must be a number" }, { status: 400 });
       }
-      if (payload.receiptMaxAgeMonths < 1 || payload.receiptMaxAgeMonths > 120) {
-        return NextResponse.json({ error: "receiptMaxAgeMonths must be between 1 and 120" }, { status: 400 });
+      if (payload.receiptMaxAgeMonths < MIN_RECEIPT_MAX_AGE_MONTHS || payload.receiptMaxAgeMonths > MAX_RECEIPT_MAX_AGE_MONTHS) {
+        return NextResponse.json({ error: `receiptMaxAgeMonths must be between ${MIN_RECEIPT_MAX_AGE_MONTHS} and ${MAX_RECEIPT_MAX_AGE_MONTHS}` }, { status: 400 });
       }
       await setSettingInteger(SETTING_RECEIPT_MAX_AGE_MONTHS, payload.receiptMaxAgeMonths);
     }
@@ -194,7 +211,7 @@ export async function PATCH(request: NextRequest) {
     };
     logger.info({ settings: redactedForLog, admin: session.user.email }, "App settings updated");
 
-    recordAuditEvent("settings", "settings_updated", (session.user as any).id, {
+    recordAuditEvent("settings", "settings_updated", (session.user as SessionUser).id, {
       changedKeys: Object.keys(payload),
     });
 

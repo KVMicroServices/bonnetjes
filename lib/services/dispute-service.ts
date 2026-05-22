@@ -144,12 +144,12 @@ export interface DisputeOcrAdapter {
       failureReason: string | null;
     },
     isDuplicate: boolean
-  ): {
+  ): Promise<{
     status: string;
     failureReason: string | null;
     isDateTooOld: boolean;
     dateValidationMessage: string;
-  };
+  }>;
   runSecondary(
     messages: unknown,
     parsed: {
@@ -219,7 +219,7 @@ export async function verifyDisputeReceipt(
 
   const messages = await ocr.buildMessages(fileBuffer, fileType, originalFilename);
   const parsed = await ocr.runOcr(messages);
-  const decision = ocr.decideStatus(parsed, fraudAnalysis.isDuplicate);
+  const decision = await ocr.decideStatus(parsed, fraudAnalysis.isDuplicate);
 
   let secondaryAnalysis: string | null = null;
   let finalStatus = decision.status;
@@ -265,7 +265,7 @@ export async function verifyDisputeReceipt(
             finalFailureReason = secondaryResult.failureReason;
           }
         } else if (secondaryResult.verdict === "overturned_to_verified" || secondaryResult.verdict === "requires_review") {
-          const secondaryDecision = ocr.decideStatus(
+          const secondaryDecision = await ocr.decideStatus(
             {
               extractedShopName: finalShopName,
               extractedDate: finalDate,

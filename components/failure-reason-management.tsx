@@ -381,10 +381,15 @@ export function FailureReasonManagement() {
           const isEditing = editingCode === reason.code;
           const isGenerating = generatingCode === reason.code;
 
+          let containerClassName = "rounded-lg border border-gray-200 p-4 transition-opacity";
+          if (isTranslating) {
+            containerClassName += " opacity-60";
+          }
+
           return (
             <div
               key={reason.code}
-              className={`rounded-lg border border-gray-200 p-4 transition-opacity ${isTranslating ? "opacity-60" : ""}`}
+              className={containerClassName}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
@@ -511,20 +516,32 @@ export function FailureReasonManagement() {
             <label htmlFor="new-reason-code" className="mb-1 block text-xs font-medium text-gray-700">
               {t("failureReasonCodeLabel")}
             </label>
-            <input
-              id="new-reason-code"
-              type="text"
-              value={newCode}
-              onChange={(event) => handleCodeChange(event.target.value)}
-              maxLength={MAXIMUM_CODE_LENGTH}
-              placeholder={t("failureReasonCodePlaceholder")}
-              disabled={creatingReason}
-              className={`w-full rounded-lg border bg-white px-3 py-2 font-mono text-sm text-gray-700 placeholder:text-gray-400 disabled:opacity-50 ${
-                codeError ? "border-red-300" : "border-gray-200"
-              }`}
-              aria-label={t("failureReasonCodeLabel")}
-              aria-invalid={codeError ? "true" : "false"}
-            />
+            {(() => {
+              let codeInputClassName = "w-full rounded-lg border bg-white px-3 py-2 font-mono text-sm text-gray-700 placeholder:text-gray-400 disabled:opacity-50";
+              if (codeError) {
+                codeInputClassName += " border-red-300";
+              } else {
+                codeInputClassName += " border-gray-200";
+              }
+              let ariaInvalid: "true" | "false" = "false";
+              if (codeError) {
+                ariaInvalid = "true";
+              }
+              return (
+                <input
+                  id="new-reason-code"
+                  type="text"
+                  value={newCode}
+                  onChange={(event) => handleCodeChange(event.target.value)}
+                  maxLength={MAXIMUM_CODE_LENGTH}
+                  placeholder={t("failureReasonCodePlaceholder")}
+                  disabled={creatingReason}
+                  className={codeInputClassName}
+                  aria-label={t("failureReasonCodeLabel")}
+                  aria-invalid={ariaInvalid}
+                />
+              );
+            })()}
             {codeError && (
               <p className="mt-1 text-xs text-red-600">{codeError}</p>
             )}

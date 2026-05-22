@@ -1,5 +1,29 @@
 # Changes
 
+## [140] Code review fixes for verification-criteria-adjuster
+
+**What**: Implemented all fixes from code review 26.05.22.1 — standards compliance, security hardening, stability improvements, and functional bug fixes.
+**Decisions**:
+- Replaced all ternaries, short-circuit tricks, nullish coalescing, and chained optional access with if-else blocks
+- Moved PATCH enabled toggle from route to `toggleFailureReasonEnabled()` service function
+- Added Promise-based seeding guard to prevent race conditions
+- Added input validation (code format, prompt length limits) on admin endpoints
+- Fixed dispute and streaming OCR routes to use dynamic failure reasons and admin-configured thresholds
+- Made `DisputeOcrAdapter.decideStatus` async to support fetching thresholds
+**Files**:
+- lib/services/ocr-constants.ts
+- lib/services/failure-reason-translator.ts
+- lib/services/failure-reason-service.ts
+- lib/services/ocr-service.ts
+- lib/services/dispute-service.ts
+- app/api/admin/failure-reasons/route.ts
+- app/api/admin/failure-reasons/generate/route.ts
+- app/api/admin/settings/route.ts
+- app/api/dispute/verify/route.ts
+- app/api/receipts/[id]/ocr/route.ts
+- app/admin/settings/page.tsx
+- components/failure-reason-management.tsx
+
 ## [139] Always append dynamic failure reasons to OCR prompt
 
 **What**: Failure reasons from the DB are now always appended to the OCR prompt, regardless of whether a custom prompt is set.

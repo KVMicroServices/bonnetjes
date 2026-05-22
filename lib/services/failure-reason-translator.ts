@@ -50,9 +50,18 @@ Respond with only the description text, no JSON, no quotes, no extra formatting.
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getAiConfig(): { baseUrl: string; apiKey: string; model: string } {
-  const baseUrl = process.env.AI_API_BASE_URL || DEFAULT_AI_BASE_URL;
-  const apiKey = process.env.AI_API_KEY || "";
-  const model = process.env.AI_MODEL_NAME || DEFAULT_AI_MODEL;
+  let baseUrl = process.env.AI_API_BASE_URL;
+  if (!baseUrl) {
+    baseUrl = DEFAULT_AI_BASE_URL;
+  }
+  let apiKey = process.env.AI_API_KEY;
+  if (!apiKey) {
+    apiKey = "";
+  }
+  let model = process.env.AI_MODEL_NAME;
+  if (!model) {
+    model = DEFAULT_AI_MODEL;
+  }
   return { baseUrl, apiKey, model };
 }
 
@@ -93,10 +102,10 @@ export async function translateDescription(description: string): Promise<Transla
 
   let response: Response;
 
-  try {
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MILLISECONDS);
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MILLISECONDS);
 
+  try {
     response = await fetch(`${config.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -109,7 +118,13 @@ export async function translateDescription(description: string): Promise<Transla
 
     clearTimeout(timeoutId);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown network error";
+    clearTimeout(timeoutId);
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = "Unknown network error";
+    }
     logger.error(
       { error: errorMessage, description },
       "Translation AI API network error"
@@ -134,7 +149,12 @@ export async function translateDescription(description: string): Promise<Transla
   try {
     responseBody = await response.json();
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "JSON parse error";
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = "JSON parse error";
+    }
     logger.error(
       { error: errorMessage, description },
       "Translation AI API response JSON parse failed"
@@ -142,8 +162,14 @@ export async function translateDescription(description: string): Promise<Transla
     return { success: false, translations: null, error: errorMessage };
   }
 
-  const choices = (responseBody as { choices?: Array<{ message?: { content?: string } }> })?.choices;
-  const content = choices?.[0]?.message?.content;
+  const typedBody = responseBody as { choices?: Array<{ message?: { content?: string } }> };
+  let content: string | undefined;
+  if (typedBody && typedBody.choices && typedBody.choices.length > 0) {
+    const firstChoice = typedBody.choices[0];
+    if (firstChoice && firstChoice.message) {
+      content = firstChoice.message.content;
+    }
+  }
 
   if (!content) {
     logger.error(
@@ -157,7 +183,12 @@ export async function translateDescription(description: string): Promise<Transla
   try {
     parsed = JSON.parse(content);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "JSON parse error";
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = "JSON parse error";
+    }
     logger.error(
       { error: errorMessage, content, description },
       "Translation AI API content JSON parse failed"
@@ -206,10 +237,10 @@ export async function generateDescriptionFromCode(code: string): Promise<string>
 
   let response: Response;
 
-  try {
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MILLISECONDS);
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MILLISECONDS);
 
+  try {
     response = await fetch(`${config.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -222,7 +253,13 @@ export async function generateDescriptionFromCode(code: string): Promise<string>
 
     clearTimeout(timeoutId);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown network error";
+    clearTimeout(timeoutId);
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = "Unknown network error";
+    }
     logger.error(
       { error: errorMessage, code },
       "Description generation AI API network error"
@@ -243,7 +280,12 @@ export async function generateDescriptionFromCode(code: string): Promise<string>
   try {
     responseBody = await response.json();
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "JSON parse error";
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = "JSON parse error";
+    }
     logger.error(
       { error: errorMessage, code },
       "Description generation AI API response JSON parse failed"
@@ -251,8 +293,14 @@ export async function generateDescriptionFromCode(code: string): Promise<string>
     throw new Error(`AI API response parse error: ${errorMessage}`);
   }
 
-  const choices = (responseBody as { choices?: Array<{ message?: { content?: string } }> })?.choices;
-  const content = choices?.[0]?.message?.content;
+  const typedBody = responseBody as { choices?: Array<{ message?: { content?: string } }> };
+  let content: string | undefined;
+  if (typedBody && typedBody.choices && typedBody.choices.length > 0) {
+    const firstChoice = typedBody.choices[0];
+    if (firstChoice && firstChoice.message) {
+      content = firstChoice.message.content;
+    }
+  }
 
   if (!content) {
     logger.error(

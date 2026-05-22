@@ -19,7 +19,7 @@ import {
   parseOcrResult,
   determineVerificationStatus,
   runSecondaryAnalysis,
-  buildOcrPrompt,
+  buildOcrPromptWithDynamicReasons,
   type OcrApiConfig,
   type OcrMessage,
   type ParsedOcrResult,
@@ -37,7 +37,10 @@ import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
 import {
   getOcrPromptCriteria,
   getSecondaryPromptCriteria,
+  getHighConfidenceThreshold,
+  getReceiptMaxAgeMonths,
 } from "@/lib/services/app-settings-service";
+import { getEnabledFailureReasonsWithDescriptions } from "@/lib/services/failure-reason-service";
 import { resolveLocationLocaleWithFallback } from "@/lib/review-disable/kiyoh-location-client";
 import { sendDisputeVerifiedEmail, sendDisputeFinalRejectionEmail } from "@/lib/email/email-service";
 
@@ -156,7 +159,13 @@ function createOcrAdapter(): DisputeOcrAdapter {
   return {
     async buildMessages(fileBuffer, fileType, originalFilename) {
       const customCriteria = await getOcrPromptCriteria();
-      const ocrPrompt = buildOcrPrompt(customCriteria);
+      let dynamicReasons: ReadonlyArray<{ code: string; description: string }> | null = null;
+      try {
+        dynamicReasons = await getEnabledFailureReasonsWithDescriptions();
+      } catch (error) {
+        logger.warn({ error }, "Failed to load dynamic failure reasons for dispute OCR prompt");
+      }
+      const ocrPrompt = buildOcrPromptWithDynamicReasons(customCriteria, dynamicReasons);
       return buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config, ocrPrompt);
     },
     async runOcr(messages) {
@@ -179,11 +188,14 @@ function createOcrAdapter(): DisputeOcrAdapter {
         failureReason: parsed.failureReason,
       };
     },
-    decideStatus(parsed, isDuplicate) {
+    async decideStatus(parsed, isDuplicate) {
+      const highConfidence = await getHighConfidenceThreshold();
+      const maxAgeMonths = await getReceiptMaxAgeMonths();
       const decision = determineVerificationStatus(
         toParsedOcrResult(parsed),
         isDuplicate,
-        parsed.extractedDate
+        parsed.extractedDate,
+        { highConfidence, maxAgeMonths }
       );
       return {
         status: decision.status,

@@ -39,6 +39,11 @@ interface AppSettings {
   };
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const MIN_RECEIPT_MAX_AGE_MONTHS = 1;
+const MAX_RECEIPT_MAX_AGE_MONTHS = 120;
+
 export default function SettingsPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
@@ -105,14 +110,49 @@ export default function SettingsPage() {
         setSettings(data);
         setHighThresholdInput(String(data.highConfidenceThreshold));
         setMaxAgeInput(String(data.receiptMaxAgeMonths));
-        setOcrPromptInput(data.ocrPromptCriteria || data.defaultOcrPromptCriteria || "");
-        setSecondaryPromptInput(data.secondaryPromptCriteria || data.defaultSecondaryPromptCriteria || "");
+
+        let ocrPromptValue = "";
+        if (data.ocrPromptCriteria) {
+          ocrPromptValue = data.ocrPromptCriteria;
+        } else if (data.defaultOcrPromptCriteria) {
+          ocrPromptValue = data.defaultOcrPromptCriteria;
+        }
+        setOcrPromptInput(ocrPromptValue);
+
+        let secondaryPromptValue = "";
+        if (data.secondaryPromptCriteria) {
+          secondaryPromptValue = data.secondaryPromptCriteria;
+        } else if (data.defaultSecondaryPromptCriteria) {
+          secondaryPromptValue = data.defaultSecondaryPromptCriteria;
+        }
+        setSecondaryPromptInput(secondaryPromptValue);
+
+        let smtpHostValue = "";
+        if (data.smtp && data.smtp.smtpHost) {
+          smtpHostValue = data.smtp.smtpHost;
+        }
+        let smtpPortValue = "";
+        if (data.smtp && data.smtp.smtpPort) {
+          smtpPortValue = data.smtp.smtpPort;
+        }
+        let smtpUserValue = "";
+        if (data.smtp && data.smtp.smtpUser) {
+          smtpUserValue = data.smtp.smtpUser;
+        }
+        let smtpPassValue = "";
+        if (data.smtp && data.smtp.smtpPass) {
+          smtpPassValue = data.smtp.smtpPass;
+        }
+        let smtpFromValue = "";
+        if (data.smtp && data.smtp.smtpFrom) {
+          smtpFromValue = data.smtp.smtpFrom;
+        }
         setSmtpForm({
-          smtpHost: data.smtp?.smtpHost || "",
-          smtpPort: data.smtp?.smtpPort || "",
-          smtpUser: data.smtp?.smtpUser || "",
-          smtpPass: data.smtp?.smtpPass || "",
-          smtpFrom: data.smtp?.smtpFrom || "",
+          smtpHost: smtpHostValue,
+          smtpPort: smtpPortValue,
+          smtpUser: smtpUserValue,
+          smtpPass: smtpPassValue,
+          smtpFrom: smtpFromValue,
         });
       }
     } catch {
@@ -183,7 +223,7 @@ export default function SettingsPage() {
 
   const handleMaxAgeBlur = () => {
     const parsed = parseInt(maxAgeInput, 10);
-    if (isNaN(parsed) || parsed < 1 || parsed > 120) {
+    if (isNaN(parsed) || parsed < MIN_RECEIPT_MAX_AGE_MONTHS || parsed > MAX_RECEIPT_MAX_AGE_MONTHS) {
       setMaxAgeInput(String(settings.receiptMaxAgeMonths));
       return;
     }
@@ -605,8 +645,8 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  min="1"
-                  max="120"
+                  min={MIN_RECEIPT_MAX_AGE_MONTHS}
+                  max={MAX_RECEIPT_MAX_AGE_MONTHS}
                   value={maxAgeInput}
                   onChange={(event) => setMaxAgeInput(event.target.value)}
                   onBlur={handleMaxAgeBlur}
@@ -674,7 +714,7 @@ export default function SettingsPage() {
                   disabled={savingOcrPrompt}
                   className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-kv-green/90 disabled:opacity-50"
                 >
-                  {savingOcrPrompt && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {savingOcrPrompt ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {t("savePrompt")}
                 </button>
               </div>
@@ -711,7 +751,7 @@ export default function SettingsPage() {
                   disabled={savingSecondaryPrompt}
                   className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-kv-green/90 disabled:opacity-50"
                 >
-                  {savingSecondaryPrompt && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {savingSecondaryPrompt ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {t("savePrompt")}
                 </button>
               </div>
@@ -808,7 +848,7 @@ export default function SettingsPage() {
                 disabled={savingSmtp}
                 className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-kv-green/90 disabled:opacity-50"
               >
-                {savingSmtp && <Loader2 className="h-4 w-4 animate-spin" />}
+                {savingSmtp ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {t("smtpSaveButton")}
               </button>
             </div>

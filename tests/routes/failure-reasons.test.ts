@@ -24,6 +24,7 @@ vi.mock("@/lib/services/failure-reason-service", () => ({
   createFailureReason: vi.fn(),
   updateFailureReasonDescription: vi.fn(),
   deleteFailureReason: vi.fn(),
+  toggleFailureReasonEnabled: vi.fn(),
   ensureBuiltInReasonsSeeded: vi.fn(),
 }));
 
@@ -40,6 +41,7 @@ import {
   createFailureReason,
   updateFailureReasonDescription,
   deleteFailureReason,
+  toggleFailureReasonEnabled,
 } from "@/lib/services/failure-reason-service";
 import { generateDescriptionFromCode } from "@/lib/services/failure-reason-translator";
 
@@ -274,7 +276,7 @@ describe("PATCH /api/admin/failure-reasons", () => {
       isBuiltIn: false,
       enabled: false,
     };
-    mockPrisma.failureReasonDefinition.update.mockResolvedValue(updatedReason as any);
+    (toggleFailureReasonEnabled as ReturnType<typeof vi.fn>).mockResolvedValue(updatedReason);
 
     const request = createPatchRequest({ code: "TEST_CODE", enabled: false });
     const response = await PATCH(request);

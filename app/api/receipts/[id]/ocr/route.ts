@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { getFileAsBuffer } from "@/lib/s3";
 import { calculateFraudRiskScore, detectSuspiciousPatterns } from "@/lib/fraud-detection";
+import { logger } from "@/lib/logger";
 
 const KV_SYNC_PATH_PREFIX = "kv-sync:";
 
@@ -29,7 +30,7 @@ async function getReceiptFileBuffer(cloudStoragePath: string): Promise<Buffer> {
 }
 import {
   buildOcrMessagesWithFileUpload,
-  buildOcrPrompt,
+  buildOcrPromptWithDynamicReasons,
   callOcrApi,
   createOcrApiConfig,
   parseOcrResult,
@@ -41,6 +42,8 @@ import {
 import {
   getOcrPromptCriteria,
   getSecondaryPromptCriteria,
+  getHighConfidenceThreshold,
+  getReceiptMaxAgeMonths,
 } from "@/lib/services/app-settings-service";
 
 export async function POST(
@@ -77,7 +80,20 @@ export async function POST(
     // Build messages using service (handles PDF upload fallback)
     const config = createOcrApiConfig({ streaming: true });
     const customCriteria = await getOcrPromptCriteria();
-    const ocrPrompt = buildOcrPrompt(customCriteria);
+
+    let dynamicReasons: ReadonlyArray<{ code: string; description: string }> | null = null;
+    try {
+      const { getEnabledFailureReasonsWithDescriptions } = await import("@/lib/services/failure-reason-service");
+      dynamicReasons = await getEnabledFailureReasonsWithDescriptions();
+    } catch {
+      // Fall back to no dynamic reasons
+    }
+    const ocrPrompt = buildOcrPromptWithDynamicReasons(customCriteria, dynamicReasons);
+
+    // Fetch admin-configured thresholds before stream starts
+    const highConfidence = await getHighConfidenceThreshold();
+    const maxAgeMonths = await getReceiptMaxAgeMonths();
+
     const messages = await buildOcrMessagesWithFileUpload(
       fileBuffer,
       fileType,
@@ -126,7 +142,8 @@ export async function POST(
                     const verificationDecision = determineVerificationStatus(
                       ocrResult,
                       receipt.isDuplicate,
-                      ocrResult.extractedDate
+                      ocrResult.extractedDate,
+                      { highConfidence, maxAgeMonths }
                     );
 
                     // Run secondary analysis on all non-verified, non-hard-rule outcomes
@@ -190,7 +207,8 @@ export async function POST(
                               failureReason: secondaryResult.failureReason as FailureReason | null,
                             },
                             receipt.isDuplicate,
-                            finalDate
+                            finalDate,
+                            { highConfidence, maxAgeMonths }
                           );
                           finalStatus = secondaryDecision.status;
                           finalFailureReason = secondaryDecision.failureReason;
@@ -264,7 +282,7 @@ export async function POST(
                       encoder.encode(`data: ${finalData}\n\n`)
                     );
                   } catch (parseError) {
-                    console.error("Parse error:", parseError);
+                    logger.error({ error: parseError }, "Failed to parse OCR result in stream");
                     controller.enqueue(
                       encoder.encode(
                         `data: ${JSON.stringify({
@@ -279,7 +297,14 @@ export async function POST(
 
                 try {
                   const parsed = JSON.parse(data);
-                  buffer += parsed.choices?.[0]?.delta?.content || "";
+                  let deltaContent = "";
+                  if (parsed.choices && parsed.choices.length > 0) {
+                    const firstChoice = parsed.choices[0];
+                    if (firstChoice && firstChoice.delta && firstChoice.delta.content) {
+                      deltaContent = firstChoice.delta.content;
+                    }
+                  }
+                  buffer += deltaContent;
                   const progressData = JSON.stringify({
                     status: "processing",
                     message: "Analyzing receipt..."
@@ -294,7 +319,7 @@ export async function POST(
             }
           }
         } catch (error) {
-          console.error("Stream error:", error);
+          logger.error({ error }, "Stream error during OCR processing");
           controller.error(error);
         } finally {
           controller.close();
@@ -310,7 +335,7 @@ export async function POST(
       }
     });
   } catch (error) {
-    console.error("OCR error:", error);
+    logger.error({ error }, "OCR processing error");
     return NextResponse.json(
       { error: "Failed to process receipt" },
       { status: 500 }

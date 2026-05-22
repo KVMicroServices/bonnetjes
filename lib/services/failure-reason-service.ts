@@ -32,7 +32,7 @@ const FAILURE_REASON_KEY_MAP: Readonly<Record<string, string>> = {
 
 // ─── Seeding State ───────────────────────────────────────────────────────────
 
-let seedingComplete = false;
+let seedingPromise: Promise<void> | null = null;
 
 // ─── Message File Helpers ────────────────────────────────────────────────────
 
@@ -98,10 +98,14 @@ function validateDescription(description: string): string | null {
 
 /** Lazily seeds built-in failure reasons from FAILURE_REASONS codes and message file translations. */
 export async function ensureBuiltInReasonsSeeded(): Promise<void> {
-  if (seedingComplete) {
-    return;
+  if (seedingPromise) {
+    return seedingPromise;
   }
+  seedingPromise = performSeeding();
+  return seedingPromise;
+}
 
+async function performSeeding(): Promise<void> {
   const existingCount = await prisma.failureReasonDefinition.count({
     where: {
       code: { in: [...FAILURE_REASONS] },
@@ -110,7 +114,6 @@ export async function ensureBuiltInReasonsSeeded(): Promise<void> {
 
   if (existingCount === FAILURE_REASONS.length) {
     await migrateEnabledFailureReasonsSetting();
-    seedingComplete = true;
     return;
   }
 
@@ -124,7 +127,12 @@ export async function ensureBuiltInReasonsSeeded(): Promise<void> {
     }
 
     const englishDescription = getDescriptionFromMessages(code, "en");
-    const description = englishDescription || code;
+    let description: string;
+    if (englishDescription) {
+      description = englishDescription;
+    } else {
+      description = code;
+    }
 
     const localeData: Record<string, string | null> = {};
     for (const locale of TRANSLATION_LOCALES) {
@@ -151,7 +159,6 @@ export async function ensureBuiltInReasonsSeeded(): Promise<void> {
   }
 
   await migrateEnabledFailureReasonsSetting();
-  seedingComplete = true;
 }
 
 /** Migrates the legacy SETTING_ENABLED_FAILURE_REASONS AppSetting to per-reason enabled flags. */
@@ -200,6 +207,15 @@ async function migrateEnabledFailureReasonsSetting(): Promise<void> {
 }
 
 // ─── CRUD Operations ─────────────────────────────────────────────────────────
+
+/** Toggles the enabled status of a failure reason. */
+export async function toggleFailureReasonEnabled(code: string, enabled: boolean) {
+  await ensureBuiltInReasonsSeeded();
+  return prisma.failureReasonDefinition.update({
+    where: { code },
+    data: { enabled },
+  });
+}
 
 /** Returns all failure reason definitions. */
 export async function getAllFailureReasons() {
