@@ -333,7 +333,12 @@ export function parseOcrResult(rawJson: string, allowedReasons?: readonly string
     extractedAmount = parseFloat(String(parsed.extractedAmount));
   }
 
-  const validReasons: readonly string[] = allowedReasons ? allowedReasons : FAILURE_REASONS;
+  let validReasons: readonly string[];
+  if (allowedReasons) {
+    validReasons = allowedReasons;
+  } else {
+    validReasons = FAILURE_REASONS;
+  }
 
   let failureReason: FailureReason | null = null;
   if (parsed.failureReason && validReasons.includes(parsed.failureReason as FailureReason)) {
@@ -672,7 +677,12 @@ export async function processReceiptOcr(
     finalAmount
   );
 
-  const manipulationScore = receipt.manipulationScore ? receipt.manipulationScore : 0;
+  let manipulationScore: number;
+  if (receipt.manipulationScore) {
+    manipulationScore = receipt.manipulationScore;
+  } else {
+    manipulationScore = 0;
+  }
 
   const newFraudRiskScore = dependencies.fraudDetection.calculateFraudRiskScore(
     receipt.isDuplicate,

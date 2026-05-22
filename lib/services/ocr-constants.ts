@@ -2,12 +2,14 @@
 // Shared between ocr-service.ts and admin settings route.
 // This file must NOT import heavy dependencies (file-conversion, pdf-to-image, etc.)
 
+const DEFAULT_REASONING_MAX_TOKENS = "150";
+
 const OCR_REASONING_MAX_TOKENS_ENV = process.env.OCR_REASONING_MAX_TOKENS;
 let ocrReasoningMaxTokensRaw: string;
 if (OCR_REASONING_MAX_TOKENS_ENV) {
   ocrReasoningMaxTokensRaw = OCR_REASONING_MAX_TOKENS_ENV;
 } else {
-  ocrReasoningMaxTokensRaw = "150";
+  ocrReasoningMaxTokensRaw = DEFAULT_REASONING_MAX_TOKENS;
 }
 const OCR_REASONING_MAX_TOKENS = parseInt(ocrReasoningMaxTokensRaw, 10);
 

@@ -90,6 +90,11 @@ export async function POST(
     }
     const ocrPrompt = buildOcrPromptWithDynamicReasons(customCriteria, dynamicReasons);
 
+    let allowedReasonCodes: readonly string[] | null = null;
+    if (dynamicReasons) {
+      allowedReasonCodes = dynamicReasons.map((reason) => reason.code);
+    }
+
     // Fetch admin-configured thresholds before stream starts
     const highConfidence = await getHighConfidenceThreshold();
     const maxAgeMonths = await getReceiptMaxAgeMonths();
@@ -137,7 +142,7 @@ export async function POST(
                 const data = line.slice(6);
                 if (data === "[DONE]") {
                   try {
-                    const ocrResult = parseOcrResult(buffer);
+                    const ocrResult = parseOcrResult(buffer, allowedReasonCodes);
 
                     const verificationDecision = determineVerificationStatus(
                       ocrResult,
@@ -192,7 +197,13 @@ export async function POST(
 
                         if (secondaryResult.verdict === "confirmed_rejection") {
                           finalStatus = "rejected";
-                          if (secondaryResult.failureReason && FAILURE_REASONS.includes(secondaryResult.failureReason as FailureReason)) {
+                          let validSecondaryReasons: readonly string[];
+                          if (allowedReasonCodes) {
+                            validSecondaryReasons = allowedReasonCodes;
+                          } else {
+                            validSecondaryReasons = FAILURE_REASONS;
+                          }
+                          if (secondaryResult.failureReason && validSecondaryReasons.includes(secondaryResult.failureReason as FailureReason)) {
                             finalFailureReason = secondaryResult.failureReason as FailureReason;
                           }
                         } else if (secondaryResult.verdict === "overturned_to_verified" || secondaryResult.verdict === "requires_review") {

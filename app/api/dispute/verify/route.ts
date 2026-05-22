@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
 
 function createOcrAdapter(): DisputeOcrAdapter {
   const config: OcrApiConfig = createOcrApiConfig({ streaming: false });
+  let allowedReasonCodes: readonly string[] | null = null;
 
   return {
     async buildMessages(fileBuffer, fileType, originalFilename) {
@@ -164,6 +165,9 @@ function createOcrAdapter(): DisputeOcrAdapter {
         dynamicReasons = await getEnabledFailureReasonsWithDescriptions();
       } catch (error) {
         logger.warn({ error }, "Failed to load dynamic failure reasons for dispute OCR prompt");
+      }
+      if (dynamicReasons) {
+        allowedReasonCodes = dynamicReasons.map((reason) => reason.code);
       }
       const ocrPrompt = buildOcrPromptWithDynamicReasons(customCriteria, dynamicReasons);
       return buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config, ocrPrompt);
@@ -176,7 +180,7 @@ function createOcrAdapter(): DisputeOcrAdapter {
 
       const llmResponse = await apiResult.response.json();
       const rawContent: string = llmResponse.choices[0].message.content;
-      const parsed = parseOcrResult(rawContent);
+      const parsed = parseOcrResult(rawContent, allowedReasonCodes);
 
       return {
         extractedShopName: parsed.extractedShopName,

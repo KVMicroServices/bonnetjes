@@ -128,30 +128,24 @@ describe("upsertOverride", () => {
 // ─── Tests: deleteOverride ─────────────────────────────────────────────────────
 
 describe("deleteOverride", () => {
-  it("calls prisma delete with the correct composite key", async () => {
-    mockPrisma.emailTemplateOverride.delete.mockResolvedValue({
-      id: "1",
-      emailType: "disable",
-      key: "subject",
-      locale: "en",
-      value: "Old value",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+  it("calls prisma deleteMany with the correct filter", async () => {
+    mockPrisma.emailTemplateOverride.deleteMany.mockResolvedValue({ count: 1 });
 
     await deleteOverride("disable", "subject", "en");
 
-    expect(mockPrisma.emailTemplateOverride.delete).toHaveBeenCalledWith({
+    expect(mockPrisma.emailTemplateOverride.deleteMany).toHaveBeenCalledWith({
       where: {
-        emailType_key_locale: { emailType: "disable", key: "subject", locale: "en" },
+        emailType: "disable",
+        key: "subject",
+        locale: "en",
       },
     });
   });
 
   it("throws on database failure", async () => {
-    mockPrisma.emailTemplateOverride.delete.mockRejectedValue(new Error("Record not found"));
+    mockPrisma.emailTemplateOverride.deleteMany.mockRejectedValue(new Error("Database error"));
 
-    await expect(deleteOverride("disable", "subject", "en")).rejects.toThrow("Record not found");
+    await expect(deleteOverride("disable", "subject", "en")).rejects.toThrow("Database error");
   });
 });
 

@@ -138,8 +138,14 @@ export function EmailTemplateEditor() {
     const dirtyKeys: string[] = [];
     const keys = EMAIL_TYPE_KEYS[selectedEmailType];
     for (const key of keys) {
-      const currentValue = currentValues[key] || "";
-      const savedValue = savedValues[key] || "";
+      let currentValue = currentValues[key];
+      if (!currentValue) {
+        currentValue = "";
+      }
+      let savedValue = savedValues[key];
+      if (!savedValue) {
+        savedValue = "";
+      }
       if (currentValue !== savedValue) {
         dirtyKeys.push(key);
       }
@@ -235,10 +241,13 @@ export function EmailTemplateEditor() {
   };
 
   const handleAutoTranslate = async () => {
-    const entries = dirtyKeys.map((key) => ({
-      key,
-      value: currentValues[key] || "",
-    }));
+    const entries = dirtyKeys.map((key) => {
+      let value = currentValues[key];
+      if (!value) {
+        value = "";
+      }
+      return { key, value };
+    });
 
     setTranslating(true);
     try {
@@ -261,7 +270,11 @@ export function EmailTemplateEditor() {
         const updatedSaved = { ...savedValues };
         for (const key of dirtyKeys) {
           if (!failedKeys.includes(key)) {
-            updatedSaved[key] = currentValues[key] || "";
+            let keyValue = currentValues[key];
+            if (!keyValue) {
+              keyValue = "";
+            }
+            updatedSaved[key] = keyValue;
           }
         }
         setSavedValues(updatedSaved);
@@ -379,7 +392,7 @@ export function EmailTemplateEditor() {
               </label>
               <textarea
                 id={`template-field-${key}`}
-                value={currentValues[key] || ""}
+                value={(() => { let fieldValue = currentValues[key]; if (!fieldValue) { fieldValue = ""; } return fieldValue; })()}
                 onChange={(event) => handleFieldChange(key, event.target.value)}
                 rows={2}
                 className="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 placeholder:text-gray-400"
@@ -410,7 +423,7 @@ export function EmailTemplateEditor() {
           <button
             type="button"
             onClick={handleAutoTranslate}
-            disabled={!hasDirtyKeys || translating}
+            disabled={(() => { if (!hasDirtyKeys) { return true; } if (translating) { return true; } return false; })()}
             className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
           >
             {translating ? (

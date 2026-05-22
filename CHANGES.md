@@ -1,5 +1,26 @@
 # Changes
 
+## [148] Fix review findings from 26.05.22.2-verification-criteria-adjuster
+
+**What**: Resolved all findings from code review — banned patterns (ternaries, short-circuits, double negation, magic string), two stability bugs (cached rejected seeding promise, deleteOverride crash on missing record), and two logic bugs (failure reason filtering inconsistency in streaming/dispute routes).
+**Decisions**:
+- `deleteOverride` uses `deleteMany` instead of `delete` to avoid P2025 on non-existent records
+- `ensureBuiltInReasonsSeeded` clears `seedingPromise` on rejection via `.catch()` handler
+- `parseOcrResult` now receives `allowedReasonCodes` in both OCR and dispute routes
+- Secondary analysis validation uses dynamic reason list instead of static `FAILURE_REASONS`
+**Files**:
+- lib/services/ocr-service.ts
+- lib/services/ocr-constants.ts
+- lib/services/failure-reason-service.ts
+- lib/services/email-template-override-service.ts
+- app/admin/settings/page.tsx
+- app/api/admin/email-templates/preview/route.ts
+- app/api/receipts/[id]/ocr/route.ts
+- app/api/dispute/verify/route.ts
+- components/email-template-editor.tsx
+- components/failure-reason-management.tsx
+- tests/services/email-template-override-service.test.ts
+
 ## [147] Fix email template editor layout and preview logo
 
 **What**: Made email templates section more compact (title left, reduced padding/spacing), use local kiyoh-logo.png in preview instead of placeholder URL.

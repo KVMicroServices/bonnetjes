@@ -101,7 +101,10 @@ export async function ensureBuiltInReasonsSeeded(): Promise<void> {
   if (seedingPromise) {
     return seedingPromise;
   }
-  seedingPromise = performSeeding();
+  seedingPromise = performSeeding().catch((error) => {
+    seedingPromise = null;
+    throw error;
+  });
   return seedingPromise;
 }
 

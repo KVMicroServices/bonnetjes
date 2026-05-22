@@ -161,9 +161,11 @@ export async function deleteOverride(
   locale: string
 ): Promise<void> {
   try {
-    await prisma.emailTemplateOverride.delete({
+    await prisma.emailTemplateOverride.deleteMany({
       where: {
-        emailType_key_locale: { emailType, key, locale },
+        emailType,
+        key,
+        locale,
       },
     });
   } catch (error) {

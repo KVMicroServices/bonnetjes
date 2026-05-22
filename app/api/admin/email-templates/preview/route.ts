@@ -89,13 +89,20 @@ function mergeOverridesWithDefaults(emailType: string, overrides: Record<string,
 }
 
 function renderPreviewForDisable(translations: Record<string, string>): { subject: string; html: string } {
+  let failureReasonText: string;
+  if (translations.failureReasonText) {
+    failureReasonText = translations.failureReasonText;
+  } else {
+    failureReasonText = SAMPLE_FAILURE_REASON_TEXT;
+  }
+
   const data: DisableEmailData = {
     reviewId: SAMPLE_REVIEW_ID,
     locationId: SAMPLE_LOCATION_ID,
     disputeUrl: SAMPLE_DISPUTE_URL,
     translations: {
       ...translations,
-      failureReasonText: translations.failureReasonText || SAMPLE_FAILURE_REASON_TEXT,
+      failureReasonText,
     } as DisableEmailData["translations"],
     brand: SAMPLE_BRAND,
   };

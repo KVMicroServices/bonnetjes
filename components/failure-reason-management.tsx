@@ -152,9 +152,15 @@ export function FailureReasonManagement() {
         });
       } else {
         const errorData = await response.json();
+        let errorDescription: string;
+        if (errorData.error) {
+          errorDescription = errorData.error;
+        } else {
+          errorDescription = t("failureReasonCreateFailedDescription");
+        }
         toast({
           title: t("failureReasonCreateFailed"),
-          description: errorData.error || t("failureReasonCreateFailedDescription"),
+          description: errorDescription,
           variant: "destructive",
         });
       }
@@ -201,9 +207,15 @@ export function FailureReasonManagement() {
         });
       } else {
         const errorData = await response.json();
+        let errorDescription: string;
+        if (errorData.error) {
+          errorDescription = errorData.error;
+        } else {
+          errorDescription = t("failureReasonSaveFailedDescription");
+        }
         toast({
           title: t("failureReasonSaveFailed"),
-          description: errorData.error || t("failureReasonSaveFailedDescription"),
+          description: errorDescription,
           variant: "destructive",
         });
       }
@@ -334,9 +346,15 @@ export function FailureReasonManagement() {
         });
       } else {
         const errorData = await response.json();
+        let errorDescription: string;
+        if (errorData.error) {
+          errorDescription = errorData.error;
+        } else {
+          errorDescription = t("failureReasonDeleteFailedDescription");
+        }
         toast({
           title: t("failureReasonDeleteFailed"),
-          description: errorData.error || t("failureReasonDeleteFailedDescription"),
+          description: errorDescription,
           variant: "destructive",
         });
       }
@@ -555,7 +573,7 @@ export function FailureReasonManagement() {
               <button
                 type="button"
                 onClick={() => handleGenerate(newCode, true)}
-                disabled={generatingNewDescription || !newCode || !!validateCode(newCode)}
+                disabled={generatingNewDescription || !newCode || validateCode(newCode) !== null}
                 className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700 disabled:opacity-50"
               >
                 {generatingNewDescription ? (
@@ -582,7 +600,7 @@ export function FailureReasonManagement() {
           <button
             type="button"
             onClick={handleCreate}
-            disabled={creatingReason || !newCode || !newDescription.trim() || !!codeError}
+            disabled={creatingReason || !newCode || !newDescription.trim() || codeError !== null}
             className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-kv-green/90 disabled:opacity-50"
           >
             {creatingReason ? (
@@ -601,7 +619,7 @@ export function FailureReasonManagement() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t("failureReasonDeleteConfirmTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t("failureReasonDeleteConfirmDescription", { code: deleteTarget || "" })}
+              {t("failureReasonDeleteConfirmDescription", { code: (() => { if (deleteTarget) { return deleteTarget; } return ""; })() })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

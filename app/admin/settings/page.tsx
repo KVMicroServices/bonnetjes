@@ -715,7 +715,7 @@ export default function SettingsPage() {
                   disabled={savingOcrPrompt}
                   className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-kv-green/90 disabled:opacity-50"
                 >
-                  {savingOcrPrompt ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {(() => { if (savingOcrPrompt) { return <Loader2 className="h-4 w-4 animate-spin" />; } return null; })()}
                   {t("savePrompt")}
                 </button>
               </div>
@@ -752,7 +752,7 @@ export default function SettingsPage() {
                   disabled={savingSecondaryPrompt}
                   className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-kv-green/90 disabled:opacity-50"
                 >
-                  {savingSecondaryPrompt ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {(() => { if (savingSecondaryPrompt) { return <Loader2 className="h-4 w-4 animate-spin" />; } return null; })()}
                   {t("savePrompt")}
                 </button>
               </div>
@@ -849,7 +849,7 @@ export default function SettingsPage() {
                 disabled={savingSmtp}
                 className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-kv-green/90 disabled:opacity-50"
               >
-                {savingSmtp ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {(() => { if (savingSmtp) { return <Loader2 className="h-4 w-4 animate-spin" />; } return null; })()}
                 {t("smtpSaveButton")}
               </button>
             </div>
