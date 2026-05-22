@@ -1,5 +1,27 @@
 # Changes
 
+## [131] Expose AI verification prompts and receipt max age in admin settings
+
+**What**: Admin settings now include editable AI prompts (primary OCR + secondary analysis), configurable receipt max age, and toggleable rejection reasons.
+**Decisions**:
+- Split prompts into editable criteria (stored in DB) and fixed JSON response format (hardcoded) to prevent parsing breakage
+- Textareas show the active prompt (custom if saved, otherwise built-in default) so admins can see and adjust from the current state
+- Empty prompt value means "use built-in default" — no migration needed
+- Receipt max age extracted from hardcoded 6 months to a configurable integer setting
+- Failure reasons are toggleable via switches; disabled reasons are ignored during parsing even if the AI returns them
+- Empty enabled_failure_reasons array means "all enabled" (default behavior)
+**Files**:
+- lib/services/app-settings-service.ts
+- lib/services/ocr-service.ts
+- app/api/admin/settings/route.ts
+- app/admin/settings/page.tsx
+- app/api/receipts/[id]/ocr/route.ts
+- app/api/dispute/verify/route.ts
+- messages/*.json (all 8 languages)
+- tests/services/ocr-service.test.ts
+- tests/services/app-settings-service.test.ts
+- tests/routes/admin-settings.test.ts
+
 ## [130] Fix code review findings from 26.05.22-refinement-sprint
 
 **What**: Resolved all standards, security, stability, and general findings from the code review.

@@ -19,6 +19,7 @@ import {
   parseOcrResult,
   determineVerificationStatus,
   runSecondaryAnalysis,
+  buildOcrPrompt,
   type OcrApiConfig,
   type OcrMessage,
   type ParsedOcrResult,
@@ -33,6 +34,10 @@ import { resolveDisputeToken } from "@/lib/dispute/dispute-token-http";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
 import { sendNotification } from "@/lib/services/notification-service";
 import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
+import {
+  getOcrPromptCriteria,
+  getSecondaryPromptCriteria,
+} from "@/lib/services/app-settings-service";
 import { resolveLocationLocaleWithFallback } from "@/lib/review-disable/kiyoh-location-client";
 import { sendDisputeVerifiedEmail, sendDisputeFinalRejectionEmail } from "@/lib/email/email-service";
 
@@ -150,7 +155,9 @@ function createOcrAdapter(): DisputeOcrAdapter {
 
   return {
     async buildMessages(fileBuffer, fileType, originalFilename) {
-      return buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config);
+      const customCriteria = await getOcrPromptCriteria();
+      const ocrPrompt = buildOcrPrompt(customCriteria);
+      return buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config, ocrPrompt);
     },
     async runOcr(messages) {
       const apiResult = await callOcrApi(messages as ReadonlyArray<OcrMessage>, config);
@@ -186,11 +193,13 @@ function createOcrAdapter(): DisputeOcrAdapter {
       };
     },
     async runSecondary(messages, parsed, failureReason) {
+      const customSecondaryCriteria = await getSecondaryPromptCriteria();
       const result = await runSecondaryAnalysis(
         messages as ReadonlyArray<OcrMessage>,
         toParsedOcrResult(parsed),
         failureReason as FailureReason,
-        config
+        config,
+        customSecondaryCriteria
       );
       return result;
     },

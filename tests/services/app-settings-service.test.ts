@@ -346,6 +346,10 @@ describe("getFeatureToggles", () => {
       autoDisableEnabled: false,
       autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
+      receiptMaxAgeMonths: 6,
+      ocrPromptCriteria: null,
+      secondaryPromptCriteria: null,
+      enabledFailureReasons: null,
       smtp: {
         smtpHost: null,
         smtpPort: null,
@@ -383,6 +387,10 @@ describe("getFeatureToggles", () => {
       autoDisableEnabled: false,
       autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
+      receiptMaxAgeMonths: 6,
+      ocrPromptCriteria: null,
+      secondaryPromptCriteria: null,
+      enabledFailureReasons: null,
       smtp: {
         smtpHost: null,
         smtpPort: null,

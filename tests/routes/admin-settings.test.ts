@@ -94,6 +94,10 @@ describe("GET /api/admin/settings", () => {
       autoDisableEnabled: false,
       autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
+      receiptMaxAgeMonths: 6,
+      ocrPromptCriteria: null,
+      secondaryPromptCriteria: null,
+      enabledFailureReasons: null,
       smtp: {
         smtpHost: null,
         smtpPort: null,
@@ -101,6 +105,9 @@ describe("GET /api/admin/settings", () => {
         smtpPass: null,
         smtpFrom: null,
       },
+      defaultOcrPromptCriteria: expect.any(String),
+      defaultSecondaryPromptCriteria: expect.any(String),
+      availableFailureReasons: expect.any(Array),
     });
   });
 
@@ -136,6 +143,10 @@ describe("GET /api/admin/settings", () => {
       autoDisableEnabled: true,
       autoDisableLocationWhitelist: [],
       highConfidenceThreshold: 70,
+      receiptMaxAgeMonths: 6,
+      ocrPromptCriteria: null,
+      secondaryPromptCriteria: null,
+      enabledFailureReasons: null,
       smtp: {
         smtpHost: null,
         smtpPort: null,
@@ -143,6 +154,9 @@ describe("GET /api/admin/settings", () => {
         smtpPass: null,
         smtpFrom: null,
       },
+      defaultOcrPromptCriteria: expect.any(String),
+      defaultSecondaryPromptCriteria: expect.any(String),
+      availableFailureReasons: expect.any(Array),
     });
   });
 });

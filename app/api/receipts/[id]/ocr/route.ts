@@ -29,6 +29,7 @@ async function getReceiptFileBuffer(cloudStoragePath: string): Promise<Buffer> {
 }
 import {
   buildOcrMessagesWithFileUpload,
+  buildOcrPrompt,
   callOcrApi,
   createOcrApiConfig,
   parseOcrResult,
@@ -37,6 +38,10 @@ import {
   FAILURE_REASONS,
   type FailureReason,
 } from "@/lib/services/ocr-service";
+import {
+  getOcrPromptCriteria,
+  getSecondaryPromptCriteria,
+} from "@/lib/services/app-settings-service";
 
 export async function POST(
   request: NextRequest,
@@ -71,11 +76,14 @@ export async function POST(
 
     // Build messages using service (handles PDF upload fallback)
     const config = createOcrApiConfig({ streaming: true });
+    const customCriteria = await getOcrPromptCriteria();
+    const ocrPrompt = buildOcrPrompt(customCriteria);
     const messages = await buildOcrMessagesWithFileUpload(
       fileBuffer,
       fileType,
       originalFilename,
-      config
+      config,
+      ocrPrompt
     );
 
     // Call LLM API with streaming
@@ -146,7 +154,8 @@ export async function POST(
                         messages,
                         ocrResult,
                         primaryFailureReason as FailureReason,
-                        config
+                        config,
+                        await getSecondaryPromptCriteria()
                       );
 
                       if (secondaryResult) {

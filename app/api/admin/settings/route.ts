@@ -19,8 +19,17 @@ import {
   SETTING_SMTP_USER,
   SETTING_SMTP_PASS,
   SETTING_SMTP_FROM,
+  SETTING_OCR_PROMPT_CRITERIA,
+  SETTING_SECONDARY_PROMPT_CRITERIA,
+  SETTING_RECEIPT_MAX_AGE_MONTHS,
+  SETTING_ENABLED_FAILURE_REASONS,
 } from "@/lib/services/app-settings-service";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
+import {
+  OCR_PROMPT_DEFAULT_CRITERIA,
+  SECONDARY_PROMPT_DEFAULT_CRITERIA,
+  FAILURE_REASONS,
+} from "@/lib/services/ocr-constants";
 
 const MIN_THRESHOLD = 0;
 const MAX_THRESHOLD = 100;
@@ -44,6 +53,9 @@ export async function GET() {
         ...settings.smtp,
         smtpPass: settings.smtp?.smtpPass ? "***" : null,
       },
+      defaultOcrPromptCriteria: OCR_PROMPT_DEFAULT_CRITERIA,
+      defaultSecondaryPromptCriteria: SECONDARY_PROMPT_DEFAULT_CRITERIA,
+      availableFailureReasons: FAILURE_REASONS,
     };
     return NextResponse.json(redactedSettings);
   } catch (error) {
@@ -147,6 +159,43 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: "smtpFrom must be a string" }, { status: 400 });
       }
       await setSettingString(SETTING_SMTP_FROM, payload.smtpFrom);
+    }
+
+    if ("ocrPromptCriteria" in payload) {
+      if (typeof payload.ocrPromptCriteria !== "string") {
+        return NextResponse.json({ error: "ocrPromptCriteria must be a string" }, { status: 400 });
+      }
+      await setSettingString(SETTING_OCR_PROMPT_CRITERIA, payload.ocrPromptCriteria);
+    }
+
+    if ("secondaryPromptCriteria" in payload) {
+      if (typeof payload.secondaryPromptCriteria !== "string") {
+        return NextResponse.json({ error: "secondaryPromptCriteria must be a string" }, { status: 400 });
+      }
+      await setSettingString(SETTING_SECONDARY_PROMPT_CRITERIA, payload.secondaryPromptCriteria);
+    }
+
+    if ("receiptMaxAgeMonths" in payload) {
+      if (typeof payload.receiptMaxAgeMonths !== "number") {
+        return NextResponse.json({ error: "receiptMaxAgeMonths must be a number" }, { status: 400 });
+      }
+      if (payload.receiptMaxAgeMonths < 1 || payload.receiptMaxAgeMonths > 120) {
+        return NextResponse.json({ error: "receiptMaxAgeMonths must be between 1 and 120" }, { status: 400 });
+      }
+      await setSettingInteger(SETTING_RECEIPT_MAX_AGE_MONTHS, payload.receiptMaxAgeMonths);
+    }
+
+    if ("enabledFailureReasons" in payload) {
+      if (!Array.isArray(payload.enabledFailureReasons)) {
+        return NextResponse.json({ error: "enabledFailureReasons must be an array" }, { status: 400 });
+      }
+      const allValid = payload.enabledFailureReasons.every(
+        (item: unknown) => typeof item === "string" && FAILURE_REASONS.includes(item as any)
+      );
+      if (!allValid) {
+        return NextResponse.json({ error: "enabledFailureReasons contains invalid values" }, { status: 400 });
+      }
+      await setSettingStringArray(SETTING_ENABLED_FAILURE_REASONS, payload.enabledFailureReasons as string[]);
     }
 
     const settings = await getAppSettings();
