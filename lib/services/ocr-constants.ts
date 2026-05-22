@@ -31,12 +31,7 @@ Analyze this receipt and extract the following information:
 4. Whether the receipt is clearly readable
 5. Your confidence level (0-100)
 6. Brief reasoning about your analysis in English (keep under ${OCR_REASONING_MAX_TOKENS} tokens)
-7. If this is NOT a valid receipt or cannot be verified, provide a failure reason from this exact list:
-   - NOT_A_RECEIPT: The image is not a purchase receipt
-   - IMAGE_UNCLEAR: The image is too blurry, dark, or damaged to read
-   - INSUFFICIENT_INFO: The receipt lacks key information (shop name, date, or amount)
-   - UNREADABLE_TEXT: Text is present but cannot be reliably extracted
-   - MISSING_KEY_FIELDS: Some required fields (shop, date, amount) are completely absent`;
+7. If this is NOT a valid receipt or cannot be verified, provide a failure reason from the list below`;
 
 export const SECONDARY_PROMPT_DEFAULT_CRITERIA = `You are a receipt verification quality assurance expert. ALWAYS respond in English.
 
@@ -103,6 +98,30 @@ export function buildOcrPrompt(customCriteria: string | null): string {
     ? customCriteria.trim()
     : OCR_PROMPT_DEFAULT_CRITERIA;
   return criteria + OCR_PROMPT_RESPONSE_FORMAT;
+}
+
+/** Build the failure reason list block to append to any prompt. */
+export function buildFailureReasonListBlock(reasons: ReadonlyArray<{ code: string; description: string }>): string {
+  const reasonLines = reasons.map((reason) => `   - ${reason.code}: ${reason.description}`);
+  const reasonList = reasonLines.join("\n");
+  return `\n\nValid failure reasons:\n${reasonList}`;
+}
+
+/** Build the full OCR prompt with dynamic failure reasons always appended. */
+export function buildOcrPromptWithDynamicReasons(customCriteria: string | null, reasons: ReadonlyArray<{ code: string; description: string }> | null): string {
+  let criteria: string;
+  if (customCriteria && customCriteria.trim().length > 0) {
+    criteria = customCriteria.trim();
+  } else {
+    criteria = OCR_PROMPT_DEFAULT_CRITERIA;
+  }
+
+  let reasonBlock = "";
+  if (reasons && reasons.length > 0) {
+    reasonBlock = buildFailureReasonListBlock(reasons);
+  }
+
+  return criteria + reasonBlock + OCR_PROMPT_RESPONSE_FORMAT;
 }
 
 /** Build the full secondary analysis prompt by combining criteria (custom or default) with the fixed response format. */

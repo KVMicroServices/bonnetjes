@@ -208,7 +208,7 @@ describe("loadDisableEmailTranslations", () => {
   it("loads translations for a valid locale", async () => {
     const { loadDisableEmailTranslations } = await import("@/lib/email/email-translations");
 
-    const translations = loadDisableEmailTranslations("en", "NOT_A_RECEIPT");
+    const translations = await loadDisableEmailTranslations("en", "NOT_A_RECEIPT");
 
     expect(translations.subject).toContain("review");
     expect(translations.headerTitle).toBe("Proof of Purchase Rejected");
@@ -221,7 +221,7 @@ describe("loadDisableEmailTranslations", () => {
   it("falls back to en for an unsupported locale", async () => {
     const { loadDisableEmailTranslations } = await import("@/lib/email/email-translations");
 
-    const translations = loadDisableEmailTranslations("xx", "NOT_A_RECEIPT");
+    const translations = await loadDisableEmailTranslations("xx", "NOT_A_RECEIPT");
 
     expect(translations.headerTitle).toBe("Proof of Purchase Rejected");
     expect(translations.greeting).toBe("Dear reviewer,");
@@ -230,7 +230,7 @@ describe("loadDisableEmailTranslations", () => {
   it("falls back to en for an empty locale string", async () => {
     const { loadDisableEmailTranslations } = await import("@/lib/email/email-translations");
 
-    const translations = loadDisableEmailTranslations("", "NOT_A_RECEIPT");
+    const translations = await loadDisableEmailTranslations("", "NOT_A_RECEIPT");
 
     expect(translations.headerTitle).toBe("Proof of Purchase Rejected");
   });
@@ -238,7 +238,7 @@ describe("loadDisableEmailTranslations", () => {
   it("maps known failure reason codes to translated text", async () => {
     const { loadDisableEmailTranslations } = await import("@/lib/email/email-translations");
 
-    const translations = loadDisableEmailTranslations("en", "ADMIN_DISABLED");
+    const translations = await loadDisableEmailTranslations("en", "ADMIN_DISABLED");
 
     expect(translations.failureReasonText).toBe("An administrator has disabled this review");
   });
@@ -246,7 +246,7 @@ describe("loadDisableEmailTranslations", () => {
   it("uses VERIFICATION_FAILED fallback for unknown failure reason codes", async () => {
     const { loadDisableEmailTranslations } = await import("@/lib/email/email-translations");
 
-    const translations = loadDisableEmailTranslations("en", "UNKNOWN_REASON_CODE");
+    const translations = await loadDisableEmailTranslations("en", "UNKNOWN_REASON_CODE");
 
     expect(translations.failureReasonText).toBe("The receipt did not pass verification");
   });

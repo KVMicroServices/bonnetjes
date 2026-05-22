@@ -22,7 +22,19 @@ vi.mock("@/lib/services/app-settings-service", () => ({
   getOcrPromptCriteria: vi.fn().mockResolvedValue(null),
   getSecondaryPromptCriteria: vi.fn().mockResolvedValue(null),
   getReceiptMaxAgeMonths: vi.fn().mockResolvedValue(6),
-  getEnabledFailureReasons: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock("@/lib/services/failure-reason-service", () => ({
+  getEnabledFailureReasonsWithDescriptions: vi.fn().mockResolvedValue([
+    { code: "NOT_A_RECEIPT", description: "The image is not a purchase receipt" },
+    { code: "IMAGE_UNCLEAR", description: "The image is too blurry, dark, or damaged to read" },
+    { code: "INSUFFICIENT_INFO", description: "The receipt lacks key information" },
+    { code: "DUPLICATE_RECEIPT", description: "This receipt has already been submitted" },
+    { code: "RECEIPT_TOO_OLD", description: "The receipt is too old" },
+    { code: "SUSPECTED_FRAUD", description: "The receipt appears to be fraudulent" },
+    { code: "UNREADABLE_TEXT", description: "Text is present but cannot be reliably extracted" },
+    { code: "MISSING_KEY_FIELDS", description: "Some required fields are completely absent" },
+  ]),
 }));
 
 vi.mock("@/lib/services/audit-log-service", () => ({

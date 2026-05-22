@@ -147,7 +147,7 @@ export async function sendReviewDisableEmail(
 
     const appUrl = getAppUrl();
     const brand = resolveBrandConfig(params.tenantId);
-    const translations = loadDisableEmailTranslations(params.locale, params.failureReason);
+    const translations = await loadDisableEmailTranslations(params.locale, params.failureReason);
 
     const disputeUrl = buildDisputeUrl({
       reviewId: params.reviewId,
@@ -316,7 +316,7 @@ export async function sendDisputeFinalRejectionEmail(
     }
 
     const brand = resolveBrandConfig(params.tenantId);
-    const translations = loadFinalRejectionEmailTranslations(params.locale, params.failureReason);
+    const translations = await loadFinalRejectionEmailTranslations(params.locale, params.failureReason);
 
     const emailData: FinalRejectionEmailData = {
       reviewId: params.reviewId,

@@ -97,7 +97,6 @@ describe("GET /api/admin/settings", () => {
       receiptMaxAgeMonths: 6,
       ocrPromptCriteria: null,
       secondaryPromptCriteria: null,
-      enabledFailureReasons: null,
       smtp: {
         smtpHost: null,
         smtpPort: null,
@@ -146,7 +145,6 @@ describe("GET /api/admin/settings", () => {
       receiptMaxAgeMonths: 6,
       ocrPromptCriteria: null,
       secondaryPromptCriteria: null,
-      enabledFailureReasons: null,
       smtp: {
         smtpHost: null,
         smtpPort: null,

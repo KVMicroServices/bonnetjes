@@ -2,6 +2,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { logger } from "@/lib/logger";
 import { SUPPORTED_LOCALES } from "@/lib/i18n-config";
+import { getFailureReasonTranslation } from "@/lib/services/failure-reason-service";
 import type { SupportedLocale } from "@/lib/i18n-config";
 import type { DisableEmailTranslations, VerifiedEmailTranslations, FinalRejectionEmailTranslations } from "@/lib/email/email-templates";
 
@@ -123,10 +124,10 @@ function getTranslationValue(
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-export function loadDisableEmailTranslations(
+export async function loadDisableEmailTranslations(
   locale: string,
   failureReason: string
-): DisableEmailTranslations {
+): Promise<DisableEmailTranslations> {
   let resolvedLocale: SupportedLocale;
   if (isSupportedLocale(locale)) {
     resolvedLocale = locale;
@@ -140,23 +141,31 @@ export function loadDisableEmailTranslations(
     fallbackMessages = loadMessagesForLocale(DEFAULT_LOCALE);
   }
 
-  const failureReasonKey = FAILURE_REASON_KEY_MAP[failureReason];
-  let resolvedFailureReasonKey: string;
-  if (failureReasonKey) {
-    resolvedFailureReasonKey = failureReasonKey;
-  } else {
-    resolvedFailureReasonKey = "failureVerificationFailed";
-  }
-
   const result: Record<string, string> = {};
   for (const key of TRANSLATION_KEYS) {
     result[key] = getTranslationValue(localeMessages, fallbackMessages, key);
   }
-  result.failureReasonText = getTranslationValue(
-    localeMessages,
-    fallbackMessages,
-    resolvedFailureReasonKey
-  );
+
+  // DB-first lookup for failure reason text
+  let failureReasonText: string | null = null;
+  try {
+    failureReasonText = await getFailureReasonTranslation(failureReason, resolvedLocale);
+  } catch (error) {
+    logger.warn({ failureReason, locale: resolvedLocale, error }, "DB lookup for failure reason translation failed, falling back to message file");
+  }
+
+  if (!failureReasonText) {
+    const failureReasonKey = FAILURE_REASON_KEY_MAP[failureReason];
+    let resolvedFailureReasonKey: string;
+    if (failureReasonKey) {
+      resolvedFailureReasonKey = failureReasonKey;
+    } else {
+      resolvedFailureReasonKey = "failureVerificationFailed";
+    }
+    failureReasonText = getTranslationValue(localeMessages, fallbackMessages, resolvedFailureReasonKey);
+  }
+
+  result.failureReasonText = failureReasonText;
 
   return result as unknown as DisableEmailTranslations;
 }
@@ -193,10 +202,10 @@ export function loadVerifiedEmailTranslations(
   return result as unknown as VerifiedEmailTranslations;
 }
 
-export function loadFinalRejectionEmailTranslations(
+export async function loadFinalRejectionEmailTranslations(
   locale: string,
   failureReason: string
-): FinalRejectionEmailTranslations & { readonly failureReasonText: string } {
+): Promise<FinalRejectionEmailTranslations & { readonly failureReasonText: string }> {
   let resolvedLocale: SupportedLocale;
   if (isSupportedLocale(locale)) {
     resolvedLocale = locale;
@@ -210,30 +219,38 @@ export function loadFinalRejectionEmailTranslations(
     fallbackMessages = loadMessagesForLocale(DEFAULT_LOCALE, FINAL_REJECTION_NAMESPACE);
   }
 
-  const failureReasonKey = FAILURE_REASON_KEY_MAP[failureReason];
-  let resolvedFailureReasonKey: string;
-  if (failureReasonKey) {
-    resolvedFailureReasonKey = failureReasonKey;
-  } else {
-    resolvedFailureReasonKey = "failureVerificationFailed";
-  }
-
   const result: Record<string, string> = {};
   for (const key of FINAL_REJECTION_TRANSLATION_KEYS) {
     result[key] = getTranslationValue(localeMessages, fallbackMessages, key);
   }
 
-  // Load failure reason text from the disable email namespace (shared failure reason strings)
-  const disableMessages = loadMessagesForLocale(resolvedLocale);
-  let disableFallback: Record<string, string> | null = null;
-  if (resolvedLocale !== DEFAULT_LOCALE) {
-    disableFallback = loadMessagesForLocale(DEFAULT_LOCALE);
+  // DB-first lookup for failure reason text
+  let failureReasonText: string | null = null;
+  try {
+    failureReasonText = await getFailureReasonTranslation(failureReason, resolvedLocale);
+  } catch (error) {
+    logger.warn({ failureReason, locale: resolvedLocale, error }, "DB lookup for failure reason translation failed, falling back to message file");
   }
-  result.failureReasonText = getTranslationValue(
-    disableMessages,
-    disableFallback,
-    resolvedFailureReasonKey
-  );
+
+  if (!failureReasonText) {
+    const failureReasonKey = FAILURE_REASON_KEY_MAP[failureReason];
+    let resolvedFailureReasonKey: string;
+    if (failureReasonKey) {
+      resolvedFailureReasonKey = failureReasonKey;
+    } else {
+      resolvedFailureReasonKey = "failureVerificationFailed";
+    }
+
+    // Load failure reason text from the disable email namespace (shared failure reason strings)
+    const disableMessages = loadMessagesForLocale(resolvedLocale);
+    let disableFallback: Record<string, string> | null = null;
+    if (resolvedLocale !== DEFAULT_LOCALE) {
+      disableFallback = loadMessagesForLocale(DEFAULT_LOCALE);
+    }
+    failureReasonText = getTranslationValue(disableMessages, disableFallback, resolvedFailureReasonKey);
+  }
+
+  result.failureReasonText = failureReasonText;
 
   return result as unknown as FinalRejectionEmailTranslations & { readonly failureReasonText: string };
 }

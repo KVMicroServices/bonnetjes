@@ -101,14 +101,6 @@ export async function getSecondaryPromptCriteria(): Promise<string | null> {
   return getSettingString(SETTING_SECONDARY_PROMPT_CRITERIA, "");
 }
 
-export async function getEnabledFailureReasons(): Promise<readonly string[] | null> {
-  const reasons = await getSettingStringArray(SETTING_ENABLED_FAILURE_REASONS);
-  if (reasons.length === 0) {
-    return null;
-  }
-  return reasons;
-}
-
 // ─── Read (String Array / JSON) ───────────────────────────────────────────────
 
 export async function getSettingStringArray(key: string): Promise<readonly string[]> {
@@ -198,7 +190,6 @@ export interface AppSettings {
   receiptMaxAgeMonths: number;
   ocrPromptCriteria: string | null;
   secondaryPromptCriteria: string | null;
-  enabledFailureReasons: readonly string[] | null;
   smtp: SmtpSettings;
 }
 
@@ -220,7 +211,6 @@ export async function getAppSettings(): Promise<AppSettings> {
   const receiptMaxAgeMonths = await getReceiptMaxAgeMonths();
   const ocrPromptCriteria = await getOcrPromptCriteria();
   const secondaryPromptCriteria = await getSecondaryPromptCriteria();
-  const enabledFailureReasons = await getEnabledFailureReasons();
   const smtp = await getSmtpSettings();
 
   return {
@@ -231,7 +221,6 @@ export async function getAppSettings(): Promise<AppSettings> {
     receiptMaxAgeMonths,
     ocrPromptCriteria,
     secondaryPromptCriteria,
-    enabledFailureReasons,
     smtp,
   };
 }

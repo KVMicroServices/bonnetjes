@@ -4,7 +4,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/header";
-import { Settings, Users, Loader2, Zap, SlidersHorizontal, MapPin, Plus, X, Mail, MessageSquare } from "lucide-react";
+import { FailureReasonManagement } from "@/components/failure-reason-management";
+import { Settings, Users, Loader2, Zap, SlidersHorizontal, MapPin, Plus, X, Mail, MessageSquare, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
@@ -28,7 +29,6 @@ interface AppSettings {
   secondaryPromptCriteria: string | null;
   defaultOcrPromptCriteria: string;
   defaultSecondaryPromptCriteria: string;
-  enabledFailureReasons: string[] | null;
   availableFailureReasons: string[];
   smtp: {
     smtpHost: string | null;
@@ -57,7 +57,6 @@ export default function SettingsPage() {
     secondaryPromptCriteria: null,
     defaultOcrPromptCriteria: "",
     defaultSecondaryPromptCriteria: "",
-    enabledFailureReasons: null,
     availableFailureReasons: [],
     smtp: {
       smtpHost: null,
@@ -325,23 +324,6 @@ export default function SettingsPage() {
     } finally {
       setSavingSecondaryPrompt(false);
     }
-  };
-
-  const handleToggleFailureReason = async (reason: string) => {
-    const currentReasons = settings.enabledFailureReasons || settings.availableFailureReasons;
-    let updatedReasons: string[];
-
-    if (currentReasons.includes(reason)) {
-      updatedReasons = currentReasons.filter((item) => item !== reason);
-    } else {
-      updatedReasons = [...currentReasons, reason];
-    }
-
-    await updateSetting("enabledFailureReasons", updatedReasons);
-  };
-
-  const handleResetFailureReasons = async () => {
-    await updateSetting("enabledFailureReasons", []);
   };
 
   const handleAddLocation = async () => {
@@ -650,38 +632,15 @@ export default function SettingsPage() {
           <p className="mb-6 text-sm text-gray-500">{t("aiPromptsDescription")}</p>
 
           <div className="space-y-6">
-            {/* Failure Reasons */}
+            {/* Failure Reasons Management */}
             <div className="rounded-lg border border-gray-200 p-4">
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-2 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-kv-green" />
                 <p className="text-sm font-medium text-gray-900">{t("failureReasonsLabel")}</p>
-                <button
-                  type="button"
-                  onClick={handleResetFailureReasons}
-                  disabled={updatingSetting === "enabledFailureReasons"}
-                  className="text-xs text-gray-500 underline transition-colors hover:text-gray-700 disabled:opacity-50"
-                >
-                  {t("enableAll")}
-                </button>
               </div>
-              <p className="mb-3 text-xs text-gray-500">{t("failureReasonsDescription")}</p>
+              <p className="mb-4 text-xs text-gray-500">{t("failureReasonsManagementDescription")}</p>
 
-              <div className="space-y-2">
-                {settings.availableFailureReasons.map((reason) => {
-                  const activeReasons = settings.enabledFailureReasons || settings.availableFailureReasons;
-                  const isEnabled = activeReasons.includes(reason);
-                  return (
-                    <div key={reason} className="flex items-center justify-between">
-                      <span className="font-mono text-xs text-gray-700">{reason}</span>
-                      <Switch
-                        checked={isEnabled}
-                        onCheckedChange={() => handleToggleFailureReason(reason)}
-                        disabled={updatingSetting === "enabledFailureReasons"}
-                        aria-label={reason}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+              <FailureReasonManagement />
             </div>
 
             {/* Primary OCR Prompt */}

@@ -12,18 +12,14 @@ import {
   getOcrPromptCriteria,
   getSecondaryPromptCriteria,
   getReceiptMaxAgeMonths,
-  getEnabledFailureReasons,
 } from "@/lib/services/app-settings-service";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
 import {
   FAILURE_REASONS,
-  OCR_PROMPT_DEFAULT_CRITERIA,
-  SECONDARY_PROMPT_DEFAULT_CRITERIA,
-  OCR_PROMPT_RESPONSE_FORMAT,
-  SECONDARY_PROMPT_RESPONSE_FORMAT,
-  buildOcrPrompt,
+  buildOcrPromptWithDynamicReasons,
   buildSecondaryPrompt,
 } from "@/lib/services/ocr-constants";
+import { getEnabledFailureReasonsWithDescriptions } from "@/lib/services/failure-reason-service";
 import type { FailureReason } from "@/lib/services/ocr-constants";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -91,7 +87,7 @@ export interface OcrMessage {
 // ─── Re-exports ──────────────────────────────────────────────────────────────
 
 // Re-export from constants for backward compatibility
-export { FAILURE_REASONS, buildOcrPrompt, buildSecondaryPrompt, OCR_PROMPT_DEFAULT_CRITERIA, SECONDARY_PROMPT_DEFAULT_CRITERIA } from "@/lib/services/ocr-constants";
+export { FAILURE_REASONS, buildOcrPrompt, buildOcrPromptWithDynamicReasons, buildSecondaryPrompt, OCR_PROMPT_DEFAULT_CRITERIA, SECONDARY_PROMPT_DEFAULT_CRITERIA } from "@/lib/services/ocr-constants";
 export type { FailureReason } from "@/lib/services/ocr-constants";
 
 // ─── Result Types ────────────────────────────────────────────────────────────
@@ -481,6 +477,20 @@ export async function runSecondaryAnalysis(
   }
 }
 
+/** Build the OCR prompt, always appending dynamic failure reasons from DB. */
+async function buildDynamicOcrPrompt(): Promise<string> {
+  const customCriteria = await getOcrPromptCriteria();
+
+  let dynamicReasons: ReadonlyArray<{ code: string; description: string }> | null = null;
+  try {
+    dynamicReasons = await getEnabledFailureReasonsWithDescriptions();
+  } catch (error) {
+    logger.warn({ error }, "Failed to load dynamic failure reasons for OCR prompt, falling back to hardcoded list");
+  }
+
+  return buildOcrPromptWithDynamicReasons(customCriteria, dynamicReasons);
+}
+
 /** Full OCR pipeline: fetch file, run OCR, update fraud scores, persist to database. */
 export async function processReceiptOcr(
   dependencies: OcrServiceDependencies,
@@ -510,7 +520,7 @@ export async function processReceiptOcr(
     streaming: false
   };
 
-  const messages = await buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config, buildOcrPrompt(await getOcrPromptCriteria()));
+  const messages = await buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config, await buildDynamicOcrPrompt());
 
   const apiResult = await callOcrApi(messages, config);
 
@@ -521,8 +531,14 @@ export async function processReceiptOcr(
   const llmResponse = await apiResult.response.json();
   const rawContent: string = llmResponse.choices[0].message.content;
 
-  const enabledReasons = await getEnabledFailureReasons();
-  const ocrResult = parseOcrResult(rawContent, enabledReasons);
+  let allowedReasons: readonly string[] | null = null;
+  try {
+    const enabledReasons = await getEnabledFailureReasonsWithDescriptions();
+    allowedReasons = enabledReasons.map((reason) => reason.code);
+  } catch (error) {
+    logger.warn({ error }, "Failed to load enabled failure reasons for parsing, allowing all built-in reasons");
+  }
+  const ocrResult = parseOcrResult(rawContent, allowedReasons);
 
   const highConfidence = await getHighConfidenceThreshold();
   const maxAgeMonths = await getReceiptMaxAgeMonths();

@@ -22,7 +22,6 @@ import {
   SETTING_OCR_PROMPT_CRITERIA,
   SETTING_SECONDARY_PROMPT_CRITERIA,
   SETTING_RECEIPT_MAX_AGE_MONTHS,
-  SETTING_ENABLED_FAILURE_REASONS,
 } from "@/lib/services/app-settings-service";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
 import {
@@ -183,19 +182,6 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: "receiptMaxAgeMonths must be between 1 and 120" }, { status: 400 });
       }
       await setSettingInteger(SETTING_RECEIPT_MAX_AGE_MONTHS, payload.receiptMaxAgeMonths);
-    }
-
-    if ("enabledFailureReasons" in payload) {
-      if (!Array.isArray(payload.enabledFailureReasons)) {
-        return NextResponse.json({ error: "enabledFailureReasons must be an array" }, { status: 400 });
-      }
-      const allValid = payload.enabledFailureReasons.every(
-        (item: unknown) => typeof item === "string" && FAILURE_REASONS.includes(item as any)
-      );
-      if (!allValid) {
-        return NextResponse.json({ error: "enabledFailureReasons contains invalid values" }, { status: 400 });
-      }
-      await setSettingStringArray(SETTING_ENABLED_FAILURE_REASONS, payload.enabledFailureReasons as string[]);
     }
 
     const settings = await getAppSettings();

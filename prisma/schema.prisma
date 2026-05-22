@@ -258,3 +258,19 @@ model Bookmark {
   @@index([userId])
   @@index([receiptId])
 }
+
+model FailureReasonDefinition {
+  code        String   @id
+  description String
+  isBuiltIn   Boolean  @default(false)
+  enabled     Boolean  @default(true)
+  nl          String?
+  de          String?
+  fr          String?
+  es          String?
+  af          String?
+  xh          String?
+  zu          String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

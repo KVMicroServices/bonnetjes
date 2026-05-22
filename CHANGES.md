@@ -1,5 +1,97 @@
 # Changes
 
+## [139] Always append dynamic failure reasons to OCR prompt
+
+**What**: Failure reasons from the DB are now always appended to the OCR prompt, regardless of whether a custom prompt is set.
+**Why**: Previously custom reasons only appeared in the prompt when no custom prompt was set, requiring admins to maintain reasons in two places.
+**Decisions**:
+- Removed hardcoded reason list from default prompt criteria (now appended dynamically)
+- Custom prompt text controls instructions/criteria; reason list is always injected after
+**Files**:
+- lib/services/ocr-constants.ts
+- lib/services/ocr-service.ts
+
+## [138] Add unit tests for failure-reason-service, translator, and routes
+
+**What**: Created comprehensive unit tests covering CRUD validation, seeding idempotency, dirty check, translation fallback, AI API mocking, and auth guards for all failure reason endpoints.
+**Files**:
+- tests/services/failure-reason-service.test.ts
+- tests/services/failure-reason-translator.test.ts
+- tests/routes/failure-reasons.test.ts
+
+## [137] Migrate enabledFailureReasons setting to per-reason model
+
+**What**: Migrated the legacy `SETTING_ENABLED_FAILURE_REASONS` AppSetting to per-reason `enabled` flags on `FailureReasonDefinition`, and removed all references to the old setting from the API, service, and UI layers.
+**Decisions**:
+- Migration runs inside `ensureBuiltInReasonsSeeded()` — reads stored array, disables reasons not in it, then deletes the key
+- OCR service now reads enabled reasons from `getEnabledFailureReasonsWithDescriptions()` instead of the old AppSetting
+- Graceful fallback if DB is unreachable during OCR parsing (allows all built-in reasons)
+**Files**:
+- lib/services/failure-reason-service.ts
+- lib/services/app-settings-service.ts
+- lib/services/ocr-service.ts
+- app/api/admin/settings/route.ts
+- app/admin/settings/page.tsx
+- tests/services/ocr-service.test.ts
+- tests/services/app-settings-service.test.ts
+- tests/routes/admin-settings.test.ts
+
+## [136] Add admin UI for failure reason management
+
+**What**: Full management section in admin settings replacing the old toggle-only UI — list with inline editing, create form, generate button, delete with confirmation, and loading states.
+**Decisions**:
+- Extracted as standalone `FailureReasonManagement` component to keep settings page manageable
+- PATCH route extended to accept `enabled` boolean for toggle support
+- Optimistic UI updates for toggle with revert on failure
+**Files**:
+- components/failure-reason-management.tsx
+- app/admin/settings/page.tsx
+- app/api/admin/failure-reasons/route.ts
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [135] Add failure-reasons API routes and integrate with email/OCR systems
+
+**What**: Admin API routes for failure reason CRUD + AI description generation, DB-first email translation lookup, and dynamic OCR prompt building from enabled reasons.
+**Decisions**:
+- Email translation functions made async to support DB lookup before message file fallback
+- OCR prompt uses `buildOcrPromptWithDynamicReasons` — skips dynamic injection when custom prompt is set
+- DB failures in both email and OCR paths fall back silently to existing behavior
+**Files**:
+- app/api/admin/failure-reasons/route.ts
+- app/api/admin/failure-reasons/generate/route.ts
+- lib/email/email-translations.ts
+- lib/email/email-service.ts
+- lib/services/ocr-constants.ts
+- lib/services/ocr-service.ts
+- tests/services/email-service.test.ts
+
+## [134] Add failure-reason-service with CRUD and seeding
+
+**What**: New service for managing failure reason definitions — seeding built-in reasons from message files, CRUD with validation, translation triggering, and query helpers.
+**Decisions**:
+- Lazy seeding on first access with in-memory flag to avoid repeated DB checks
+- Code validation: `^[A-Z][A-Z_]*[A-Z]$`, 2–50 chars
+- Dirty check on update: translation only triggered when description actually changes
+- Built-in reasons seeded from message file translations (no AI call needed)
+**Files**:
+- lib/services/failure-reason-service.ts
+
+## [133] Add failure-reason-translator service
+
+**What**: New service that translates English failure reason descriptions into 7 locales via AI API and generates descriptions from reason codes.
+**Decisions**:
+- 30s timeout with AbortController for AI API calls
+- Translation failures return `{ success: false }` (non-blocking); generation failures throw (caller handles)
+- Single prompt for all 7 translations to minimize API calls
+- Validates all locale fields present before accepting translation response
+
+## [132] Add FailureReasonDefinition Prisma model
+
+**What**: New database model to store failure reasons (built-in and custom) with per-locale translations.
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260522093505_add_failure_reason_definition/migration.sql
+
 ## [131] Expose AI verification prompts and receipt max age in admin settings
 
 **What**: Admin settings now include editable AI prompts (primary OCR + secondary analysis), configurable receipt max age, and toggleable rejection reasons.
