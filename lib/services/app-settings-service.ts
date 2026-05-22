@@ -12,10 +12,15 @@ export const SETTING_SMTP_PORT = "smtp_port";
 export const SETTING_SMTP_USER = "smtp_user";
 export const SETTING_SMTP_PASS = "smtp_pass";
 export const SETTING_SMTP_FROM = "smtp_from";
+export const SETTING_OCR_PROMPT_CRITERIA = "ocr_prompt_criteria";
+export const SETTING_SECONDARY_PROMPT_CRITERIA = "secondary_prompt_criteria";
+export const SETTING_RECEIPT_MAX_AGE_MONTHS = "receipt_max_age_months";
+export const SETTING_ENABLED_FAILURE_REASONS = "enabled_failure_reasons";
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
 const DEFAULT_HIGH_CONFIDENCE_THRESHOLD = 70;
+const DEFAULT_RECEIPT_MAX_AGE_MONTHS = 6;
 
 // ─── Read (String) ────────────────────────────────────────────────────────────
 
@@ -82,6 +87,18 @@ export async function isAutoDisableEnabled(): Promise<boolean> {
 
 export async function getHighConfidenceThreshold(): Promise<number> {
   return getSettingInteger(SETTING_HIGH_CONFIDENCE_THRESHOLD, DEFAULT_HIGH_CONFIDENCE_THRESHOLD);
+}
+
+export async function getReceiptMaxAgeMonths(): Promise<number> {
+  return getSettingInteger(SETTING_RECEIPT_MAX_AGE_MONTHS, DEFAULT_RECEIPT_MAX_AGE_MONTHS);
+}
+
+export async function getOcrPromptCriteria(): Promise<string | null> {
+  return getSettingString(SETTING_OCR_PROMPT_CRITERIA, "");
+}
+
+export async function getSecondaryPromptCriteria(): Promise<string | null> {
+  return getSettingString(SETTING_SECONDARY_PROMPT_CRITERIA, "");
 }
 
 // ─── Read (String Array / JSON) ───────────────────────────────────────────────
@@ -170,6 +187,9 @@ export interface AppSettings {
   autoDisableEnabled: boolean;
   autoDisableLocationWhitelist: readonly string[];
   highConfidenceThreshold: number;
+  receiptMaxAgeMonths: number;
+  ocrPromptCriteria: string | null;
+  secondaryPromptCriteria: string | null;
   smtp: SmtpSettings;
 }
 
@@ -188,9 +208,21 @@ export async function getAppSettings(): Promise<AppSettings> {
   const autoDisableEnabled = await isAutoDisableEnabled();
   const autoDisableLocationWhitelist = await getAutoDisableLocationWhitelist();
   const highConfidenceThreshold = await getHighConfidenceThreshold();
+  const receiptMaxAgeMonths = await getReceiptMaxAgeMonths();
+  const ocrPromptCriteria = await getOcrPromptCriteria();
+  const secondaryPromptCriteria = await getSecondaryPromptCriteria();
   const smtp = await getSmtpSettings();
 
-  return { autoVerifyEnabled, autoDisableEnabled, autoDisableLocationWhitelist, highConfidenceThreshold, smtp };
+  return {
+    autoVerifyEnabled,
+    autoDisableEnabled,
+    autoDisableLocationWhitelist,
+    highConfidenceThreshold,
+    receiptMaxAgeMonths,
+    ocrPromptCriteria,
+    secondaryPromptCriteria,
+    smtp,
+  };
 }
 
 // ─── Legacy alias ─────────────────────────────────────────────────────────────

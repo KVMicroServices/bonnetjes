@@ -9,8 +9,18 @@ import {
 } from "@/lib/file-conversion";
 import {
   getHighConfidenceThreshold,
+  getOcrPromptCriteria,
+  getSecondaryPromptCriteria,
+  getReceiptMaxAgeMonths,
 } from "@/lib/services/app-settings-service";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
+import {
+  FAILURE_REASONS,
+  buildOcrPromptWithDynamicReasons,
+  buildSecondaryPrompt,
+} from "@/lib/services/ocr-constants";
+import { getEnabledFailureReasonsWithDescriptions } from "@/lib/services/failure-reason-service";
+import type { FailureReason } from "@/lib/services/ocr-constants";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -19,75 +29,7 @@ const DEFAULT_AI_MODEL = "gpt-5.4-nano";
 const DEFAULT_SECONDARY_AI_MODEL = "gpt-5.4-mini";
 const MAX_TOKENS = 2000;
 const HIGH_CONFIDENCE_THRESHOLD = 70;
-const OCR_REASONING_MAX_TOKENS = parseInt(process.env.OCR_REASONING_MAX_TOKENS || "150", 10);
-
-const OCR_PROMPT = `You are a receipt verification expert. ALWAYS respond in English regardless of the language on the receipt.
-
-Analyze this receipt and extract the following information:
-
-1. Shop/Store name (the business name on the receipt)
-2. Transaction date (format: YYYY-MM-DD)
-3. Total amount (number only, without currency symbol)
-4. Whether the receipt is clearly readable
-5. Your confidence level (0-100)
-6. Brief reasoning about your analysis in English (keep under ${OCR_REASONING_MAX_TOKENS} tokens)
-7. If this is NOT a valid receipt or cannot be verified, provide a failure reason from this exact list:
-   - NOT_A_RECEIPT: The image is not a purchase receipt
-   - IMAGE_UNCLEAR: The image is too blurry, dark, or damaged to read
-   - INSUFFICIENT_INFO: The receipt lacks key information (shop name, date, or amount)
-   - UNREADABLE_TEXT: Text is present but cannot be reliably extracted
-   - MISSING_KEY_FIELDS: Some required fields (shop, date, amount) are completely absent
-
-Respond with JSON in this exact format:
-{
-  "extractedShopName": "string - shop name from receipt, or null if not found",
-  "extractedDate": "YYYY-MM-DD or null if not found",
-  "extractedAmount": number or null if not found,
-  "receiptReadable": true/false,
-  "confidence": 0-100,
-  "reasoning": "1-2 sentences max, always in English",
-  "failureReason": "one of the failure codes above, or null if receipt is valid"
-}
-
-Respond with raw JSON only. All text in your response must be in English.`;
-
-const SECONDARY_ANALYSIS_PROMPT = `You are a receipt verification quality assurance expert. ALWAYS respond in English.
-
-A receipt was analyzed by the primary OCR model but the result was not confident enough to auto-verify. Your job is to independently review the receipt image alongside the primary model's analysis, then provide your own assessment.
-
-Primary analysis result:
-- Extracted shop name: {shopName}
-- Extracted date: {date}
-- Extracted amount: {amount}
-- Confidence: {confidence}
-- Readable: {readable}
-- Failure reason: {failureReason}
-- Reasoning: {reasoning}
-
-Instructions:
-1. Look at the receipt image yourself. Do NOT blindly trust the primary analysis.
-2. Consider whether the primary model's assessment is justified given what you can see.
-3. Provide your own independent extraction of the receipt data (shop name, date, amount).
-4. Provide your own confidence score (0-100) based on what you can see.
-5. Decide on a verdict:
-   - "confirmed_rejection" if the receipt is clearly invalid or unreadable
-   - "overturned_to_verified" if you can clearly read the receipt and extract valid data
-   - "requires_review" if the receipt is borderline and needs human review
-6. Provide a brief reasoning for your decision.
-
-Respond with JSON in this exact format:
-{
-  "verdict": "confirmed_rejection" | "overturned_to_verified" | "requires_review",
-  "reasoning": "2-4 sentences explaining your decision, always in English",
-  "extractedShopName": "string - shop name you extracted, or null if not found",
-  "extractedDate": "YYYY-MM-DD or null if not found",
-  "extractedAmount": number or null if not found,
-  "receiptReadable": true/false,
-  "confidence": 0-100,
-  "failureReason": "one of: NOT_A_RECEIPT, IMAGE_UNCLEAR, INSUFFICIENT_INFO, UNREADABLE_TEXT, MISSING_KEY_FIELDS, or null if receipt is valid"
-}
-
-Respond with raw JSON only. All text must be in English.`;
+const DEFAULT_MAX_AGE_MONTHS = 6;
 
 // ─── Dependencies ────────────────────────────────────────────────────────────
 
@@ -143,20 +85,11 @@ export interface OcrMessage {
   content: ReadonlyArray<MessageContent>;
 }
 
-// ─── Failure Reason Constants ─────────────────────────────────────────────────
+// ─── Re-exports ──────────────────────────────────────────────────────────────
 
-export const FAILURE_REASONS = [
-  "NOT_A_RECEIPT",
-  "IMAGE_UNCLEAR",
-  "INSUFFICIENT_INFO",
-  "DUPLICATE_RECEIPT",
-  "RECEIPT_TOO_OLD",
-  "SUSPECTED_FRAUD",
-  "UNREADABLE_TEXT",
-  "MISSING_KEY_FIELDS"
-] as const;
-
-export type FailureReason = typeof FAILURE_REASONS[number];
+// Re-export from constants for backward compatibility
+export { FAILURE_REASONS, buildOcrPrompt, buildOcrPromptWithDynamicReasons, buildSecondaryPrompt, OCR_PROMPT_DEFAULT_CRITERIA, SECONDARY_PROMPT_DEFAULT_CRITERIA } from "@/lib/services/ocr-constants";
+export type { FailureReason } from "@/lib/services/ocr-constants";
 
 // ─── Result Types ────────────────────────────────────────────────────────────
 
@@ -225,7 +158,8 @@ export type ProcessOcrResult =
 
 /** Construct LLM messages for OCR extraction based on file type. */
 export function buildOcrMessages(
-  fileBuffer: Buffer
+  fileBuffer: Buffer,
+  ocrPrompt: string
 ): ReadonlyArray<OcrMessage> {
   const base64Content = fileBuffer.toString("base64");
   const mimeType = "image/jpeg";
@@ -235,7 +169,7 @@ export function buildOcrMessages(
     {
       role: "user",
       content: [
-        { type: "text", text: OCR_PROMPT },
+        { type: "text", text: ocrPrompt },
         { type: "image_url", image_url: { url: dataUri } }
       ]
     }
@@ -249,7 +183,8 @@ export async function buildOcrMessagesWithFileUpload(
   fileBuffer: Buffer,
   fileType: string,
   originalFilename: string,
-  _config: OcrApiConfig
+  _config: OcrApiConfig,
+  ocrPrompt: string
 ): Promise<ReadonlyArray<OcrMessage>> {
   const isPdf = fileType === "pdf" || originalFilename.toLowerCase().endsWith(".pdf");
   const requiresConversion = needsConversion(originalFilename);
@@ -283,7 +218,7 @@ export async function buildOcrMessagesWithFileUpload(
       }
 
       const imageContent: MessageContent[] = [
-        { type: "text", text: OCR_PROMPT }
+        { type: "text", text: ocrPrompt }
       ];
 
       for (const page of pdfConversionResult.pages) {
@@ -303,7 +238,7 @@ export async function buildOcrMessagesWithFileUpload(
       {
         role: "user",
         content: [
-          { type: "text", text: OCR_PROMPT },
+          { type: "text", text: ocrPrompt },
           { type: "image_url", image_url: { url: dataUri } }
         ]
       }
@@ -311,7 +246,7 @@ export async function buildOcrMessagesWithFileUpload(
   }
 
   if (!isPdf) {
-    return buildOcrMessages(fileBuffer);
+    return buildOcrMessages(fileBuffer, ocrPrompt);
   }
 
   const conversionResult = await convertPdfToImages(fileBuffer);
@@ -329,7 +264,7 @@ export async function buildOcrMessagesWithFileUpload(
   }
 
   const imageContent: MessageContent[] = [
-    { type: "text", text: OCR_PROMPT }
+    { type: "text", text: ocrPrompt }
   ];
 
   for (const page of conversionResult.pages) {
@@ -383,7 +318,7 @@ export async function callOcrApi(
 }
 
 /** Parse raw JSON string from LLM into a structured OCR result. */
-export function parseOcrResult(rawJson: string): ParsedOcrResult {
+export function parseOcrResult(rawJson: string, allowedReasons?: readonly string[] | null): ParsedOcrResult {
   const parsed: OcrExtractedResult = JSON.parse(rawJson);
 
   let extractedDate: Date | null = null;
@@ -398,8 +333,15 @@ export function parseOcrResult(rawJson: string): ParsedOcrResult {
     extractedAmount = parseFloat(String(parsed.extractedAmount));
   }
 
+  let validReasons: readonly string[];
+  if (allowedReasons) {
+    validReasons = allowedReasons;
+  } else {
+    validReasons = FAILURE_REASONS;
+  }
+
   let failureReason: FailureReason | null = null;
-  if (parsed.failureReason && FAILURE_REASONS.includes(parsed.failureReason as FailureReason)) {
+  if (parsed.failureReason && validReasons.includes(parsed.failureReason as FailureReason)) {
     failureReason = parsed.failureReason as FailureReason;
   }
 
@@ -419,19 +361,26 @@ export function determineVerificationStatus(
   ocrResult: ParsedOcrResult,
   isDuplicate: boolean,
   receiptDate: Date | null,
-  thresholds?: { highConfidence?: number }
+  thresholds?: { highConfidence?: number; maxAgeMonths?: number }
 ): VerificationDecision {
-  const confidenceThreshold = thresholds?.highConfidence ?? HIGH_CONFIDENCE_THRESHOLD;
+  let confidenceThreshold = HIGH_CONFIDENCE_THRESHOLD;
+  if (thresholds && thresholds.highConfidence !== undefined) {
+    confidenceThreshold = thresholds.highConfidence;
+  }
+  let maxAgeMonths = DEFAULT_MAX_AGE_MONTHS;
+  if (thresholds && thresholds.maxAgeMonths !== undefined) {
+    maxAgeMonths = thresholds.maxAgeMonths;
+  }
 
   let isDateTooOld = false;
   let dateValidationMessage = "";
 
   if (receiptDate) {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    isDateTooOld = receiptDate < sixMonthsAgo;
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(cutoffDate.getMonth() - maxAgeMonths);
+    isDateTooOld = receiptDate < cutoffDate;
     if (isDateTooOld) {
-      dateValidationMessage = "Receipt is older than 6 months and cannot be accepted.";
+      dateValidationMessage = `Receipt is older than ${maxAgeMonths} months and cannot be accepted.`;
     }
   }
 
@@ -461,7 +410,8 @@ export async function runSecondaryAnalysis(
   messages: ReadonlyArray<OcrMessage>,
   ocrResult: ParsedOcrResult,
   failureReason: FailureReason,
-  config: OcrApiConfig
+  config: OcrApiConfig,
+  customSecondaryCriteria: string | null
 ): Promise<SecondaryAnalysisResult | null> {
   let dateString = "null";
   if (ocrResult.extractedDate) {
@@ -473,8 +423,17 @@ export async function runSecondaryAnalysis(
     amountString = String(ocrResult.extractedAmount);
   }
 
-  const filledPrompt = SECONDARY_ANALYSIS_PROMPT
-    .replace("{shopName}", ocrResult.extractedShopName || "null")
+  const fullSecondaryPrompt = buildSecondaryPrompt(customSecondaryCriteria);
+
+  let shopNameForPrompt: string;
+  if (ocrResult.extractedShopName) {
+    shopNameForPrompt = ocrResult.extractedShopName;
+  } else {
+    shopNameForPrompt = "null";
+  }
+
+  const filledPrompt = fullSecondaryPrompt
+    .replace("{shopName}", shopNameForPrompt)
     .replace("{date}", dateString)
     .replace("{amount}", amountString)
     .replace("{confidence}", String(ocrResult.confidence))
@@ -493,7 +452,12 @@ export async function runSecondaryAnalysis(
     }
   ];
 
-  const secondaryModel = process.env.SECONDARY_AI_MODEL_NAME || DEFAULT_SECONDARY_AI_MODEL;
+  let secondaryModel: string;
+  if (process.env.SECONDARY_AI_MODEL_NAME) {
+    secondaryModel = process.env.SECONDARY_AI_MODEL_NAME;
+  } else {
+    secondaryModel = DEFAULT_SECONDARY_AI_MODEL;
+  }
 
   const requestBody = {
     model: secondaryModel,
@@ -537,6 +501,20 @@ export async function runSecondaryAnalysis(
   }
 }
 
+/** Build the OCR prompt, always appending dynamic failure reasons from DB. */
+async function buildDynamicOcrPrompt(): Promise<string> {
+  const customCriteria = await getOcrPromptCriteria();
+
+  let dynamicReasons: ReadonlyArray<{ code: string; description: string }> | null = null;
+  try {
+    dynamicReasons = await getEnabledFailureReasonsWithDescriptions();
+  } catch (error) {
+    logger.warn({ error }, "Failed to load dynamic failure reasons for OCR prompt, falling back to hardcoded list");
+  }
+
+  return buildOcrPromptWithDynamicReasons(customCriteria, dynamicReasons);
+}
+
 /** Full OCR pipeline: fetch file, run OCR, update fraud scores, persist to database. */
 export async function processReceiptOcr(
   dependencies: OcrServiceDependencies,
@@ -552,12 +530,37 @@ export async function processReceiptOcr(
 
   const fileBuffer = await dependencies.storage.getFileAsBuffer(receipt.cloudStoragePath);
 
-  const fileType = receipt.fileType || "image";
-  const originalFilename = receipt.originalFilename || "receipt";
+  let fileType: string;
+  if (receipt.fileType) {
+    fileType = receipt.fileType;
+  } else {
+    fileType = "image";
+  }
+  let originalFilename: string;
+  if (receipt.originalFilename) {
+    originalFilename = receipt.originalFilename;
+  } else {
+    originalFilename = "receipt";
+  }
 
-  const aiBaseUrl = process.env.AI_API_BASE_URL || DEFAULT_AI_BASE_URL;
-  const aiModel = process.env.AI_MODEL_NAME || DEFAULT_AI_MODEL;
-  const aiApiKey = process.env.AI_API_KEY || "";
+  let aiBaseUrl: string;
+  if (process.env.AI_API_BASE_URL) {
+    aiBaseUrl = process.env.AI_API_BASE_URL;
+  } else {
+    aiBaseUrl = DEFAULT_AI_BASE_URL;
+  }
+  let aiModel: string;
+  if (process.env.AI_MODEL_NAME) {
+    aiModel = process.env.AI_MODEL_NAME;
+  } else {
+    aiModel = DEFAULT_AI_MODEL;
+  }
+  let aiApiKey: string;
+  if (process.env.AI_API_KEY) {
+    aiApiKey = process.env.AI_API_KEY;
+  } else {
+    aiApiKey = "";
+  }
 
   const config: OcrApiConfig = {
     baseUrl: aiBaseUrl,
@@ -566,7 +569,7 @@ export async function processReceiptOcr(
     streaming: false
   };
 
-  const messages = await buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config);
+  const messages = await buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config, await buildDynamicOcrPrompt());
 
   const apiResult = await callOcrApi(messages, config);
 
@@ -577,15 +580,23 @@ export async function processReceiptOcr(
   const llmResponse = await apiResult.response.json();
   const rawContent: string = llmResponse.choices[0].message.content;
 
-  const ocrResult = parseOcrResult(rawContent);
+  let allowedReasons: readonly string[] | null = null;
+  try {
+    const enabledReasons = await getEnabledFailureReasonsWithDescriptions();
+    allowedReasons = enabledReasons.map((reason) => reason.code);
+  } catch (error) {
+    logger.warn({ error }, "Failed to load enabled failure reasons for parsing, allowing all built-in reasons");
+  }
+  const ocrResult = parseOcrResult(rawContent, allowedReasons);
 
   const highConfidence = await getHighConfidenceThreshold();
+  const maxAgeMonths = await getReceiptMaxAgeMonths();
 
   const verificationDecision = determineVerificationStatus(
     ocrResult,
     receipt.isDuplicate,
     ocrResult.extractedDate,
-    { highConfidence }
+    { highConfidence, maxAgeMonths }
   );
 
   let secondaryAnalysis: string | null = null;
@@ -612,7 +623,8 @@ export async function processReceiptOcr(
       messages,
       ocrResult,
       primaryFailureReason,
-      config
+      config,
+      await getSecondaryPromptCriteria()
     );
 
     if (secondaryResult) {
@@ -650,7 +662,7 @@ export async function processReceiptOcr(
           secondaryOcrResult,
           receipt.isDuplicate,
           finalDate,
-          { highConfidence }
+          { highConfidence, maxAgeMonths }
         );
 
         finalVerificationStatus = secondaryDecision.status;
@@ -665,9 +677,16 @@ export async function processReceiptOcr(
     finalAmount
   );
 
+  let manipulationScore: number;
+  if (receipt.manipulationScore) {
+    manipulationScore = receipt.manipulationScore;
+  } else {
+    manipulationScore = 0;
+  }
+
   const newFraudRiskScore = dependencies.fraudDetection.calculateFraudRiskScore(
     receipt.isDuplicate,
-    receipt.manipulationScore || 0,
+    manipulationScore,
     patternAnalysis.riskScore,
     finalConfidence
   );
@@ -715,11 +734,35 @@ export async function processReceiptOcr(
 
 /** Create an OcrApiConfig from environment variables with defaults. */
 export function createOcrApiConfig(overrides?: Partial<OcrApiConfig>): OcrApiConfig {
-  const baseUrl = overrides?.baseUrl || process.env.AI_API_BASE_URL || DEFAULT_AI_BASE_URL;
-  const apiKey = overrides?.apiKey || process.env.AI_API_KEY || "";
-  const model = overrides?.model || process.env.AI_MODEL_NAME || DEFAULT_AI_MODEL;
+  let baseUrl: string;
+  if (overrides && overrides.baseUrl) {
+    baseUrl = overrides.baseUrl;
+  } else if (process.env.AI_API_BASE_URL) {
+    baseUrl = process.env.AI_API_BASE_URL;
+  } else {
+    baseUrl = DEFAULT_AI_BASE_URL;
+  }
+
+  let apiKey: string;
+  if (overrides && overrides.apiKey) {
+    apiKey = overrides.apiKey;
+  } else if (process.env.AI_API_KEY) {
+    apiKey = process.env.AI_API_KEY;
+  } else {
+    apiKey = "";
+  }
+
+  let model: string;
+  if (overrides && overrides.model) {
+    model = overrides.model;
+  } else if (process.env.AI_MODEL_NAME) {
+    model = process.env.AI_MODEL_NAME;
+  } else {
+    model = DEFAULT_AI_MODEL;
+  }
+
   let streaming = false;
-  if (overrides?.streaming !== undefined) {
+  if (overrides && overrides.streaming !== undefined) {
     streaming = overrides.streaming;
   }
 

@@ -19,6 +19,7 @@ import {
   parseOcrResult,
   determineVerificationStatus,
   runSecondaryAnalysis,
+  buildOcrPromptWithDynamicReasons,
   type OcrApiConfig,
   type OcrMessage,
   type ParsedOcrResult,
@@ -33,6 +34,13 @@ import { resolveDisputeToken } from "@/lib/dispute/dispute-token-http";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
 import { sendNotification } from "@/lib/services/notification-service";
 import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
+import {
+  getOcrPromptCriteria,
+  getSecondaryPromptCriteria,
+  getHighConfidenceThreshold,
+  getReceiptMaxAgeMonths,
+} from "@/lib/services/app-settings-service";
+import { getEnabledFailureReasonsWithDescriptions } from "@/lib/services/failure-reason-service";
 import { resolveLocationLocaleWithFallback } from "@/lib/review-disable/kiyoh-location-client";
 import { sendDisputeVerifiedEmail, sendDisputeFinalRejectionEmail } from "@/lib/email/email-service";
 
@@ -147,10 +155,22 @@ export async function POST(request: NextRequest) {
 
 function createOcrAdapter(): DisputeOcrAdapter {
   const config: OcrApiConfig = createOcrApiConfig({ streaming: false });
+  let allowedReasonCodes: readonly string[] | null = null;
 
   return {
     async buildMessages(fileBuffer, fileType, originalFilename) {
-      return buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config);
+      const customCriteria = await getOcrPromptCriteria();
+      let dynamicReasons: ReadonlyArray<{ code: string; description: string }> | null = null;
+      try {
+        dynamicReasons = await getEnabledFailureReasonsWithDescriptions();
+      } catch (error) {
+        logger.warn({ error }, "Failed to load dynamic failure reasons for dispute OCR prompt");
+      }
+      if (dynamicReasons) {
+        allowedReasonCodes = dynamicReasons.map((reason) => reason.code);
+      }
+      const ocrPrompt = buildOcrPromptWithDynamicReasons(customCriteria, dynamicReasons);
+      return buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config, ocrPrompt);
     },
     async runOcr(messages) {
       const apiResult = await callOcrApi(messages as ReadonlyArray<OcrMessage>, config);
@@ -160,7 +180,7 @@ function createOcrAdapter(): DisputeOcrAdapter {
 
       const llmResponse = await apiResult.response.json();
       const rawContent: string = llmResponse.choices[0].message.content;
-      const parsed = parseOcrResult(rawContent);
+      const parsed = parseOcrResult(rawContent, allowedReasonCodes);
 
       return {
         extractedShopName: parsed.extractedShopName,
@@ -172,11 +192,14 @@ function createOcrAdapter(): DisputeOcrAdapter {
         failureReason: parsed.failureReason,
       };
     },
-    decideStatus(parsed, isDuplicate) {
+    async decideStatus(parsed, isDuplicate) {
+      const highConfidence = await getHighConfidenceThreshold();
+      const maxAgeMonths = await getReceiptMaxAgeMonths();
       const decision = determineVerificationStatus(
         toParsedOcrResult(parsed),
         isDuplicate,
-        parsed.extractedDate
+        parsed.extractedDate,
+        { highConfidence, maxAgeMonths }
       );
       return {
         status: decision.status,
@@ -186,11 +209,13 @@ function createOcrAdapter(): DisputeOcrAdapter {
       };
     },
     async runSecondary(messages, parsed, failureReason) {
+      const customSecondaryCriteria = await getSecondaryPromptCriteria();
       const result = await runSecondaryAnalysis(
         messages as ReadonlyArray<OcrMessage>,
         toParsedOcrResult(parsed),
         failureReason as FailureReason,
-        config
+        config,
+        customSecondaryCriteria
       );
       return result;
     },

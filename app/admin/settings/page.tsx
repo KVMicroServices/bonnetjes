@@ -4,7 +4,9 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/header";
-import { Settings, Users, Loader2, Zap, SlidersHorizontal, MapPin, Plus, X, Mail } from "lucide-react";
+import { FailureReasonManagement } from "@/components/failure-reason-management";
+import { EmailTemplateEditor } from "@/components/email-template-editor";
+import { Settings, Users, Loader2, Zap, SlidersHorizontal, MapPin, Plus, X, Mail, MessageSquare, AlertTriangle, FileText } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
@@ -23,6 +25,12 @@ interface AppSettings {
   autoDisableEnabled: boolean;
   autoDisableLocationWhitelist: string[];
   highConfidenceThreshold: number;
+  receiptMaxAgeMonths: number;
+  ocrPromptCriteria: string | null;
+  secondaryPromptCriteria: string | null;
+  defaultOcrPromptCriteria: string;
+  defaultSecondaryPromptCriteria: string;
+  availableFailureReasons: string[];
   smtp: {
     smtpHost: string | null;
     smtpPort: string | null;
@@ -31,6 +39,11 @@ interface AppSettings {
     smtpFrom: string | null;
   };
 }
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const MIN_RECEIPT_MAX_AGE_MONTHS = 1;
+const MAX_RECEIPT_MAX_AGE_MONTHS = 120;
 
 export default function SettingsPage() {
   const { data: session, status } = useSession() || {};
@@ -45,6 +58,12 @@ export default function SettingsPage() {
     autoDisableEnabled: false,
     autoDisableLocationWhitelist: [],
     highConfidenceThreshold: 70,
+    receiptMaxAgeMonths: 6,
+    ocrPromptCriteria: null,
+    secondaryPromptCriteria: null,
+    defaultOcrPromptCriteria: "",
+    defaultSecondaryPromptCriteria: "",
+    availableFailureReasons: [],
     smtp: {
       smtpHost: null,
       smtpPort: null,
@@ -55,6 +74,11 @@ export default function SettingsPage() {
   });
   const [updatingSetting, setUpdatingSetting] = useState<string | null>(null);
   const [highThresholdInput, setHighThresholdInput] = useState("70");
+  const [maxAgeInput, setMaxAgeInput] = useState("6");
+  const [ocrPromptInput, setOcrPromptInput] = useState("");
+  const [secondaryPromptInput, setSecondaryPromptInput] = useState("");
+  const [savingOcrPrompt, setSavingOcrPrompt] = useState(false);
+  const [savingSecondaryPrompt, setSavingSecondaryPrompt] = useState(false);
   const [newLocationId, setNewLocationId] = useState("");
   const [smtpForm, setSmtpForm] = useState({
     smtpHost: "",
@@ -86,12 +110,50 @@ export default function SettingsPage() {
         const data = await response.json();
         setSettings(data);
         setHighThresholdInput(String(data.highConfidenceThreshold));
+        setMaxAgeInput(String(data.receiptMaxAgeMonths));
+
+        let ocrPromptValue = "";
+        if (data.ocrPromptCriteria) {
+          ocrPromptValue = data.ocrPromptCriteria;
+        } else if (data.defaultOcrPromptCriteria) {
+          ocrPromptValue = data.defaultOcrPromptCriteria;
+        }
+        setOcrPromptInput(ocrPromptValue);
+
+        let secondaryPromptValue = "";
+        if (data.secondaryPromptCriteria) {
+          secondaryPromptValue = data.secondaryPromptCriteria;
+        } else if (data.defaultSecondaryPromptCriteria) {
+          secondaryPromptValue = data.defaultSecondaryPromptCriteria;
+        }
+        setSecondaryPromptInput(secondaryPromptValue);
+
+        let smtpHostValue = "";
+        if (data.smtp && data.smtp.smtpHost) {
+          smtpHostValue = data.smtp.smtpHost;
+        }
+        let smtpPortValue = "";
+        if (data.smtp && data.smtp.smtpPort) {
+          smtpPortValue = data.smtp.smtpPort;
+        }
+        let smtpUserValue = "";
+        if (data.smtp && data.smtp.smtpUser) {
+          smtpUserValue = data.smtp.smtpUser;
+        }
+        let smtpPassValue = "";
+        if (data.smtp && data.smtp.smtpPass) {
+          smtpPassValue = data.smtp.smtpPass;
+        }
+        let smtpFromValue = "";
+        if (data.smtp && data.smtp.smtpFrom) {
+          smtpFromValue = data.smtp.smtpFrom;
+        }
         setSmtpForm({
-          smtpHost: data.smtp?.smtpHost || "",
-          smtpPort: data.smtp?.smtpPort || "",
-          smtpUser: data.smtp?.smtpUser || "",
-          smtpPass: data.smtp?.smtpPass || "",
-          smtpFrom: data.smtp?.smtpFrom || "",
+          smtpHost: smtpHostValue,
+          smtpPort: smtpPortValue,
+          smtpUser: smtpUserValue,
+          smtpPass: smtpPassValue,
+          smtpFrom: smtpFromValue,
         });
       }
     } catch {
@@ -126,6 +188,7 @@ export default function SettingsPage() {
         const updatedSettings = await response.json();
         setSettings(updatedSettings);
         setHighThresholdInput(String(updatedSettings.highConfidenceThreshold));
+        setMaxAgeInput(String(updatedSettings.receiptMaxAgeMonths));
         toast({
           title: t("settingUpdated"),
           description: t("settingUpdatedDescription"),
@@ -156,6 +219,151 @@ export default function SettingsPage() {
     }
     if (parsed !== currentValue) {
       updateSetting(key, parsed);
+    }
+  };
+
+  const handleMaxAgeBlur = () => {
+    const parsed = parseInt(maxAgeInput, 10);
+    if (isNaN(parsed) || parsed < MIN_RECEIPT_MAX_AGE_MONTHS || parsed > MAX_RECEIPT_MAX_AGE_MONTHS) {
+      setMaxAgeInput(String(settings.receiptMaxAgeMonths));
+      return;
+    }
+    if (parsed !== settings.receiptMaxAgeMonths) {
+      updateSetting("receiptMaxAgeMonths", parsed);
+    }
+  };
+
+  const handleSaveOcrPrompt = async () => {
+    setSavingOcrPrompt(true);
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ocrPromptCriteria: ocrPromptInput }),
+      });
+
+      if (response.ok) {
+        const updatedSettings = await response.json();
+        setSettings(updatedSettings);
+        toast({
+          title: t("settingUpdated"),
+          description: t("promptSaved"),
+        });
+      } else {
+        toast({
+          title: t("settingUpdateFailed"),
+          description: t("settingUpdateFailedDescription"),
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: t("settingUpdateFailed"),
+        description: t("settingUpdateFailedDescription"),
+        variant: "destructive",
+      });
+    } finally {
+      setSavingOcrPrompt(false);
+    }
+  };
+
+  const handleSaveSecondaryPrompt = async () => {
+    setSavingSecondaryPrompt(true);
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secondaryPromptCriteria: secondaryPromptInput }),
+      });
+
+      if (response.ok) {
+        const updatedSettings = await response.json();
+        setSettings(updatedSettings);
+        toast({
+          title: t("settingUpdated"),
+          description: t("promptSaved"),
+        });
+      } else {
+        toast({
+          title: t("settingUpdateFailed"),
+          description: t("settingUpdateFailedDescription"),
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: t("settingUpdateFailed"),
+        description: t("settingUpdateFailedDescription"),
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSecondaryPrompt(false);
+    }
+  };
+
+  const handleResetOcrPrompt = () => {
+    setOcrPromptInput(settings.defaultOcrPromptCriteria);
+    handleSaveOcrPromptWithValue("");
+  };
+
+  const handleResetSecondaryPrompt = () => {
+    setSecondaryPromptInput(settings.defaultSecondaryPromptCriteria);
+    handleSaveSecondaryPromptWithValue("");
+  };
+
+  const handleSaveOcrPromptWithValue = async (value: string) => {
+    setSavingOcrPrompt(true);
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ocrPromptCriteria: value }),
+      });
+
+      if (response.ok) {
+        const updatedSettings = await response.json();
+        setSettings(updatedSettings);
+        toast({
+          title: t("settingUpdated"),
+          description: t("promptReset"),
+        });
+      }
+    } catch {
+      toast({
+        title: t("settingUpdateFailed"),
+        description: t("settingUpdateFailedDescription"),
+        variant: "destructive",
+      });
+    } finally {
+      setSavingOcrPrompt(false);
+    }
+  };
+
+  const handleSaveSecondaryPromptWithValue = async (value: string) => {
+    setSavingSecondaryPrompt(true);
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secondaryPromptCriteria: value }),
+      });
+
+      if (response.ok) {
+        const updatedSettings = await response.json();
+        setSettings(updatedSettings);
+        toast({
+          title: t("settingUpdated"),
+          description: t("promptReset"),
+        });
+      }
+    } catch {
+      toast({
+        title: t("settingUpdateFailed"),
+        description: t("settingUpdateFailedDescription"),
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSecondaryPrompt(false);
     }
   };
 
@@ -428,6 +636,127 @@ export default function SettingsPage() {
                 <span className="text-sm text-gray-500">%</span>
               </div>
             </div>
+
+            {/* Receipt Max Age */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">{t("maxAgeLabel")}</p>
+                <p className="text-sm text-gray-500">{t("maxAgeDescription")}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={MIN_RECEIPT_MAX_AGE_MONTHS}
+                  max={MAX_RECEIPT_MAX_AGE_MONTHS}
+                  value={maxAgeInput}
+                  onChange={(event) => setMaxAgeInput(event.target.value)}
+                  onBlur={handleMaxAgeBlur}
+                  disabled={updatingSetting === "receiptMaxAgeMonths"}
+                  className="w-20 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-center text-sm text-gray-700 disabled:opacity-50"
+                  aria-label={t("maxAgeLabel")}
+                />
+                <span className="text-sm text-gray-500">{t("months")}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* AI Prompts Section */}
+        <div className="mb-8 rounded-xl bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-kv-green" />
+            <h2 className="text-lg font-semibold text-gray-900">
+              {t("aiPromptsTitle")}
+            </h2>
+          </div>
+
+          <p className="mb-6 text-sm text-gray-500">{t("aiPromptsDescription")}</p>
+
+          <div className="space-y-6">
+            {/* Failure Reasons Management */}
+            <div className="rounded-lg border border-gray-200 p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-kv-green" />
+                <p className="text-sm font-medium text-gray-900">{t("failureReasonsLabel")}</p>
+              </div>
+              <p className="mb-4 text-xs text-gray-500">{t("failureReasonsManagementDescription")}</p>
+
+              <FailureReasonManagement />
+            </div>
+
+            {/* Primary OCR Prompt */}
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <label htmlFor="ocr-prompt" className="block text-sm font-medium text-gray-900">
+                  {t("ocrPromptLabel")}
+                </label>
+                <button
+                  type="button"
+                  onClick={handleResetOcrPrompt}
+                  disabled={savingOcrPrompt}
+                  className="text-xs text-gray-500 underline transition-colors hover:text-gray-700 disabled:opacity-50"
+                >
+                  {t("resetToDefault")}
+                </button>
+              </div>
+              <p className="mb-2 text-xs text-gray-500">{t("ocrPromptDescription")}</p>
+              <textarea
+                id="ocr-prompt"
+                value={ocrPromptInput}
+                onChange={(event) => setOcrPromptInput(event.target.value)}
+                placeholder={t("ocrPromptPlaceholder")}
+                rows={12}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-700 placeholder:text-gray-400"
+              />
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveOcrPrompt}
+                  disabled={savingOcrPrompt}
+                  className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-kv-green/90 disabled:opacity-50"
+                >
+                  {(() => { if (savingOcrPrompt) { return <Loader2 className="h-4 w-4 animate-spin" />; } return null; })()}
+                  {t("savePrompt")}
+                </button>
+              </div>
+            </div>
+
+            {/* Secondary Analysis Prompt */}
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <label htmlFor="secondary-prompt" className="block text-sm font-medium text-gray-900">
+                  {t("secondaryPromptLabel")}
+                </label>
+                <button
+                  type="button"
+                  onClick={handleResetSecondaryPrompt}
+                  disabled={savingSecondaryPrompt}
+                  className="text-xs text-gray-500 underline transition-colors hover:text-gray-700 disabled:opacity-50"
+                >
+                  {t("resetToDefault")}
+                </button>
+              </div>
+              <p className="mb-2 text-xs text-gray-500">{t("secondaryPromptDescription")}</p>
+              <textarea
+                id="secondary-prompt"
+                value={secondaryPromptInput}
+                onChange={(event) => setSecondaryPromptInput(event.target.value)}
+                placeholder={t("secondaryPromptPlaceholder")}
+                rows={12}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-700 placeholder:text-gray-400"
+              />
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveSecondaryPrompt}
+                  disabled={savingSecondaryPrompt}
+                  className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-kv-green/90 disabled:opacity-50"
+                >
+                  {(() => { if (savingSecondaryPrompt) { return <Loader2 className="h-4 w-4 animate-spin" />; } return null; })()}
+                  {t("savePrompt")}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -520,11 +849,26 @@ export default function SettingsPage() {
                 disabled={savingSmtp}
                 className="inline-flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-kv-green/90 disabled:opacity-50"
               >
-                {savingSmtp && <Loader2 className="h-4 w-4 animate-spin" />}
+                {(() => { if (savingSmtp) { return <Loader2 className="h-4 w-4 animate-spin" />; } return null; })()}
                 {t("smtpSaveButton")}
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Email Templates Section */}
+        <div className="mb-8 rounded-xl bg-white p-4 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-kv-green" />
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {t("emailTemplatesTitle")}
+              </h2>
+              <p className="text-sm text-gray-500">{t("emailTemplatesDescription")}</p>
+            </div>
+          </div>
+
+          <EmailTemplateEditor />
         </div>
 
         {/* User Management Section */}

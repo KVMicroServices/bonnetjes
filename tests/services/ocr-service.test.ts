@@ -17,6 +17,30 @@ import type {
   ParsedOcrResult,
 } from "@/lib/services/ocr-service";
 
+vi.mock("@/lib/services/app-settings-service", () => ({
+  getHighConfidenceThreshold: vi.fn().mockResolvedValue(70),
+  getOcrPromptCriteria: vi.fn().mockResolvedValue(null),
+  getSecondaryPromptCriteria: vi.fn().mockResolvedValue(null),
+  getReceiptMaxAgeMonths: vi.fn().mockResolvedValue(6),
+}));
+
+vi.mock("@/lib/services/failure-reason-service", () => ({
+  getEnabledFailureReasonsWithDescriptions: vi.fn().mockResolvedValue([
+    { code: "NOT_A_RECEIPT", description: "The image is not a purchase receipt" },
+    { code: "IMAGE_UNCLEAR", description: "The image is too blurry, dark, or damaged to read" },
+    { code: "INSUFFICIENT_INFO", description: "The receipt lacks key information" },
+    { code: "DUPLICATE_RECEIPT", description: "This receipt has already been submitted" },
+    { code: "RECEIPT_TOO_OLD", description: "The receipt is too old" },
+    { code: "SUSPECTED_FRAUD", description: "The receipt appears to be fraudulent" },
+    { code: "UNREADABLE_TEXT", description: "Text is present but cannot be reliably extracted" },
+    { code: "MISSING_KEY_FIELDS", description: "Some required fields are completely absent" },
+  ]),
+}));
+
+vi.mock("@/lib/services/audit-log-service", () => ({
+  recordAuditEvent: vi.fn(),
+}));
+
 // ─── Mock Factories ────────────────────────────────────────────────────────────
 
 function createMockDependencies(): {
@@ -95,10 +119,12 @@ const VALID_OCR_JSON = JSON.stringify({
 
 // ─── Tests: buildOcrMessages ───────────────────────────────────────────────────
 
+const TEST_OCR_PROMPT = "Test OCR prompt for verification";
+
 describe("buildOcrMessages", () => {
   it("produces image_url content for image files", () => {
     const buffer = Buffer.from("fake-image-data");
-    const messages = buildOcrMessages(buffer);
+    const messages = buildOcrMessages(buffer, TEST_OCR_PROMPT);
 
     expect(messages).toHaveLength(1);
     expect(messages[0].role).toBe("user");
@@ -116,7 +142,7 @@ describe("buildOcrMessages", () => {
 
   it("treats PDF input as image data (PDF conversion happens at higher level)", () => {
     const buffer = Buffer.from("fake-pdf-data");
-    const messages = buildOcrMessages(buffer);
+    const messages = buildOcrMessages(buffer, TEST_OCR_PROMPT);
 
     expect(messages).toHaveLength(1);
     expect(messages[0].role).toBe("user");
@@ -134,11 +160,22 @@ describe("buildOcrMessages", () => {
 
   it("does not have PDF-specific handling (conversion is done before calling buildOcrMessages)", () => {
     const buffer = Buffer.from("fake-pdf-data");
-    const messages = buildOcrMessages(buffer);
+    const messages = buildOcrMessages(buffer, TEST_OCR_PROMPT);
 
     const textContent = messages[0].content[0];
     if (textContent.type === "text") {
       expect(textContent.text).not.toContain("PDF document");
+    }
+  });
+
+  it("uses the provided prompt text in the message content", () => {
+    const buffer = Buffer.from("fake-image-data");
+    const customPrompt = "Custom verification instructions here";
+    const messages = buildOcrMessages(buffer, customPrompt);
+
+    const textContent = messages[0].content[0];
+    if (textContent.type === "text") {
+      expect(textContent.text).toBe(customPrompt);
     }
   });
 });
@@ -251,6 +288,27 @@ describe("determineVerificationStatus", () => {
     expect(decision.dateValidationMessage).toContain("older than 6 months");
   });
 
+  it("uses custom maxAgeMonths from thresholds parameter", () => {
+    const threeMonthOldDate = new Date();
+    threeMonthOldDate.setMonth(threeMonthOldDate.getMonth() - 4);
+
+    const decisionWithDefault = determineVerificationStatus(
+      highConfidenceReadableResult,
+      false,
+      threeMonthOldDate
+    );
+    expect(decisionWithDefault.status).toBe("verified");
+
+    const decisionWithShorterAge = determineVerificationStatus(
+      highConfidenceReadableResult,
+      false,
+      threeMonthOldDate,
+      { maxAgeMonths: 3 }
+    );
+    expect(decisionWithShorterAge.status).toBe("rejected");
+    expect(decisionWithShorterAge.failureReason).toBe("RECEIPT_TOO_OLD");
+  });
+
   it("returns rejected for duplicate receipt", () => {
     const decision = determineVerificationStatus(highConfidenceReadableResult, true, recentDate);
 
@@ -356,7 +414,7 @@ describe("callOcrApi", () => {
     globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
 
     const config = createMockOcrApiConfig();
-    const messages = buildOcrMessages(Buffer.from("test"));
+    const messages = buildOcrMessages(Buffer.from("test"), TEST_OCR_PROMPT);
 
     const result = await callOcrApi(messages, config);
 
@@ -387,7 +445,7 @@ describe("callOcrApi", () => {
     globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
 
     const config = createMockOcrApiConfig();
-    const messages = buildOcrMessages(Buffer.from("test"));
+    const messages = buildOcrMessages(Buffer.from("test"), TEST_OCR_PROMPT);
 
     const result = await callOcrApi(messages, config);
 
