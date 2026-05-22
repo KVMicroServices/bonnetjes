@@ -109,12 +109,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    let notificationReceiptId = result.receipt.id;
+    if (originalReceiptId) {
+      notificationReceiptId = originalReceiptId;
+    }
+
     sendNotification({
       type: "dispute_received",
       title: "New dispute received",
       body: `A customer submitted a dispute for review ${tokenResult.payload.reviewId}. Outcome: ${result.receipt.verificationStatus}`,
       metadata: {
-        receiptId: originalReceiptId || result.receipt.id,
+        receiptId: notificationReceiptId,
         disputeReceiptId: result.receipt.id,
         reviewId: tokenResult.payload.reviewId,
         verificationStatus: result.receipt.verificationStatus,
@@ -258,8 +263,14 @@ async function resolveAndSendDisputeEmail(
   extractedDate: string | null,
   extractedAmount: number | null
 ): Promise<void> {
-  const resolvedLocationId = locationId ? locationId : "";
-  const resolvedTenantId = tenantId ? tenantId : 0;
+  let resolvedLocationId = "";
+  if (locationId) {
+    resolvedLocationId = locationId;
+  }
+  let resolvedTenantId = 0;
+  if (tenantId) {
+    resolvedTenantId = tenantId;
+  }
 
   const emailResolution = await resolveReviewerEmail(reviewId, resolvedLocationId, resolvedTenantId);
 
@@ -273,7 +284,12 @@ async function resolveAndSendDisputeEmail(
 
   const recipientEmail = emailResolution.email;
 
-  const locale = await resolveLocationLocaleWithFallback(resolvedLocationId, resolvedTenantId);
+  let locale: string;
+  if (resolvedLocationId.length > 0) {
+    locale = await resolveLocationLocaleWithFallback(resolvedLocationId, resolvedTenantId);
+  } else {
+    locale = "en";
+  }
 
   if (verificationStatus === "verified") {
     const sendResult = await sendDisputeVerifiedEmail({
@@ -293,7 +309,11 @@ async function resolveAndSendDisputeEmail(
       );
     }
   } else if (verificationStatus === "rejected") {
-    const resolvedFailureReason = failureReason ? failureReason : "VERIFICATION_FAILED";
+    const DEFAULT_FAILURE_REASON = "VERIFICATION_FAILED";
+    let resolvedFailureReason = DEFAULT_FAILURE_REASON;
+    if (failureReason) {
+      resolvedFailureReason = failureReason;
+    }
 
     const sendResult = await sendDisputeFinalRejectionEmail({
       recipientEmail: recipientEmail,

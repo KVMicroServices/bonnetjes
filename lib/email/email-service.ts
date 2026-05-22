@@ -36,15 +36,7 @@ export interface SendVerifiedEmailParams {
   readonly extractedAmount: number | null;
 }
 
-export interface SendDisputeVerifiedEmailParams {
-  readonly recipientEmail: string;
-  readonly locale: string;
-  readonly reviewId: string;
-  readonly tenantId: number;
-  readonly extractedShopName: string | null;
-  readonly extractedDate: string | null;
-  readonly extractedAmount: number | null;
-}
+export type SendDisputeVerifiedEmailParams = SendVerifiedEmailParams;
 
 export interface SendFinalRejectionEmailParams {
   readonly recipientEmail: string;

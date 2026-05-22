@@ -77,6 +77,8 @@ const REVIEW_REQUIRED_PAGE_SIZE = 10;
 const DISPUTES_PAGE_SIZE = 20;
 const FRAUD_HIGH_THRESHOLD = 50;
 const FRAUD_MEDIUM_THRESHOLD = 30;
+const SEARCH_DEBOUNCE_MILLISECONDS = 400;
+const SYNC_INDICATOR_DURATION_MILLISECONDS = 3000;
 
 function getFraudRiskColorClass(score: number | null | undefined): string {
   const value = score ?? 0;
@@ -271,7 +273,7 @@ export default function AdminPage() {
       setActiveSearch(value.trim());
       queueCursorRef.current = null;
       setQueueCursor(null);
-    }, 400);
+    }, SEARCH_DEBOUNCE_MILLISECONDS);
   };
 
   const handleClearSearch = () => {
@@ -353,7 +355,7 @@ export default function AdminPage() {
       setTimeout(() => {
         setSyncing(false);
         fetchData(true);
-      }, 3000);
+      }, SYNC_INDICATOR_DURATION_MILLISECONDS);
     }
   };
 
@@ -658,6 +660,15 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSearch]);
 
+  // Cleanup search debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (status === "authenticated") {
@@ -902,11 +913,18 @@ export default function AdminPage() {
             disabled={syncing}
             className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
-            {syncing
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <CloudDownload className="h-4 w-4" />
-            }
-            {syncing ? t("syncing") : t("syncNow")}
+            {(() => {
+              if (syncing) {
+                return <Loader2 className="h-4 w-4 animate-spin" />;
+              }
+              return <CloudDownload className="h-4 w-4" />;
+            })()}
+            {(() => {
+              if (syncing) {
+                return t("syncing");
+              }
+              return t("syncNow");
+            })()}
           </button>
         </div>
 
@@ -1135,10 +1153,12 @@ export default function AdminPage() {
                       : "bg-white text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  {bookmarkFilter
-                    ? <BookmarkCheck className="h-4 w-4" />
-                    : <Bookmark className="h-4 w-4" />
-                  }
+                  {(() => {
+                    if (bookmarkFilter) {
+                      return <BookmarkCheck className="h-4 w-4" />;
+                    }
+                    return <Bookmark className="h-4 w-4" />;
+                  })()}
                   {t("filterBookmarked")}
                 </button>
               </div>
@@ -1235,7 +1255,12 @@ export default function AdminPage() {
                                   ? "text-kv-green hover:bg-green-50"
                                   : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                               }`}
-                              title={bookmarkedReceiptIds.has(receipt.id) ? t("removeBookmark") : t("addBookmark")}
+                              title={(() => {
+                                if (bookmarkedReceiptIds.has(receipt.id)) {
+                                  return t("removeBookmark");
+                                }
+                                return t("addBookmark");
+                              })()}
                             >
                               {(() => {
                                 if (togglingBookmarkId === receipt.id) {

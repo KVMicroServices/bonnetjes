@@ -113,7 +113,12 @@ async function processReceiptJob(job: Job<ReceiptProcessingJobData>): Promise<vo
           );
         }
       } catch (previewError) {
-        const errorMessage = previewError instanceof Error ? previewError.message : String(previewError);
+        let errorMessage: string;
+        if (previewError instanceof Error) {
+          errorMessage = previewError.message;
+        } else {
+          errorMessage = String(previewError);
+        }
         logger.warn(
           { receiptId, error: errorMessage },
           "Preview generation threw, continuing with OCR"

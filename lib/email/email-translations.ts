@@ -89,7 +89,10 @@ function isSupportedLocale(locale: string): locale is SupportedLocale {
 
 function loadMessagesForLocale(locale: string, namespaceName?: string): Record<string, string> | null {
   const filePath = join(MESSAGES_DIRECTORY, `${locale}.json`);
-  const targetNamespace = namespaceName ? namespaceName : TRANSLATION_NAMESPACE;
+  let targetNamespace = TRANSLATION_NAMESPACE;
+  if (namespaceName) {
+    targetNamespace = namespaceName;
+  }
   try {
     const fileContent = readFileSync(filePath, "utf-8");
     const parsed = JSON.parse(fileContent);
@@ -138,9 +141,12 @@ export function loadDisableEmailTranslations(
   }
 
   const failureReasonKey = FAILURE_REASON_KEY_MAP[failureReason];
-  const resolvedFailureReasonKey = failureReasonKey
-    ? failureReasonKey
-    : "failureVerificationFailed";
+  let resolvedFailureReasonKey: string;
+  if (failureReasonKey) {
+    resolvedFailureReasonKey = failureReasonKey;
+  } else {
+    resolvedFailureReasonKey = "failureVerificationFailed";
+  }
 
   const result: Record<string, string> = {};
   for (const key of TRANSLATION_KEYS) {
@@ -166,9 +172,12 @@ export function loadVerifiedEmailTranslations(
     resolvedLocale = DEFAULT_LOCALE;
   }
 
-  const namespaceName = namespace === "receipt"
-    ? VERIFIED_NAMESPACE
-    : DISPUTE_VERIFIED_NAMESPACE;
+  let namespaceName: string;
+  if (namespace === "receipt") {
+    namespaceName = VERIFIED_NAMESPACE;
+  } else {
+    namespaceName = DISPUTE_VERIFIED_NAMESPACE;
+  }
 
   const localeMessages = loadMessagesForLocale(resolvedLocale, namespaceName);
   let fallbackMessages: Record<string, string> | null = null;
@@ -202,9 +211,12 @@ export function loadFinalRejectionEmailTranslations(
   }
 
   const failureReasonKey = FAILURE_REASON_KEY_MAP[failureReason];
-  const resolvedFailureReasonKey = failureReasonKey
-    ? failureReasonKey
-    : "failureVerificationFailed";
+  let resolvedFailureReasonKey: string;
+  if (failureReasonKey) {
+    resolvedFailureReasonKey = failureReasonKey;
+  } else {
+    resolvedFailureReasonKey = "failureVerificationFailed";
+  }
 
   const result: Record<string, string> = {};
   for (const key of FINAL_REJECTION_TRANSLATION_KEYS) {

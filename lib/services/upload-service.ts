@@ -104,5 +104,9 @@ function resolveContentTypeFromExtension(extension: string): string {
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   };
 
-  return extensionToMime[extension] || "application/octet-stream";
+  const mappedType = extensionToMime[extension];
+  if (mappedType) {
+    return mappedType;
+  }
+  return "application/octet-stream";
 }

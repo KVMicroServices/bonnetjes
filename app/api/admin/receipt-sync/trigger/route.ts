@@ -18,7 +18,12 @@ export async function POST() {
     // Fire-and-forget: start the tick but don't await it.
     // The tick runs in the background on the Node process.
     executeTick().catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : "Unknown error";
+      let message: string;
+      if (error instanceof Error) {
+        message = error.message;
+      } else {
+        message = "Unknown error";
+      }
       logger.error({ error: message }, "Background sync tick failed");
     });
 
@@ -27,7 +32,12 @@ export async function POST() {
       message: "Sync started",
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    let message: string;
+    if (error instanceof Error) {
+      message = error.message;
+    } else {
+      message = "Unknown error";
+    }
     logger.error({ error: message }, "Manual sync trigger failed");
     return NextResponse.json(
       { success: false, error: message },

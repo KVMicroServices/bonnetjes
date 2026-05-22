@@ -1,5 +1,32 @@
 # Changes
 
+## [130] Fix code review findings from 26.05.22-refinement-sprint
+
+**What**: Resolved all standards, security, stability, and general findings from the code review.
+**Decisions**:
+- Pinned heic-convert, mammoth, @types/heic-convert to exact versions
+- Added 100-char max-length guard on search parameter to prevent DoS via expensive LIKE queries
+- Replaced all ternaries and short-circuit tricks with if-else blocks per banned patterns
+- Merged duplicate SendDisputeVerifiedEmailParams into a type alias of SendVerifiedEmailParams
+- Removed dead `_fileType` and `_originalFilename` params from `buildOcrMessages`
+- Skip locale API call when locationId is empty (use "en" default directly)
+**Files**:
+- package.json
+- app/api/receipts/route.ts
+- app/api/admin/receipt-sync/trigger/route.ts
+- app/api/dispute/verify/route.ts
+- app/admin/page.tsx
+- lib/email/email-translations.ts
+- lib/email/email-service.ts
+- lib/file-conversion.ts
+- lib/queue/receipt-worker.ts
+- lib/services/ocr-service.ts
+- lib/services/upload-service.ts
+- lib/services/receipt-service.ts
+- lib/services/notification-service.ts
+- components/receipt-upload.tsx
+- tests/services/ocr-service.test.ts
+
 ## [129] Add receipt search by review/location ID and bookmark feature
 
 **What**: Search bar on the admin dashboard filters receipts by review ID or location ID via ReceiptSyncState. Users can bookmark receipts for quick access with a dedicated filter toggle.

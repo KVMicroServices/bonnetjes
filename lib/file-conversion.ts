@@ -77,7 +77,12 @@ async function convertHeicToJpeg(fileBuffer: Buffer): Promise<FileConversionResu
       extension: ".jpg",
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = String(error);
+    }
     logger.error({ error: errorMessage }, "HEIC to JPEG conversion failed");
     return { success: false, error: `HEIC conversion failed: ${errorMessage}` };
   }
@@ -131,7 +136,12 @@ async function convertDocToPdf(fileBuffer: Buffer, filename: string): Promise<Fi
       extension: ".pdf",
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = String(error);
+    }
     logger.error({ error: errorMessage, filename }, "DOC to PDF conversion failed");
     return { success: false, error: `DOC conversion failed: ${errorMessage}` };
   } finally {
@@ -175,7 +185,12 @@ async function convertDocxToImages(fileBuffer: Buffer): Promise<FileConversionRe
       extension: ".png",
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = String(error);
+    }
     logger.error({ error: errorMessage }, "DOCX to image conversion failed");
     return { success: false, error: `DOCX conversion failed: ${errorMessage}` };
   }

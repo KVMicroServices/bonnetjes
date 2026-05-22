@@ -225,9 +225,7 @@ export type ProcessOcrResult =
 
 /** Construct LLM messages for OCR extraction based on file type. */
 export function buildOcrMessages(
-  fileBuffer: Buffer,
-  _fileType: string,
-  _originalFilename: string
+  fileBuffer: Buffer
 ): ReadonlyArray<OcrMessage> {
   const base64Content = fileBuffer.toString("base64");
   const mimeType = "image/jpeg";
@@ -313,7 +311,7 @@ export async function buildOcrMessagesWithFileUpload(
   }
 
   if (!isPdf) {
-    return buildOcrMessages(fileBuffer, fileType, originalFilename);
+    return buildOcrMessages(fileBuffer);
   }
 
   const conversionResult = await convertPdfToImages(fileBuffer);

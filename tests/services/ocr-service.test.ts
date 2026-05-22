@@ -98,7 +98,7 @@ const VALID_OCR_JSON = JSON.stringify({
 describe("buildOcrMessages", () => {
   it("produces image_url content for image files", () => {
     const buffer = Buffer.from("fake-image-data");
-    const messages = buildOcrMessages(buffer, "image", "receipt.jpg");
+    const messages = buildOcrMessages(buffer);
 
     expect(messages).toHaveLength(1);
     expect(messages[0].role).toBe("user");
@@ -116,7 +116,7 @@ describe("buildOcrMessages", () => {
 
   it("treats PDF input as image data (PDF conversion happens at higher level)", () => {
     const buffer = Buffer.from("fake-pdf-data");
-    const messages = buildOcrMessages(buffer, "pdf", "receipt.pdf");
+    const messages = buildOcrMessages(buffer);
 
     expect(messages).toHaveLength(1);
     expect(messages[0].role).toBe("user");
@@ -134,7 +134,7 @@ describe("buildOcrMessages", () => {
 
   it("does not have PDF-specific handling (conversion is done before calling buildOcrMessages)", () => {
     const buffer = Buffer.from("fake-pdf-data");
-    const messages = buildOcrMessages(buffer, "document", "invoice.PDF");
+    const messages = buildOcrMessages(buffer);
 
     const textContent = messages[0].content[0];
     if (textContent.type === "text") {
@@ -356,7 +356,7 @@ describe("callOcrApi", () => {
     globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
 
     const config = createMockOcrApiConfig();
-    const messages = buildOcrMessages(Buffer.from("test"), "image", "test.jpg");
+    const messages = buildOcrMessages(Buffer.from("test"));
 
     const result = await callOcrApi(messages, config);
 
@@ -387,7 +387,7 @@ describe("callOcrApi", () => {
     globalThis.fetch = vi.fn().mockResolvedValue(mockResponse);
 
     const config = createMockOcrApiConfig();
-    const messages = buildOcrMessages(Buffer.from("test"), "image", "test.jpg");
+    const messages = buildOcrMessages(Buffer.from("test"));
 
     const result = await callOcrApi(messages, config);
 

@@ -74,13 +74,18 @@ async function handleNotification(params: CreateNotificationParams): Promise<voi
     serializedMetadata = JSON.stringify(params.metadata);
   }
 
+  let notificationUserId: string | null = null;
+  if (params.userId) {
+    notificationUserId = params.userId;
+  }
+
   await prisma.notification.create({
     data: {
       type: params.type,
       title: params.title,
       body: params.body,
       metadata: serializedMetadata,
-      userId: params.userId || null,
+      userId: notificationUserId,
     },
   });
 

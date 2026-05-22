@@ -42,7 +42,11 @@ const EXTENSION_MIME_MAP: Record<string, string> = {
 
 function resolveContentType(filename: string): string {
   const extension = filename.toLowerCase().slice(filename.lastIndexOf("."));
-  return EXTENSION_MIME_MAP[extension] || "application/octet-stream";
+  const mappedType = EXTENSION_MIME_MAP[extension];
+  if (mappedType) {
+    return mappedType;
+  }
+  return "application/octet-stream";
 }
 
 export function ReceiptUpload({ onClose, onComplete }: ReceiptUploadProps) {
@@ -139,7 +143,10 @@ export function ReceiptUpload({ onClose, onComplete }: ReceiptUploadProps) {
       );
 
       // Get presigned URL
-      const contentTypeForUpload = file.type || resolveContentType(file.name);
+      let contentTypeForUpload = resolveContentType(file.name);
+      if (file.type) {
+        contentTypeForUpload = file.type;
+      }
       const presignResponse = await fetch("/api/upload/presigned", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -354,16 +361,25 @@ export function ReceiptUpload({ onClose, onComplete }: ReceiptUploadProps) {
             </div>
 
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {files.map((f) => (
+              {files.map((f) => {
+                let cardBackgroundClass = "bg-red-50";
+                if (f.status === "completed") {
+                  cardBackgroundClass = "bg-green-50";
+                }
+                let iconColorClass = "text-red-600";
+                if (f.status === "completed") {
+                  iconColorClass = "text-green-600";
+                }
+                return (
                 <div
                   key={f.id}
-                  className={`rounded-lg p-4 ${f.status === "completed" ? "bg-green-50" : "bg-red-50"}`}
+                  className={`rounded-lg p-4 ${cardBackgroundClass}`}
                 >
                   <div className="flex items-center gap-3">
                     {f.file.type.includes("pdf") || f.file.type.includes("msword") || f.file.type.includes("wordprocessingml") || f.file.name.toLowerCase().endsWith(".doc") || f.file.name.toLowerCase().endsWith(".docx") ? (
-                      <FileText className={`h-6 w-6 ${f.status === "completed" ? "text-green-600" : "text-red-600"}`} />
+                      <FileText className={`h-6 w-6 ${iconColorClass}`} />
                     ) : (
-                      <FileImage className={`h-6 w-6 ${f.status === "completed" ? "text-green-600" : "text-red-600"}`} />
+                      <FileImage className={`h-6 w-6 ${iconColorClass}`} />
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 truncate">{f.file.name}</p>
@@ -378,14 +394,16 @@ export function ReceiptUpload({ onClose, onComplete }: ReceiptUploadProps) {
                         <p className="mt-1 text-sm text-red-600">{f.error}</p>
                       )}
                     </div>
-                    {f.status === "completed" ? (
-                      <Check className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <AlertCircle className="h-5 w-5 text-red-600" />
-                    )}
+                    {(() => {
+                      if (f.status === "completed") {
+                        return <Check className="h-5 w-5 text-green-600" />;
+                      }
+                      return <AlertCircle className="h-5 w-5 text-red-600" />;
+                    })()}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <button

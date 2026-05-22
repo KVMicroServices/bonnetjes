@@ -273,10 +273,17 @@ export async function listReceipts(
     syncStates.map((state) => [state.receiptId, state.locationId])
   );
 
-  const enrichedReceipts = resultReceipts.map((receipt) => ({
-    ...receipt,
-    locationId: locationIdMap.get(receipt.id) || null,
-  }));
+  const enrichedReceipts = resultReceipts.map((receipt) => {
+    const locationId = locationIdMap.get(receipt.id);
+    let resolvedLocationId: string | null = null;
+    if (locationId) {
+      resolvedLocationId = locationId;
+    }
+    return {
+      ...receipt,
+      locationId: resolvedLocationId,
+    };
+  });
 
   return { success: true, receipts: enrichedReceipts, nextCursor, hasMore };
 }
@@ -506,7 +513,10 @@ export async function getDownloadUrl(
   }
 
   // Use preview image for non-browser-viewable formats (HEIC, DOC, DOCX)
-  const effectivePath = receipt.previewStoragePath || receipt.cloudStoragePath;
+  let effectivePath = receipt.cloudStoragePath;
+  if (receipt.previewStoragePath) {
+    effectivePath = receipt.previewStoragePath;
+  }
 
   // Handle KV-synced receipts (stored in external S3 bucket, not R2)
   if (effectivePath.startsWith(KV_SYNC_PATH_PREFIX)) {

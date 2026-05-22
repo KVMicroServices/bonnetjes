@@ -28,10 +28,16 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const cursor = searchParams.get("cursor") || undefined;
     const limitParam = searchParams.get("limit");
-    const search = searchParams.get("search") || undefined;
+    const rawSearch = searchParams.get("search") || undefined;
     let limit = 15;
     if (limitParam) {
       limit = parseInt(limitParam, 10);
+    }
+
+    const MAX_SEARCH_LENGTH = 100;
+    let search = rawSearch;
+    if (search && search.length > MAX_SEARCH_LENGTH) {
+      search = search.slice(0, MAX_SEARCH_LENGTH);
     }
 
     const result = await listReceipts(
