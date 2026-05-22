@@ -5,6 +5,12 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./db";
 import bcrypt from "bcryptjs";
 
+// ─── Access Model ────────────────────────────────────────────────────────────
+// All authenticated users have full platform access. The "admin" role only
+// gates system settings (/api/admin/settings). Do not add role checks to
+// other routes or features unless explicitly requested.
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [

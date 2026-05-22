@@ -15,15 +15,29 @@ export async function POST() {
 
     logger.info("Manual sync tick triggered");
 
-    const tickResults = await executeTick();
+    // Fire-and-forget: start the tick but don't await it.
+    // The tick runs in the background on the Node process.
+    executeTick().catch((error: unknown) => {
+      let message: string;
+      if (error instanceof Error) {
+        message = error.message;
+      } else {
+        message = "Unknown error";
+      }
+      logger.error({ error: message }, "Background sync tick failed");
+    });
 
     return NextResponse.json({
       success: true,
-      message: "Sync tick completed",
-      tickResults,
+      message: "Sync started",
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    let message: string;
+    if (error instanceof Error) {
+      message = error.message;
+    } else {
+      message = "Unknown error";
+    }
     logger.error({ error: message }, "Manual sync trigger failed");
     return NextResponse.json(
       { success: false, error: message },

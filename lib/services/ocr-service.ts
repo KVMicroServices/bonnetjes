@@ -3,6 +3,11 @@ import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { convertPdfToImages } from "@/lib/pdf-to-image";
 import {
+  needsConversion,
+  convertForOcr,
+  isDocFile,
+} from "@/lib/file-conversion";
+import {
   getHighConfidenceThreshold,
 } from "@/lib/services/app-settings-service";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
@@ -220,9 +225,7 @@ export type ProcessOcrResult =
 
 /** Construct LLM messages for OCR extraction based on file type. */
 export function buildOcrMessages(
-  fileBuffer: Buffer,
-  fileType: string,
-  originalFilename: string
+  fileBuffer: Buffer
 ): ReadonlyArray<OcrMessage> {
   const base64Content = fileBuffer.toString("base64");
   const mimeType = "image/jpeg";
@@ -241,17 +244,74 @@ export function buildOcrMessages(
   return messages;
 }
 
-/** Build OCR messages, converting PDFs to images first. */
+/** Build OCR messages, converting PDFs and unsupported formats to images first. */
 export async function buildOcrMessagesWithFileUpload(
   fileBuffer: Buffer,
   fileType: string,
   originalFilename: string,
-  config: OcrApiConfig
+  _config: OcrApiConfig
 ): Promise<ReadonlyArray<OcrMessage>> {
   const isPdf = fileType === "pdf" || originalFilename.toLowerCase().endsWith(".pdf");
+  const requiresConversion = needsConversion(originalFilename);
+
+  // Handle HEIC, DOC, DOCX conversion
+  if (requiresConversion) {
+    const conversionResult = await convertForOcr(fileBuffer, originalFilename);
+
+    if (!conversionResult.success) {
+      logger.error(
+        { error: conversionResult.error, filename: originalFilename },
+        "File conversion failed, cannot process receipt"
+      );
+      throw new Error(`File conversion failed: ${conversionResult.error}`);
+    }
+
+    // DOC files are converted to PDF first, then need PDF→image pipeline
+    if (isDocFile(originalFilename)) {
+      const pdfConversionResult = await convertPdfToImages(conversionResult.buffer);
+
+      if (!pdfConversionResult.success) {
+        logger.error(
+          { error: pdfConversionResult.error, filename: originalFilename },
+          "DOC→PDF→image conversion failed"
+        );
+        throw new Error(`DOC conversion failed: ${pdfConversionResult.error}`);
+      }
+
+      if (pdfConversionResult.pages.length === 0) {
+        throw new Error("DOC conversion produced no pages");
+      }
+
+      const imageContent: MessageContent[] = [
+        { type: "text", text: OCR_PROMPT }
+      ];
+
+      for (const page of pdfConversionResult.pages) {
+        const base64Content = page.pngBuffer.toString("base64");
+        const dataUri = `data:image/png;base64,${base64Content}`;
+        imageContent.push({ type: "image_url", image_url: { url: dataUri } });
+      }
+
+      return [{ role: "user", content: imageContent }];
+    }
+
+    // HEIC and DOCX produce a single image buffer directly
+    const base64Content = conversionResult.buffer.toString("base64");
+    const dataUri = `data:${conversionResult.mimeType};base64,${base64Content}`;
+
+    return [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: OCR_PROMPT },
+          { type: "image_url", image_url: { url: dataUri } }
+        ]
+      }
+    ];
+  }
 
   if (!isPdf) {
-    return buildOcrMessages(fileBuffer, fileType, originalFilename);
+    return buildOcrMessages(fileBuffer);
   }
 
   const conversionResult = await convertPdfToImages(fileBuffer);

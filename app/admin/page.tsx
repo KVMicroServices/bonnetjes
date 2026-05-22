@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Header } from "@/components/header";
 import {
   Shield,
@@ -28,6 +28,9 @@ import {
   CloudDownload,
   Power,
   Scale,
+  Search,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -69,10 +72,13 @@ Deniz, Review adviseur`;
 const CONFIDENCE_HIGH_THRESHOLD = 80;
 const CONFIDENCE_MEDIUM_THRESHOLD = 50;
 const POLLING_INTERVAL_MS = 15000;
+const QUEUE_PAGE_SIZE = 20;
 const REVIEW_REQUIRED_PAGE_SIZE = 10;
 const DISPUTES_PAGE_SIZE = 20;
 const FRAUD_HIGH_THRESHOLD = 50;
 const FRAUD_MEDIUM_THRESHOLD = 30;
+const SEARCH_DEBOUNCE_MILLISECONDS = 400;
+const SYNC_INDICATOR_DURATION_MILLISECONDS = 3000;
 
 function getFraudRiskColorClass(score: number | null | undefined): string {
   const value = score ?? 0;
@@ -146,6 +152,7 @@ interface ReceiptData {
   createdAt: string;
   queuedAt: string | null;
   processedAt: string | null;
+  locationId: string | null;
   user: { id: string; name: string | null; email: string };
 }
 
@@ -184,6 +191,12 @@ export default function AdminPage() {
   const [disablingReviewId, setDisablingReviewId] = useState<string | null>(null);
   const [reviewDisabledReceipts, setReviewDisabledReceipts] = useState<Set<string>>(new Set());
 
+  // Queue pagination state
+  const [queueCursor, setQueueCursor] = useState<string | null>(null);
+  const queueCursorRef = useRef<string | null>(null);
+  const [queueHasMore, setQueueHasMore] = useState(false);
+  const [queueLoadingMore, setQueueLoadingMore] = useState(false);
+
   // Manual disable form state
   const [manualReviewId, setManualReviewId] = useState("");
   const [manualLocationId, setManualLocationId] = useState("");
@@ -193,6 +206,7 @@ export default function AdminPage() {
   // Review-required list state
   const [reviewRequiredReceipts, setReviewRequiredReceipts] = useState<ReceiptData[]>([]);
   const [reviewRequiredCursor, setReviewRequiredCursor] = useState<string | null>(null);
+  const reviewRequiredCursorRef = useRef<string | null>(null);
   const [reviewRequiredHasMore, setReviewRequiredHasMore] = useState(false);
   const [reviewRequiredLoading, setReviewRequiredLoading] = useState(false);
   const [reviewTimeRange, setReviewTimeRange] = useState<string>("all");
@@ -207,6 +221,16 @@ export default function AdminPage() {
   const [disputePreviewUrl, setDisputePreviewUrl] = useState<string | null>(null);
   const [disputePreviewLoading, setDisputePreviewLoading] = useState(false);
   const [updatingDisputeId, setUpdatingDisputeId] = useState<string | null>(null);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Bookmark state
+  const [bookmarkedReceiptIds, setBookmarkedReceiptIds] = useState<Set<string>>(new Set());
+  const [bookmarkFilter, setBookmarkFilter] = useState(false);
+  const [togglingBookmarkId, setTogglingBookmarkId] = useState<string | null>(null);
 
   const isAdmin = (session?.user as any)?.role === "admin";
 
@@ -240,6 +264,82 @@ export default function AdminPage() {
     });
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      setActiveSearch(value.trim());
+      queueCursorRef.current = null;
+      setQueueCursor(null);
+    }, SEARCH_DEBOUNCE_MILLISECONDS);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setActiveSearch("");
+    queueCursorRef.current = null;
+    setQueueCursor(null);
+  };
+
+  const fetchBookmarks = useCallback(async () => {
+    try {
+      const response = await fetch("/api/bookmarks");
+      if (response.ok) {
+        const data = await response.json();
+        setBookmarkedReceiptIds(new Set(data.bookmarkedReceiptIds));
+      }
+    } catch (error) {
+      clientLogger.error({ error }, "Failed to fetch bookmarks");
+    }
+  }, []);
+
+  const handleToggleBookmark = async (receiptId: string) => {
+    setTogglingBookmarkId(receiptId);
+    const isCurrentlyBookmarked = bookmarkedReceiptIds.has(receiptId);
+
+    try {
+      if (isCurrentlyBookmarked) {
+        const response = await fetch(`/api/bookmarks?receiptId=${receiptId}`, {
+          method: "DELETE",
+        });
+        if (response.ok) {
+          setBookmarkedReceiptIds((previous) => {
+            const updated = new Set(previous);
+            updated.delete(receiptId);
+            return updated;
+          });
+          toast({
+            title: t("bookmarkRemoved"),
+            description: t("bookmarkRemovedDescription"),
+          });
+        }
+      } else {
+        const response = await fetch("/api/bookmarks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ receiptId }),
+        });
+        if (response.ok) {
+          setBookmarkedReceiptIds((previous) => {
+            const updated = new Set(previous);
+            updated.add(receiptId);
+            return updated;
+          });
+          toast({
+            title: t("bookmarkAdded"),
+            description: t("bookmarkAddedDescription"),
+          });
+        }
+      }
+    } catch (error) {
+      clientLogger.error({ error }, "Failed to toggle bookmark");
+    } finally {
+      setTogglingBookmarkId(null);
+    }
+  };
+
   const triggerSync = async () => {
     setSyncing(true);
     try {
@@ -251,7 +351,11 @@ export default function AdminPage() {
     } catch {
       // silent fail
     } finally {
-      setSyncing(false);
+      // Keep the syncing indicator visible briefly, then refetch receipts
+      setTimeout(() => {
+        setSyncing(false);
+        fetchData(true);
+      }, SYNC_INDICATOR_DURATION_MILLISECONDS);
     }
   };
 
@@ -355,14 +459,32 @@ export default function AdminPage() {
 
   // ─── Data Fetching ─────────────────────────────────────────────────────────
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (reset: boolean = true) => {
+    if (!reset) {
+      setQueueLoadingMore(true);
+    }
     try {
-      const [statsRes, receiptsRes] = await Promise.all([
-        fetch("/api/admin/stats"),
-        fetch("/api/receipts")
-      ]);
+      const params = new URLSearchParams();
+      params.set("limit", String(QUEUE_PAGE_SIZE));
+      if (!reset && queueCursorRef.current) {
+        params.set("cursor", queueCursorRef.current);
+      }
+      if (activeSearch.length > 0) {
+        params.set("search", activeSearch);
+      }
 
-      if (statsRes.ok) {
+      const fetches: Promise<Response>[] = [
+        fetch(`/api/receipts?${params.toString()}`)
+      ];
+      if (reset) {
+        fetches.push(fetch("/api/admin/stats"));
+      }
+
+      const responses = await Promise.all(fetches);
+      const receiptsRes = responses[0];
+      const statsRes = responses[1];
+
+      if (statsRes && statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(statsData);
       }
@@ -372,14 +494,25 @@ export default function AdminPage() {
         const receiptsList = Array.isArray(receiptsData)
           ? receiptsData
           : receiptsData.receipts;
-        setReceipts(receiptsList || []);
+
+        if (reset) {
+          setReceipts(receiptsList || []);
+        } else {
+          setReceipts(previous => [...previous, ...(receiptsList || [])]);
+        }
+
+        const nextCursor = receiptsData.nextCursor || null;
+        queueCursorRef.current = nextCursor;
+        setQueueCursor(nextCursor);
+        setQueueHasMore(receiptsData.hasMore || false);
       }
     } catch (error) {
       clientLogger.error({ error }, "Failed to fetch admin data");
     } finally {
       setLoading(false);
+      setQueueLoadingMore(false);
     }
-  }, []);
+  }, [activeSearch]);
 
   const fetchReviewRequired = useCallback(async (reset: boolean = false) => {
     setReviewRequiredLoading(true);
@@ -394,8 +527,8 @@ export default function AdminPage() {
       if (timeParams.to) {
         params.set("to", timeParams.to);
       }
-      if (!reset && reviewRequiredCursor) {
-        params.set("cursor", reviewRequiredCursor);
+      if (!reset && reviewRequiredCursorRef.current) {
+        params.set("cursor", reviewRequiredCursorRef.current);
       }
 
       const response = await fetch(`/api/admin/receipts/review-required?${params.toString()}`);
@@ -406,6 +539,7 @@ export default function AdminPage() {
         } else {
           setReviewRequiredReceipts(prev => [...prev, ...data.receipts]);
         }
+        reviewRequiredCursorRef.current = data.nextCursor;
         setReviewRequiredCursor(data.nextCursor);
         setReviewRequiredHasMore(data.hasMore);
       }
@@ -414,7 +548,7 @@ export default function AdminPage() {
     } finally {
       setReviewRequiredLoading(false);
     }
-  }, [reviewTimeRange, reviewRequiredCursor]);
+  }, [reviewTimeRange]);
 
   const fetchDisputes = useCallback(async (reset: boolean = false) => {
     setDisputesLoading(true);
@@ -502,8 +636,9 @@ export default function AdminPage() {
     } else if (status === "authenticated") {
       fetchData();
       fetchReviewRequired(true);
+      fetchBookmarks();
     }
-  }, [status, router, fetchData, fetchReviewRequired]);
+  }, [status, router, fetchData, fetchReviewRequired, fetchBookmarks]);
 
   useEffect(() => {
     if (status !== "authenticated") {
@@ -517,10 +652,28 @@ export default function AdminPage() {
     };
   }, [status, fetchData]);
 
+  // Refetch when search changes
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSearch]);
+
+  // Cleanup search debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (status === "authenticated") {
       setReviewRequiredCursor(null);
+      reviewRequiredCursorRef.current = null;
       fetchReviewRequired(true);
     }
   }, [reviewTimeRange]);
@@ -658,6 +811,9 @@ export default function AdminPage() {
   // ─── Derived State ─────────────────────────────────────────────────────────
 
   const filteredReceipts = (receipts ?? []).filter((r) => {
+    if (bookmarkFilter && !bookmarkedReceiptIds.has(r?.id)) {
+      return false;
+    }
     if (filter === "all") return true;
     if (filter === "rejected") {
       return r?.verificationStatus === "rejected" || r?.verificationStatus === "flagged";
@@ -757,8 +913,18 @@ export default function AdminPage() {
             disabled={syncing}
             className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
-            <CloudDownload className={`h-4 w-4 ${syncing ? "animate-pulse" : ""}`} />
-            {t("syncNow")}
+            {(() => {
+              if (syncing) {
+                return <Loader2 className="h-4 w-4 animate-spin" />;
+              }
+              return <CloudDownload className="h-4 w-4" />;
+            })()}
+            {(() => {
+              if (syncing) {
+                return t("syncing");
+              }
+              return t("syncNow");
+            })()}
           </button>
         </div>
 
@@ -934,6 +1100,28 @@ export default function AdminPage() {
 
         {activeTab === "queue" && (
           <>
+            {/* Search Bar */}
+            <div className="mb-4">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                  className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+                />
+                {searchQuery.length > 0 && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:text-gray-600"
+                  >
+                    <XIcon className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Filter */}
             <div className="mb-6 flex items-center gap-4">
               <Filter className="h-5 w-5 text-gray-500" />
@@ -957,6 +1145,22 @@ export default function AdminPage() {
                     {item.label}
                   </button>
                 ))}
+                <button
+                  onClick={() => setBookmarkFilter(!bookmarkFilter)}
+                  className={`flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    bookmarkFilter
+                      ? "bg-kv-green/10 text-kv-green/90"
+                      : "bg-white text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  {(() => {
+                    if (bookmarkFilter) {
+                      return <BookmarkCheck className="h-4 w-4" />;
+                    }
+                    return <Bookmark className="h-4 w-4" />;
+                  })()}
+                  {t("filterBookmarked")}
+                </button>
               </div>
             </div>
 
@@ -975,6 +1179,7 @@ export default function AdminPage() {
                   <thead className="bg-gray-50 border-b">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipt")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("locationId")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("queuedAt")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("processedAt")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("confidence")}</th>
@@ -1009,6 +1214,7 @@ export default function AdminPage() {
                             </button>
                           </div>
                         </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 font-mono">{receipt.locationId || "—"}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{formatDate(receipt.queuedAt)}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{formatDate(receipt.processedAt)}</td>
                         <td className="px-4 py-3">
@@ -1040,6 +1246,31 @@ export default function AdminPage() {
                           <div className="flex items-center justify-end gap-1">
                             <button onClick={() => handleViewReceipt(receipt)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700" title={t("viewReceipt")}>
                               <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleToggleBookmark(receipt.id)}
+                              disabled={togglingBookmarkId === receipt.id}
+                              className={`rounded-lg p-2 disabled:opacity-50 ${
+                                bookmarkedReceiptIds.has(receipt.id)
+                                  ? "text-kv-green hover:bg-green-50"
+                                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                              }`}
+                              title={(() => {
+                                if (bookmarkedReceiptIds.has(receipt.id)) {
+                                  return t("removeBookmark");
+                                }
+                                return t("addBookmark");
+                              })()}
+                            >
+                              {(() => {
+                                if (togglingBookmarkId === receipt.id) {
+                                  return <Loader2 className="h-4 w-4 animate-spin" />;
+                                }
+                                if (bookmarkedReceiptIds.has(receipt.id)) {
+                                  return <BookmarkCheck className="h-4 w-4" />;
+                                }
+                                return <Bookmark className="h-4 w-4" />;
+                              })()}
                             </button>
                             <button onClick={() => handleDownload(receipt)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700" title={t("download")}>
                               <Download className="h-4 w-4" />
@@ -1105,6 +1336,22 @@ export default function AdminPage() {
                 </table>
               </div>
             )}
+            {queueHasMore && (
+              <div className="border-t px-4 py-3 text-center">
+                <button
+                  onClick={() => fetchData(false)}
+                  disabled={queueLoadingMore}
+                  className="text-sm font-medium text-kv-green hover:text-kv-green/80 disabled:opacity-50"
+                >
+                  {(() => {
+                    if (queueLoadingMore) {
+                      return <Loader2 className="inline h-4 w-4 animate-spin" />;
+                    }
+                    return t("loadMore");
+                  })()}
+                </button>
+              </div>
+            )}
           </>
         )}
 
@@ -1132,6 +1379,7 @@ export default function AdminPage() {
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipt")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("disputeReviewId")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("locationId")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("disputeDate")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("confidence")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("failureReason")}</th>
@@ -1163,6 +1411,7 @@ export default function AdminPage() {
                           </button>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700 font-mono">{dispute.reviewId}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 font-mono">{dispute.locationId || "—"}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{formatDate(dispute.createdAt)}</td>
                         <td className="px-4 py-3">
                           <span className={`text-sm font-medium ${getConfidenceColorClass(dispute.receipt?.ocrConfidence)}`}>
@@ -1386,6 +1635,13 @@ export default function AdminPage() {
                     <p className="font-medium text-gray-900">{selectedReceipt.user?.name || selectedReceipt.user?.email}</p>
                   </div>
 
+                  {selectedReceipt.locationId && (
+                    <div className="rounded-lg bg-gray-50 p-3">
+                      <p className="text-xs text-gray-500">{t("locationId")}</p>
+                      <p className="font-medium text-gray-900 font-mono text-sm">{selectedReceipt.locationId}</p>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <div className="rounded-lg bg-gray-50 p-3">
                       <p className="text-xs text-gray-500 flex items-center gap-1"><Calendar className="h-3 w-3" /> Date</p>
@@ -1427,12 +1683,65 @@ export default function AdminPage() {
                     </div>
                   )}
 
-                  {selectedReceipt.secondaryAnalysis && (
-                    <div className="rounded-lg bg-amber-50 p-3">
-                      <p className="text-xs font-medium text-amber-700 mb-1">{t("secondaryAnalysis")}</p>
-                      <p className="text-sm text-amber-900">{selectedReceipt.secondaryAnalysis}</p>
-                    </div>
-                  )}
+                  {selectedReceipt.secondaryAnalysis && (() => {
+                    try {
+                      const parsed = JSON.parse(selectedReceipt.secondaryAnalysis);
+                      const verdictLabels: Record<string, string> = {
+                        confirmed_rejection: t("verdictConfirmedRejection"),
+                        overturned_to_verified: t("verdictOverturnedToVerified"),
+                        requires_review: t("verdictRequiresReview"),
+                      };
+                      const verdictColors: Record<string, string> = {
+                        confirmed_rejection: "bg-red-100 text-red-800",
+                        overturned_to_verified: "bg-green-100 text-green-800",
+                        requires_review: "bg-amber-100 text-amber-800",
+                      };
+                      const verdictKey = parsed.verdict || "";
+                      return (
+                        <div className="rounded-lg bg-amber-50 p-3 space-y-2">
+                          <p className="text-xs font-medium text-amber-700 mb-1">{t("secondaryAnalysis")}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-gray-600">{t("secondaryVerdict")}:</span>
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${verdictColors[verdictKey] || "bg-gray-100 text-gray-800"}`}>
+                              {verdictLabels[verdictKey] || verdictKey}
+                            </span>
+                          </div>
+                          {parsed.reasoning && (
+                            <div>
+                              <span className="text-xs font-medium text-gray-600">{t("secondaryReasoning")}:</span>
+                              <p className="text-sm text-amber-900 mt-0.5">{parsed.reasoning}</p>
+                            </div>
+                          )}
+                          {parsed.confidence !== undefined && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-gray-600">{t("secondaryConfidence")}:</span>
+                              <span className="text-sm text-amber-900">{parsed.confidence}%</span>
+                            </div>
+                          )}
+                          {(parsed.extractedShopName || parsed.extractedDate || parsed.extractedAmount !== null) && (
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-amber-900">
+                              {parsed.extractedShopName && (
+                                <span><span className="text-xs font-medium text-gray-600">{t("secondaryExtractedShop")}:</span> {parsed.extractedShopName}</span>
+                              )}
+                              {parsed.extractedDate && (
+                                <span><span className="text-xs font-medium text-gray-600">{t("secondaryExtractedDate")}:</span> {parsed.extractedDate}</span>
+                              )}
+                              {parsed.extractedAmount !== null && parsed.extractedAmount !== undefined && (
+                                <span><span className="text-xs font-medium text-gray-600">{t("secondaryExtractedAmount")}:</span> €{parsed.extractedAmount}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    } catch {
+                      return (
+                        <div className="rounded-lg bg-amber-50 p-3">
+                          <p className="text-xs font-medium text-amber-700 mb-1">{t("secondaryAnalysis")}</p>
+                          <p className="text-sm text-amber-900">{selectedReceipt.secondaryAnalysis}</p>
+                        </div>
+                      );
+                    }
+                  })()}
 
                   <div className="flex gap-2 pt-4 border-t">
                     <button

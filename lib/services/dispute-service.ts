@@ -14,7 +14,11 @@ const ALLOWED_CONTENT_TYPES: ReadonlyArray<string> = [
   "image/png",
   "image/gif",
   "image/webp",
+  "image/heic",
+  "image/heif",
   "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 const MAX_FILE_NAME_LENGTH = 200;
 
@@ -524,4 +528,24 @@ function appendDisputeMarker(reasoning: string | null, reviewId: string): string
     return marker;
   }
   return `${reasoning} | ${marker}`;
+}
+
+/**
+ * Look up the original receipt ID linked to a review via ReceiptSyncState.
+ * Returns null if no sync state exists for the given reviewId.
+ */
+export async function findOriginalReceiptIdByReviewId(
+  database: PrismaClient,
+  reviewId: string
+): Promise<string | null> {
+  const syncState = await database.receiptSyncState.findUnique({
+    where: { reviewId },
+    select: { receiptId: true },
+  });
+
+  if (!syncState || !syncState.receiptId) {
+    return null;
+  }
+
+  return syncState.receiptId;
 }

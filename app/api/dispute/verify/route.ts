@@ -26,10 +26,15 @@ import {
 } from "@/lib/services/ocr-service";
 import {
   verifyDisputeReceipt,
+  findOriginalReceiptIdByReviewId,
   type DisputeOcrAdapter,
 } from "@/lib/services/dispute-service";
 import { resolveDisputeToken } from "@/lib/dispute/dispute-token-http";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
+import { sendNotification } from "@/lib/services/notification-service";
+import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
+import { resolveLocationLocaleWithFallback } from "@/lib/review-disable/kiyoh-location-client";
+import { sendDisputeVerifiedEmail, sendDisputeFinalRejectionEmail } from "@/lib/email/email-service";
 
 const verifyRequestSchema = z.object({
   token: z.string().min(1),
@@ -93,6 +98,45 @@ export async function POST(request: NextRequest) {
       receiptId: result.receipt.id,
       outcome: result.receipt.verificationStatus,
     });
+
+    const originalReceiptId = await findOriginalReceiptIdByReviewId(prisma, tokenResult.payload.reviewId);
+    if (originalReceiptId) {
+      recordAuditEvent("system", "dispute_processed", undefined, {
+        receiptId: originalReceiptId,
+        disputeReceiptId: result.receipt.id,
+        reviewId: tokenResult.payload.reviewId,
+        outcome: result.receipt.verificationStatus,
+      });
+    }
+
+    let notificationReceiptId = result.receipt.id;
+    if (originalReceiptId) {
+      notificationReceiptId = originalReceiptId;
+    }
+
+    sendNotification({
+      type: "dispute_received",
+      title: "New dispute received",
+      body: `A customer submitted a dispute for review ${tokenResult.payload.reviewId}. Outcome: ${result.receipt.verificationStatus}`,
+      metadata: {
+        receiptId: notificationReceiptId,
+        disputeReceiptId: result.receipt.id,
+        reviewId: tokenResult.payload.reviewId,
+        verificationStatus: result.receipt.verificationStatus,
+      },
+    });
+
+    // Send email notification based on dispute outcome
+    sendDisputeOutcomeEmail(
+      tokenResult.payload.reviewId,
+      tokenResult.payload.locationId,
+      tokenResult.payload.tenantId,
+      result.receipt.verificationStatus,
+      result.receipt.failureReason,
+      result.receipt.extractedShopName,
+      result.receipt.extractedDate,
+      result.receipt.extractedAmount
+    );
 
     return NextResponse.json(result.receipt);
   } catch (error) {
@@ -171,4 +215,119 @@ function toParsedOcrResult(input: {
     reasoning: input.reasoning,
     failureReason: input.failureReason as FailureReason | null,
   };
+}
+
+// ─── Dispute Outcome Email Helper ────────────────────────────────────────────
+
+function sendDisputeOutcomeEmail(
+  reviewId: string,
+  locationId: string | null,
+  tenantId: number | null,
+  verificationStatus: string,
+  failureReason: string | null,
+  extractedShopName: string | null,
+  extractedDate: string | null,
+  extractedAmount: number | null
+): void {
+  // Fire-and-forget: resolve email and send without blocking the response
+  resolveAndSendDisputeEmail(
+    reviewId,
+    locationId,
+    tenantId,
+    verificationStatus,
+    failureReason,
+    extractedShopName,
+    extractedDate,
+    extractedAmount
+  ).catch((error) => {
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = String(error);
+    }
+    logger.warn(
+      { reviewId, error: errorMessage },
+      "Unexpected error during dispute outcome email, skipping"
+    );
+  });
+}
+
+async function resolveAndSendDisputeEmail(
+  reviewId: string,
+  locationId: string | null,
+  tenantId: number | null,
+  verificationStatus: string,
+  failureReason: string | null,
+  extractedShopName: string | null,
+  extractedDate: string | null,
+  extractedAmount: number | null
+): Promise<void> {
+  let resolvedLocationId = "";
+  if (locationId) {
+    resolvedLocationId = locationId;
+  }
+  let resolvedTenantId = 0;
+  if (tenantId) {
+    resolvedTenantId = tenantId;
+  }
+
+  const emailResolution = await resolveReviewerEmail(reviewId, resolvedLocationId, resolvedTenantId);
+
+  if (!emailResolution.success || !emailResolution.email) {
+    logger.warn(
+      { reviewId, locationId, error: emailResolution.error },
+      "Could not resolve reviewer email, skipping dispute outcome notification"
+    );
+    return;
+  }
+
+  const recipientEmail = emailResolution.email;
+
+  let locale: string;
+  if (resolvedLocationId.length > 0) {
+    locale = await resolveLocationLocaleWithFallback(resolvedLocationId, resolvedTenantId);
+  } else {
+    locale = "en";
+  }
+
+  if (verificationStatus === "verified") {
+    const sendResult = await sendDisputeVerifiedEmail({
+      recipientEmail: recipientEmail,
+      locale: locale,
+      reviewId: reviewId,
+      tenantId: resolvedTenantId,
+      extractedShopName: extractedShopName,
+      extractedDate: extractedDate,
+      extractedAmount: extractedAmount,
+    });
+
+    if (!sendResult.success) {
+      logger.warn(
+        { reviewId, error: sendResult.error },
+        "Failed to send dispute verified email"
+      );
+    }
+  } else if (verificationStatus === "rejected") {
+    const DEFAULT_FAILURE_REASON = "VERIFICATION_FAILED";
+    let resolvedFailureReason = DEFAULT_FAILURE_REASON;
+    if (failureReason) {
+      resolvedFailureReason = failureReason;
+    }
+
+    const sendResult = await sendDisputeFinalRejectionEmail({
+      recipientEmail: recipientEmail,
+      locale: locale,
+      reviewId: reviewId,
+      tenantId: resolvedTenantId,
+      failureReason: resolvedFailureReason,
+    });
+
+    if (!sendResult.success) {
+      logger.warn(
+        { reviewId, error: sendResult.error },
+        "Failed to send dispute final rejection email"
+      );
+    }
+  }
 }

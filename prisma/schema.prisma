@@ -23,6 +23,7 @@ model User {
   adminActions  AdminAction[]
   accounts      Account[]
   comments      Comment[]
+  bookmarks     Bookmark[]
 }
 
 model Account {
@@ -51,9 +52,10 @@ model Receipt {
   
   // File info
   cloudStoragePath    String
+  previewStoragePath  String?   // converted preview image path (for HEIC, DOC, DOCX)
   isPublic            Boolean   @default(false)
   originalFilename    String
-  fileType            String    // "image" or "pdf"
+  fileType            String    // "image", "pdf", "heic", "doc", "docx"
   fileSize            Int
   
   // Archive
@@ -94,6 +96,9 @@ model Receipt {
 
   // Comments
   comments            Comment[]
+
+  // Bookmarks
+  bookmarks           Bookmark[]
 }
 
 model AdminAction {
@@ -209,9 +214,11 @@ model Notification {
   title     String
   body      String
   metadata  String?  @db.Text // JSON blob with action-specific context (receiptId, etc.)
+  userId    String?  // Target user — null means global (visible to all)
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@index([userId, createdAt])
 }
 
 model NotificationPreference {
@@ -237,4 +244,17 @@ model Comment {
 
   @@index([receiptId, createdAt])
   @@index([authorId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  receiptId String
+  receipt   Receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, receiptId])
+  @@index([userId])
+  @@index([receiptId])
 }

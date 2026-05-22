@@ -13,6 +13,7 @@ import {
   enableReviewManual,
 } from "@/lib/review-disable/review-disable-service";
 import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
+import { resolveLocationLocaleWithFallback } from "@/lib/review-disable/kiyoh-location-client";
 import { sendReviewDisableEmail } from "@/lib/email/email-service";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
@@ -48,7 +49,6 @@ const requestSchema = z.discriminatedUnion("action", [
 ]);
 
 const ADMIN_DISABLED_REASON = "ADMIN_DISABLED";
-const DEFAULT_EMAIL_LOCALE = "en";
 
 /**
  * Attempts to resolve the reviewer email and send a disable notification.
@@ -71,9 +71,11 @@ async function sendDisableNotification(
       return;
     }
 
+    const locale = await resolveLocationLocaleWithFallback(locationId, tenantId);
+
     const sendResult = await sendReviewDisableEmail({
       recipientEmail: emailResolution.email,
-      locale: DEFAULT_EMAIL_LOCALE,
+      locale: locale,
       reviewId: reviewId,
       locationId: locationId,
       tenantId: tenantId,

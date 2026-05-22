@@ -3,11 +3,14 @@ import { join } from "path";
 import { logger } from "@/lib/logger";
 import { SUPPORTED_LOCALES } from "@/lib/i18n-config";
 import type { SupportedLocale } from "@/lib/i18n-config";
-import type { DisableEmailTranslations } from "@/lib/email/email-templates";
+import type { DisableEmailTranslations, VerifiedEmailTranslations, FinalRejectionEmailTranslations } from "@/lib/email/email-templates";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TRANSLATION_NAMESPACE = "ReviewDisableEmail";
+const VERIFIED_NAMESPACE = "ReceiptVerifiedEmail";
+const DISPUTE_VERIFIED_NAMESPACE = "DisputeVerifiedEmail";
+const FINAL_REJECTION_NAMESPACE = "DisputeFinalRejectionEmail";
 const DEFAULT_LOCALE: SupportedLocale = "en";
 const MESSAGES_DIRECTORY = join(process.cwd(), "messages");
 
@@ -46,18 +49,54 @@ const TRANSLATION_KEYS: ReadonlyArray<keyof DisableEmailTranslations> = [
   "reasonLabel",
 ];
 
+const VERIFIED_TRANSLATION_KEYS: ReadonlyArray<keyof VerifiedEmailTranslations> = [
+  "subject",
+  "headerTagline",
+  "headerTitle",
+  "greeting",
+  "body",
+  "thankYou",
+  "signOff",
+  "teamName",
+  "termsButtonText",
+  "privacyButtonText",
+  "questionsLabel",
+  "shopLabel",
+  "dateLabel",
+  "amountLabel",
+];
+
+const FINAL_REJECTION_TRANSLATION_KEYS: ReadonlyArray<keyof FinalRejectionEmailTranslations> = [
+  "subject",
+  "headerTagline",
+  "headerTitle",
+  "greeting",
+  "body",
+  "reasonLabel",
+  "supportPrompt",
+  "signOff",
+  "teamName",
+  "termsButtonText",
+  "privacyButtonText",
+  "questionsLabel",
+];
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function isSupportedLocale(locale: string): locale is SupportedLocale {
   return SUPPORTED_LOCALES.includes(locale as SupportedLocale);
 }
 
-function loadMessagesForLocale(locale: string): Record<string, string> | null {
+function loadMessagesForLocale(locale: string, namespaceName?: string): Record<string, string> | null {
   const filePath = join(MESSAGES_DIRECTORY, `${locale}.json`);
+  let targetNamespace = TRANSLATION_NAMESPACE;
+  if (namespaceName) {
+    targetNamespace = namespaceName;
+  }
   try {
     const fileContent = readFileSync(filePath, "utf-8");
     const parsed = JSON.parse(fileContent);
-    const namespace = parsed[TRANSLATION_NAMESPACE];
+    const namespace = parsed[targetNamespace];
     if (!namespace) {
       return null;
     }
@@ -102,9 +141,12 @@ export function loadDisableEmailTranslations(
   }
 
   const failureReasonKey = FAILURE_REASON_KEY_MAP[failureReason];
-  const resolvedFailureReasonKey = failureReasonKey
-    ? failureReasonKey
-    : "failureVerificationFailed";
+  let resolvedFailureReasonKey: string;
+  if (failureReasonKey) {
+    resolvedFailureReasonKey = failureReasonKey;
+  } else {
+    resolvedFailureReasonKey = "failureVerificationFailed";
+  }
 
   const result: Record<string, string> = {};
   for (const key of TRANSLATION_KEYS) {
@@ -117,4 +159,81 @@ export function loadDisableEmailTranslations(
   );
 
   return result as unknown as DisableEmailTranslations;
+}
+
+export function loadVerifiedEmailTranslations(
+  locale: string,
+  namespace: "receipt" | "dispute"
+): VerifiedEmailTranslations {
+  let resolvedLocale: SupportedLocale;
+  if (isSupportedLocale(locale)) {
+    resolvedLocale = locale;
+  } else {
+    resolvedLocale = DEFAULT_LOCALE;
+  }
+
+  let namespaceName: string;
+  if (namespace === "receipt") {
+    namespaceName = VERIFIED_NAMESPACE;
+  } else {
+    namespaceName = DISPUTE_VERIFIED_NAMESPACE;
+  }
+
+  const localeMessages = loadMessagesForLocale(resolvedLocale, namespaceName);
+  let fallbackMessages: Record<string, string> | null = null;
+  if (resolvedLocale !== DEFAULT_LOCALE) {
+    fallbackMessages = loadMessagesForLocale(DEFAULT_LOCALE, namespaceName);
+  }
+
+  const result: Record<string, string> = {};
+  for (const key of VERIFIED_TRANSLATION_KEYS) {
+    result[key] = getTranslationValue(localeMessages, fallbackMessages, key);
+  }
+
+  return result as unknown as VerifiedEmailTranslations;
+}
+
+export function loadFinalRejectionEmailTranslations(
+  locale: string,
+  failureReason: string
+): FinalRejectionEmailTranslations & { readonly failureReasonText: string } {
+  let resolvedLocale: SupportedLocale;
+  if (isSupportedLocale(locale)) {
+    resolvedLocale = locale;
+  } else {
+    resolvedLocale = DEFAULT_LOCALE;
+  }
+
+  const localeMessages = loadMessagesForLocale(resolvedLocale, FINAL_REJECTION_NAMESPACE);
+  let fallbackMessages: Record<string, string> | null = null;
+  if (resolvedLocale !== DEFAULT_LOCALE) {
+    fallbackMessages = loadMessagesForLocale(DEFAULT_LOCALE, FINAL_REJECTION_NAMESPACE);
+  }
+
+  const failureReasonKey = FAILURE_REASON_KEY_MAP[failureReason];
+  let resolvedFailureReasonKey: string;
+  if (failureReasonKey) {
+    resolvedFailureReasonKey = failureReasonKey;
+  } else {
+    resolvedFailureReasonKey = "failureVerificationFailed";
+  }
+
+  const result: Record<string, string> = {};
+  for (const key of FINAL_REJECTION_TRANSLATION_KEYS) {
+    result[key] = getTranslationValue(localeMessages, fallbackMessages, key);
+  }
+
+  // Load failure reason text from the disable email namespace (shared failure reason strings)
+  const disableMessages = loadMessagesForLocale(resolvedLocale);
+  let disableFallback: Record<string, string> | null = null;
+  if (resolvedLocale !== DEFAULT_LOCALE) {
+    disableFallback = loadMessagesForLocale(DEFAULT_LOCALE);
+  }
+  result.failureReasonText = getTranslationValue(
+    disableMessages,
+    disableFallback,
+    resolvedFailureReasonKey
+  );
+
+  return result as unknown as FinalRejectionEmailTranslations & { readonly failureReasonText: string };
 }

@@ -8,6 +8,7 @@ export type NotificationType =
   | "receipt_requires_review"
   | "receipt_processed"
   | "review_disabled"
+  | "dispute_received"
   | "dispute_outcome"
   | "role_changed"
   | "comment_mention";
@@ -33,6 +34,7 @@ export interface CreateNotificationParams {
   title: string;
   body: string;
   metadata?: Record<string, unknown>;
+  userId?: string; // Target user — omit for global notifications
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -44,6 +46,7 @@ export const NOTIFICATION_TYPES: ReadonlyArray<NotificationType> = [
   "receipt_requires_review",
   "receipt_processed",
   "review_disabled",
+  "dispute_received",
   "dispute_outcome",
   "role_changed",
   "comment_mention",
@@ -71,12 +74,18 @@ async function handleNotification(params: CreateNotificationParams): Promise<voi
     serializedMetadata = JSON.stringify(params.metadata);
   }
 
+  let notificationUserId: string | null = null;
+  if (params.userId) {
+    notificationUserId = params.userId;
+  }
+
   await prisma.notification.create({
     data: {
       type: params.type,
       title: params.title,
       body: params.body,
       metadata: serializedMetadata,
+      userId: notificationUserId,
     },
   });
 
@@ -87,6 +96,37 @@ async function handleNotification(params: CreateNotificationParams): Promise<voi
 // ─── Email Delivery ──────────────────────────────────────────────────────────
 
 async function sendEmailsForNotification(params: CreateNotificationParams): Promise<void> {
+  // If notification targets a specific user, only check that user's preference
+  if (params.userId) {
+    const preference = await prisma.notificationPreference.findUnique({
+      where: { userId_type: { userId: params.userId, type: params.type } },
+    });
+
+    // Default channel is in_app, so only send email if explicitly set to "email"
+    if (!preference || preference.channel !== "email") {
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: params.userId },
+      select: { email: true, name: true },
+    });
+
+    if (!user) {
+      return;
+    }
+
+    sendSingleEmail(user.email, params.title, params.body).catch((error: unknown) => {
+      logger.warn(
+        { email: user.email, type: params.type, error },
+        "Failed to send notification email to user"
+      );
+    });
+
+    return;
+  }
+
+  // Global notification — email all users who have email preference for this type
   const emailPreferences = await prisma.notificationPreference.findMany({
     where: { type: params.type, channel: "email" },
     select: { userId: true },
@@ -214,9 +254,10 @@ export async function updateUserPreference(
 // ─── Notification Queries ────────────────────────────────────────────────────
 
 /**
- * Gets recent notifications from the global feed.
+ * Gets recent notifications visible to a specific user (global + targeted at them).
  */
 export async function getNotifications(
+  userId: string,
   options?: { limit?: number }
 ): Promise<ReadonlyArray<NotificationEntry>> {
   let limit = NOTIFICATIONS_PAGE_SIZE;
@@ -225,6 +266,12 @@ export async function getNotifications(
   }
 
   const notifications = await prisma.notification.findMany({
+    where: {
+      OR: [
+        { userId: null },
+        { userId },
+      ],
+    },
     orderBy: { createdAt: "desc" },
     take: limit,
   });
@@ -233,7 +280,8 @@ export async function getNotifications(
 }
 
 /**
- * Gets the count of notifications newer than the user's lastNotificationReadAt.
+ * Gets the count of notifications newer than the user's lastNotificationReadAt,
+ * filtered to only global notifications and those targeted at this user.
  */
 export async function getUnreadCount(userId: string): Promise<number> {
   const user = await prisma.user.findUnique({
@@ -241,7 +289,13 @@ export async function getUnreadCount(userId: string): Promise<number> {
     select: { lastNotificationReadAt: true },
   });
 
-  const whereClause: { createdAt?: { gt: Date } } = {};
+  const whereClause: Record<string, unknown> = {
+    OR: [
+      { userId: null },
+      { userId },
+    ],
+  };
+
   if (user?.lastNotificationReadAt) {
     whereClause.createdAt = { gt: user.lastNotificationReadAt };
   }

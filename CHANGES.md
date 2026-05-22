@@ -1,5 +1,237 @@
 # Changes
 
+## [130] Fix code review findings from 26.05.22-refinement-sprint
+
+**What**: Resolved all standards, security, stability, and general findings from the code review.
+**Decisions**:
+- Pinned heic-convert, mammoth, @types/heic-convert to exact versions
+- Added 100-char max-length guard on search parameter to prevent DoS via expensive LIKE queries
+- Replaced all ternaries and short-circuit tricks with if-else blocks per banned patterns
+- Merged duplicate SendDisputeVerifiedEmailParams into a type alias of SendVerifiedEmailParams
+- Removed dead `_fileType` and `_originalFilename` params from `buildOcrMessages`
+- Skip locale API call when locationId is empty (use "en" default directly)
+**Files**:
+- package.json
+- app/api/receipts/route.ts
+- app/api/admin/receipt-sync/trigger/route.ts
+- app/api/dispute/verify/route.ts
+- app/admin/page.tsx
+- lib/email/email-translations.ts
+- lib/email/email-service.ts
+- lib/file-conversion.ts
+- lib/queue/receipt-worker.ts
+- lib/services/ocr-service.ts
+- lib/services/upload-service.ts
+- lib/services/receipt-service.ts
+- lib/services/notification-service.ts
+- components/receipt-upload.tsx
+- tests/services/ocr-service.test.ts
+
+## [129] Add receipt search by review/location ID and bookmark feature
+
+**What**: Search bar on the admin dashboard filters receipts by review ID or location ID via ReceiptSyncState. Users can bookmark receipts for quick access with a dedicated filter toggle.
+**Decisions**:
+- Search queries ReceiptSyncState (contains reviewId/locationId) then fetches matching receipts — avoids denormalizing IDs onto Receipt
+- Bookmark model uses unique constraint on (userId, receiptId) with upsert for idempotency
+- Debounced search (400ms) resets cursor pagination on each new query
+- Bookmark filter is client-side on already-fetched receipts
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260601000010_add_bookmarks/migration.sql
+- lib/services/receipt-service.ts
+- app/api/receipts/route.ts
+- app/api/bookmarks/route.ts (new)
+- app/admin/page.tsx
+- messages/*.json (all 8 languages)
+
+## [128] Fetch location locale from Kiyoh API for email translations
+
+**What**: All transactional emails now use the location's configured locale (fetched from `GET v1/location?id={locationId}&tenantId={tenantId}`) instead of hardcoded English.
+**Why**: Customers of non-English locations were receiving emails in English regardless of their location's language setting.
+**Decisions**:
+- New `kiyoh-location-client.ts` follows the same pattern as `kiyoh-review-client.ts` (auth, tenant-based URL, never throws)
+- `resolveLocationLocaleWithFallback` always returns a usable locale string (falls back to "en")
+- Optional `KIYOH_LOCATION_API_URL` env var for URL override, otherwise auto-derived from tenantId
+**Files**:
+- lib/review-disable/kiyoh-location-client.ts (new)
+- lib/queue/receipt-worker.ts
+- lib/queue/review-disable-worker.ts
+- app/api/admin/reviews/disable/route.ts
+- app/api/dispute/verify/route.ts
+- .env.example
+
+## [127] Add receipt verified, dispute verified, and dispute final rejection emails
+
+**What**: Three new transactional emails: receipt verified (fires automatically from receipt worker), dispute verified (when dispute passes), and dispute final rejection (2nd rejection, no dispute button, shows support email).
+**Decisions**:
+- Reuses existing branded template structure (banner, logo, footer) with different body content
+- Final rejection email shows support email (marketing@kiyoh.co.za) instead of dispute button
+- Verified emails include extracted receipt details (shop, date, amount) when available
+- Dispute emails fire-and-forget from the verify route to avoid blocking the response
+- Failure reason text for final rejection reuses the existing `ReviewDisableEmail` namespace strings
+**Files**:
+- lib/email/email-templates.ts
+- lib/email/email-translations.ts
+- lib/email/email-service.ts
+- lib/queue/receipt-worker.ts
+- app/api/dispute/verify/route.ts
+- messages/*.json (all 8 languages)
+
+## [126] Simplify dispute page rejection response and rename escalation action
+
+**What**: Removed AI analysis (`ocrReasoning`) from the rejected state display and renamed "Request human review" to "Escalate ticket" across all 8 languages.
+**Why**: The OCR reasoning exposed AI internals to end users — only the failure reason matters. "Escalate ticket" is clearer and less robotic.
+**Files**:
+- components/dispute-uploader.tsx
+- messages/*.json (all 8 languages)
+
+## [125] Add HEIC, DOC, and DOCX file format support with preview conversion
+
+**What**: Files in HEIC (Apple), DOC, and DOCX formats are now accepted for upload, converted to viewable images for preview, and processed through the OCR pipeline.
+**Why**: Users uploading receipts from iPhones (HEIC) or exported from email/accounting software (DOC/DOCX) were blocked.
+**Decisions**:
+- HEIC→JPEG via `heic-convert` (pure JS, no native deps)
+- DOCX→PNG via `mammoth` text extraction + `@napi-rs/canvas` rendering
+- DOC→PDF via LibreOffice headless, then existing PDF→image pipeline
+- Converted preview stored in S3 (`previewStoragePath` field), served for browser display
+- LibreOffice added to Docker Alpine images for DOC support
+- Client-side validation uses extension fallback for browsers that misreport HEIC MIME type
+**Files**:
+- lib/file-conversion.ts (new)
+- lib/services/ocr-service.ts
+- lib/services/upload-service.ts
+- lib/services/dispute-service.ts
+- lib/services/receipt-service.ts
+- lib/queue/receipt-worker.ts
+- lib/s3.ts
+- components/receipt-upload.tsx
+- prisma/schema.prisma
+- prisma/migrations/20260601000009_add_preview_storage_path/migration.sql
+- Dockerfile
+- Dockerfile.worker
+
+## [124] Format secondary analysis display in receipt modal
+
+**What**: Replaced raw JSON dump with structured display showing verdict badge, reasoning, confidence, and extracted fields.
+**Why**: Raw JSON in the UI is poor UX — users need to quickly see the verdict and reasoning at a glance.
+**Files**:
+- app/admin/page.tsx
+- components/admin-receipt-card.tsx
+- messages/*.json (all 8 languages)
+
+## [123] Add Cache-Control headers to receipt API routes and refetch after sync
+
+**What**: Added `Cache-Control: no-store, no-cache, must-revalidate` to `/api/receipts` and `/api/admin/receipts` responses, and trigger a receipt list refetch after the sync spinner completes.
+**Why**: Browsers could heuristically cache fetch responses, causing stale receipt data until a hard refresh. The sync button also never refreshed the list.
+**Files**:
+- app/api/receipts/route.ts
+- app/api/admin/receipts/route.ts
+- app/admin/page.tsx
+
+## [122] Make sync trigger fire-and-forget with spinner feedback
+
+**What**: The "Sync Now" button no longer blocks until the full tick completes — the API returns immediately and the tick runs in the background.
+**Why**: `executeTick` can take many seconds; awaiting it made the button appear frozen with no meaningful progress indication.
+**Decisions**:
+- API route fires `executeTick()` without awaiting, catches errors via `.catch()` for logging
+- Button shows a `Loader2` spinner and "Syncing..." text for 3 seconds after triggering
+**Files**:
+- app/api/admin/receipt-sync/trigger/route.ts
+- app/admin/page.tsx
+- messages/*.json (all 8 languages)
+
+## [121] Show location ID on receipt queue table, dispute table, and receipt preview modal
+
+**What**: Added locationId display to the admin queue table rows, dispute table rows, and the receipt preview modal.
+**Decisions**:
+- locationId is fetched from ReceiptSyncState via a batch lookup after loading receipts (avoids N+1)
+- Displays as monospace text with "—" fallback when no sync state exists
+**Files**:
+- lib/services/receipt-service.ts
+- app/admin/page.tsx
+- tests/services/receipt-service.test.ts
+- tests/routes/receipts.test.ts
+- messages/*.json (all 8 languages)
+
+## [120] Add cursor-based pagination to admin receipts queue tab
+
+**What**: The queue tab now fetches receipts in pages of 20 with a "Load More" button, matching the pattern used by the review-required section.
+**Why**: `fetchData` was calling `/api/receipts` without pagination params, so only the first 15 receipts (the API default) ever loaded.
+**Files**:
+- app/admin/page.tsx
+
+## [119] Log dispute actions on original receipt activity timeline
+
+**What**: Dispute events (processed, human review requested, accept/reject) now appear in the original receipt's activity timeline by logging audit entries against the original receipt ID looked up via ReceiptSyncState.
+**Why**: Audit events were only logged against the new dispute receipt ID, which never matched when viewing the original receipt's timeline.
+**Decisions**:
+- Added `findOriginalReceiptIdByReviewId` helper that resolves reviewId → original receiptId via ReceiptSyncState
+- Audit events are logged on both the dispute receipt AND the original receipt (dual-write) so both timelines stay in sync
+- Added `dispute_human_review_requested` audit event to request-review route (previously had no audit logging)
+- Added `dispute_accept`/`dispute_reject` audit events to admin dispute PATCH handler
+- `getAuditLogsForReceipt` now matches entries where either `receiptId` or `originalReceiptId` equals the target
+**Files**:
+- lib/services/audit-log-service.ts
+- lib/services/dispute-service.ts
+- app/api/dispute/verify/route.ts
+- app/api/dispute/request-review/route.ts
+- app/api/admin/disputes/route.ts
+- components/comment-thread.tsx
+- messages/*.json (all 8 languages)
+
+## [118] Remove nested scrollbar from comments/activity timeline
+
+**What**: Removed `max-h-72 overflow-y-auto` from the timeline list container so it no longer creates a second scrollbar inside the panel.
+**Why**: The parent panel already handles scrolling — the inner constraint was redundant and caused a confusing double-scroll UX.
+**Files**:
+- components/comment-thread.tsx
+
+## [117] Add dispute_received notification type and clarify access model
+
+**What**: Added `dispute_received` notification type for incoming disputes. Clarified across steering docs and codebase that all features are available to all authenticated users — only system settings require admin role.
+**Decisions**:
+- Access model comment added to `lib/auth-options.ts` as the canonical reference for developers
+- Steering docs updated: product.md rewritten with explicit access model section, tech.md auth section expanded, structure.md annotations corrected
+- `dispute_received` notification fires as a global notification (no userId) so all users see it
+**Files**:
+- lib/services/notification-service.ts
+- app/api/dispute/verify/route.ts
+- lib/auth-options.ts
+- .kiro/steering/product.md
+- .kiro/steering/tech.md
+- .kiro/steering/structure.md
+- messages/*.json (all 8 languages)
+
+## [116] Separate requires_review from pending in volume analytics chart
+
+**What**: Added a distinct `requiresReview` field to volume data points so receipts awaiting human review no longer inflate the "pending" count in the analytics chart.
+**Why**: The catch-all `pending = total - verified - rejected` was including `requires_review` receipts, making it look like unprocessed receipts existed when all had actually been handled by AI.
+**Files**:
+- lib/services/analytics-service.ts
+- app/admin/analytics/page.tsx
+- tests/services/analytics-service.test.ts
+- messages/*.json (all 8 languages)
+
+## [115] Fix "Load More" in human review section resetting list back to page 1
+
+**What**: Moved the cursor for review-required pagination into a ref so the `fetchReviewRequired` callback identity stays stable and doesn't trigger the initial-load effect on every page fetch.
+**Why**: `reviewRequiredCursor` in the `useCallback` dep array caused the callback to be recreated on each load, which cascaded into the auth-status effect calling `fetchReviewRequired(true)` (a reset).
+
+## [114] Fix mention notifications leaking to all users instead of only the mentioned user
+
+**What**: Added `userId` field to the Notification model so mention notifications are targeted to the specific mentioned user rather than broadcast globally.
+**Why**: The notification system was originally designed for global broadcasts only — when comment mentions were added, they reused the same global path, causing all users (including admin) to see every mention notification.
+**Decisions**:
+- `userId` is nullable — null means global (existing behavior for system notifications)
+- `getNotifications` and `getUnreadCount` now filter: show global (userId=null) + user-targeted notifications
+- Email delivery for targeted notifications only checks the target user's preference, not all users
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260601000008_add_user_id_to_notification/migration.sql
+- lib/services/notification-service.ts
+- lib/services/comment-service.ts
+- app/api/notifications/route.ts
+
 ## [113] Fix missing messages directory in Docker images breaking email translations and dispute URLs
 
 **What**: Added `COPY --from=builder /app/messages ./messages` to all Docker targets (production, worker, staging) so email translations resolve at runtime instead of falling back to raw keys.

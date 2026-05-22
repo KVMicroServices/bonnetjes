@@ -27,6 +27,7 @@ export interface VolumeDataPoint {
   verified: number;
   rejected: number;
   pending: number;
+  requiresReview: number;
 }
 
 export interface AnalyticsMetrics {
@@ -220,9 +221,11 @@ function buildVolumeDataPoints(
     const verified = verifiedReceipts.length;
     const rejectedReceipts = bucketReceipts.filter((receipt) => receipt.verificationStatus === "rejected" || receipt.verificationStatus === "flagged");
     const rejected = rejectedReceipts.length;
-    const pending = total - verified - rejected;
+    const requiresReviewReceipts = bucketReceipts.filter((receipt) => receipt.verificationStatus === "requires_review");
+    const requiresReview = requiresReviewReceipts.length;
+    const pending = total - verified - rejected - requiresReview;
 
-    points.push({ label, total, verified, rejected, pending });
+    points.push({ label, total, verified, rejected, pending, requiresReview });
   }
 
   return points;
