@@ -1,5 +1,13 @@
 # Changes
 
+## [151] Fix dispute outcome emails firing on automated decisions
+
+**What**: Moved dispute outcome email sending from the automated OCR verify route to the admin moderation PATCH handler so emails only fire on manual moderator accept/reject.
+**Why**: Automated system was sending rejection/acceptance emails before a moderator reviewed the dispute.
+**Files**:
+- app/api/dispute/verify/route.ts
+- app/api/admin/disputes/route.ts
+
 ## [150] Make database seed env-driven
 
 **What**: Admin seed now reads email, password, and name from `ADMIN_SEED_*` env vars instead of hardcoded values. Update block now syncs password/name/role on re-run.

@@ -6,6 +6,9 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { recordAuditEvent } from "@/lib/services/audit-log-service";
+import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
+import { resolveLocationLocaleWithFallback } from "@/lib/review-disable/kiyoh-location-client";
+import { sendDisputeVerifiedEmail, sendDisputeFinalRejectionEmail } from "@/lib/email/email-service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -159,9 +162,150 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
+    const receipt = await prisma.receipt.findUnique({
+      where: { id: dispute.receiptId },
+      select: {
+        extractedShopName: true,
+        extractedDate: true,
+        extractedAmount: true,
+        failureReason: true,
+      },
+    });
+
+    sendDisputeOutcomeEmail(
+      dispute.reviewId,
+      dispute.locationId,
+      dispute.tenantId,
+      newStatus,
+      receipt?.failureReason || dispute.failureReason,
+      receipt?.extractedShopName || null,
+      receipt?.extractedDate || null,
+      receipt?.extractedAmount || null
+    );
+
     return NextResponse.json({ success: true, dispute: updatedDispute });
   } catch (error) {
     logger.error({ error }, "Admin dispute action error");
     return NextResponse.json({ error: "Failed to update dispute" }, { status: 500 });
+  }
+}
+
+// ─── Dispute Outcome Email Helper ────────────────────────────────────────────
+
+function sendDisputeOutcomeEmail(
+  reviewId: string,
+  locationId: string | null,
+  tenantId: number | null,
+  verificationStatus: string,
+  failureReason: string | null,
+  extractedShopName: string | null,
+  extractedDate: Date | null,
+  extractedAmount: number | null
+): void {
+  resolveAndSendDisputeEmail(
+    reviewId,
+    locationId,
+    tenantId,
+    verificationStatus,
+    failureReason,
+    extractedShopName,
+    extractedDate,
+    extractedAmount
+  ).catch((error) => {
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = String(error);
+    }
+    logger.warn(
+      { reviewId, error: errorMessage },
+      "Unexpected error during dispute outcome email, skipping"
+    );
+  });
+}
+
+async function resolveAndSendDisputeEmail(
+  reviewId: string,
+  locationId: string | null,
+  tenantId: number | null,
+  verificationStatus: string,
+  failureReason: string | null,
+  extractedShopName: string | null,
+  extractedDate: Date | null,
+  extractedAmount: number | null
+): Promise<void> {
+  let resolvedLocationId = "";
+  if (locationId) {
+    resolvedLocationId = locationId;
+  }
+  let resolvedTenantId = 0;
+  if (tenantId) {
+    resolvedTenantId = tenantId;
+  }
+
+  const emailResolution = await resolveReviewerEmail(reviewId, resolvedLocationId, resolvedTenantId);
+
+  if (!emailResolution.success || !emailResolution.email) {
+    logger.warn(
+      { reviewId, locationId, error: emailResolution.error },
+      "Could not resolve reviewer email, skipping dispute outcome notification"
+    );
+    return;
+  }
+
+  const recipientEmail = emailResolution.email;
+
+  let locale: string;
+  if (resolvedLocationId.length > 0) {
+    locale = await resolveLocationLocaleWithFallback(resolvedLocationId, resolvedTenantId);
+  } else {
+    locale = "en";
+  }
+
+  if (verificationStatus === "verified") {
+    let extractedDateString: string | null = null;
+    if (extractedDate) {
+      const isoString = extractedDate.toISOString();
+      extractedDateString = isoString.split("T")[0];
+    }
+
+    const sendResult = await sendDisputeVerifiedEmail({
+      recipientEmail: recipientEmail,
+      locale: locale,
+      reviewId: reviewId,
+      tenantId: resolvedTenantId,
+      extractedShopName: extractedShopName,
+      extractedDate: extractedDateString,
+      extractedAmount: extractedAmount,
+    });
+
+    if (!sendResult.success) {
+      logger.warn(
+        { reviewId, error: sendResult.error },
+        "Failed to send dispute verified email"
+      );
+    }
+  } else if (verificationStatus === "rejected") {
+    const DEFAULT_FAILURE_REASON = "VERIFICATION_FAILED";
+    let resolvedFailureReason = DEFAULT_FAILURE_REASON;
+    if (failureReason) {
+      resolvedFailureReason = failureReason;
+    }
+
+    const sendResult = await sendDisputeFinalRejectionEmail({
+      recipientEmail: recipientEmail,
+      locale: locale,
+      reviewId: reviewId,
+      tenantId: resolvedTenantId,
+      failureReason: resolvedFailureReason,
+    });
+
+    if (!sendResult.success) {
+      logger.warn(
+        { reviewId, error: sendResult.error },
+        "Failed to send dispute final rejection email"
+      );
+    }
   }
 }
