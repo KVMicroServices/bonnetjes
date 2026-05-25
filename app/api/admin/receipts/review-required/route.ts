@@ -61,8 +61,26 @@ export async function GET(request: NextRequest) {
 
     const nextCursor = hasMore ? receipts[receipts.length - 1].id : null;
 
+    // Enrich with locationId from ReceiptSyncState
+    const receiptIds = receipts.map((receipt) => receipt.id);
+    const syncStates = await prisma.receiptSyncState.findMany({
+      where: { receiptId: { in: receiptIds } },
+      select: { receiptId: true, locationId: true },
+    });
+    const locationIdMap = new Map(
+      syncStates.map((state) => [state.receiptId, state.locationId])
+    );
+
+    const enrichedReceipts = receipts.map((receipt) => {
+      const locationId = locationIdMap.get(receipt.id);
+      return {
+        ...receipt,
+        locationId: locationId || null,
+      };
+    });
+
     return NextResponse.json({
-      receipts,
+      receipts: enrichedReceipts,
       nextCursor,
       hasMore,
     });

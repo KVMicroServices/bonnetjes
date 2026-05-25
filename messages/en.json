@@ -243,6 +243,7 @@
     "aiAnalysis": "AI Analysis",
     "searchPlaceholder": "Search by review ID or location ID...",
     "filterBookmarked": "Bookmarked",
+    "filterWhitelisted": "Whitelisted Locations",
     "addBookmark": "Bookmark this receipt",
     "removeBookmark": "Remove bookmark",
     "bookmarkAdded": "Bookmarked",

@@ -243,6 +243,7 @@
     "failedToLoadPreview": "Échec du chargement de l'aperçu",
     "searchPlaceholder": "Rechercher par ID d'avis ou ID de lieu...",
     "filterBookmarked": "Favoris",
+    "filterWhitelisted": "Lieux autorisés",
     "addBookmark": "Ajouter aux favoris",
     "removeBookmark": "Retirer des favoris",
     "bookmarkAdded": "Ajouté aux favoris",

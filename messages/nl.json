@@ -243,6 +243,7 @@
     "failedToLoadPreview": "Voorbeeld laden mislukt",
     "searchPlaceholder": "Zoek op review-ID of locatie-ID...",
     "filterBookmarked": "Bladwijzers",
+    "filterWhitelisted": "Goedgekeurde locaties",
     "addBookmark": "Bon als bladwijzer opslaan",
     "removeBookmark": "Bladwijzer verwijderen",
     "bookmarkAdded": "Bladwijzer toegevoegd",

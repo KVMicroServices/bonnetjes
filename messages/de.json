@@ -243,6 +243,7 @@
     "failedToLoadPreview": "Vorschau konnte nicht geladen werden",
     "searchPlaceholder": "Suche nach Review-ID oder Standort-ID...",
     "filterBookmarked": "Lesezeichen",
+    "filterWhitelisted": "Freigegebene Standorte",
     "addBookmark": "Beleg als Lesezeichen speichern",
     "removeBookmark": "Lesezeichen entfernen",
     "bookmarkAdded": "Lesezeichen gesetzt",

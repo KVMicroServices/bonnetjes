@@ -243,6 +243,7 @@
     "failedToLoadPreview": "Error al cargar la vista previa",
     "searchPlaceholder": "Buscar por ID de reseña o ID de ubicación...",
     "filterBookmarked": "Marcados",
+    "filterWhitelisted": "Ubicaciones autorizadas",
     "addBookmark": "Marcar este recibo",
     "removeBookmark": "Quitar marcador",
     "bookmarkAdded": "Marcado",

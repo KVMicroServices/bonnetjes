@@ -1,5 +1,17 @@
 # Changes
 
+## [152] Add whitelist location filter to review queue and human review required
+
+**What**: Added a toggle filter button on both the main review queue and the human review required section that shows only receipts linked to locations in the auto-disable whitelist.
+**Decisions**:
+- Filter only appears when the whitelist has entries (empty whitelist = no button)
+- Review-required API now enriches receipts with locationId from ReceiptSyncState
+- Client-side filtering to avoid extra API complexity
+**Files**:
+- app/admin/page.tsx
+- app/api/admin/receipts/review-required/route.ts
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
 ## [151] Fix dispute outcome emails firing on automated decisions
 
 **What**: Moved dispute outcome email sending from the automated OCR verify route to the admin moderation PATCH handler so emails only fire on manual moderator accept/reject.

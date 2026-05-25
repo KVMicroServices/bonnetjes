@@ -232,6 +232,11 @@ export default function AdminPage() {
   const [bookmarkFilter, setBookmarkFilter] = useState(false);
   const [togglingBookmarkId, setTogglingBookmarkId] = useState<string | null>(null);
 
+  // Whitelist filter state
+  const [whitelistedLocationIds, setWhitelistedLocationIds] = useState<Set<string>>(new Set());
+  const [whitelistFilter, setWhitelistFilter] = useState(false);
+  const [reviewRequiredWhitelistFilter, setReviewRequiredWhitelistFilter] = useState(false);
+
   const isAdmin = (session?.user as any)?.role === "admin";
 
   // ─── Time Range Helpers ──────────────────────────────────────────────────────
@@ -292,6 +297,19 @@ export default function AdminPage() {
       }
     } catch (error) {
       clientLogger.error({ error }, "Failed to fetch bookmarks");
+    }
+  }, []);
+
+  const fetchWhitelist = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/settings");
+      if (response.ok) {
+        const data = await response.json();
+        const whitelist: string[] = data.autoDisableLocationWhitelist || [];
+        setWhitelistedLocationIds(new Set(whitelist));
+      }
+    } catch (error) {
+      clientLogger.error({ error }, "Failed to fetch whitelist");
     }
   }, []);
 
@@ -637,8 +655,9 @@ export default function AdminPage() {
       fetchData();
       fetchReviewRequired(true);
       fetchBookmarks();
+      fetchWhitelist();
     }
-  }, [status, router, fetchData, fetchReviewRequired, fetchBookmarks]);
+  }, [status, router, fetchData, fetchReviewRequired, fetchBookmarks, fetchWhitelist]);
 
   useEffect(() => {
     if (status !== "authenticated") {
@@ -814,11 +833,25 @@ export default function AdminPage() {
     if (bookmarkFilter && !bookmarkedReceiptIds.has(r?.id)) {
       return false;
     }
+    if (whitelistFilter) {
+      if (!r?.locationId || !whitelistedLocationIds.has(r.locationId)) {
+        return false;
+      }
+    }
     if (filter === "all") return true;
     if (filter === "rejected") {
       return r?.verificationStatus === "rejected" || r?.verificationStatus === "flagged";
     }
     return r?.verificationStatus === filter;
+  });
+
+  const filteredReviewRequired = reviewRequiredReceipts.filter((r) => {
+    if (reviewRequiredWhitelistFilter) {
+      if (!r?.locationId || !whitelistedLocationIds.has(r.locationId)) {
+        return false;
+      }
+    }
+    return true;
   });
 
   const formatDate = (dateString: string | null) => {
@@ -940,7 +973,22 @@ export default function AdminPage() {
                 </span>
               )}
             </div>
-            <TimeRangeFilter value={reviewTimeRange} onChange={setReviewTimeRange} />
+            <div className="flex items-center gap-3">
+              <TimeRangeFilter value={reviewTimeRange} onChange={setReviewTimeRange} />
+              {whitelistedLocationIds.size > 0 && (
+                <button
+                  onClick={() => setReviewRequiredWhitelistFilter(!reviewRequiredWhitelistFilter)}
+                  className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    reviewRequiredWhitelistFilter
+                      ? "bg-kv-green/10 text-kv-green/90"
+                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-100"
+                  }`}
+                >
+                  <Filter className="h-3.5 w-3.5" />
+                  {t("filterWhitelisted")}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="max-h-[400px] overflow-y-auto">
@@ -948,7 +996,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
               </div>
-            ) : reviewRequiredReceipts.length === 0 ? (
+            ) : filteredReviewRequired.length === 0 ? (
               <div className="py-12 text-center">
                 <CheckCircle className="mx-auto mb-3 h-10 w-10 text-green-400" />
                 <p className="text-sm font-medium text-gray-700">{t("noReviewRequired")}</p>
@@ -966,7 +1014,7 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {reviewRequiredReceipts.map((receipt) => (
+                  {filteredReviewRequired.map((receipt) => (
                     <tr key={receipt.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
                         <button
@@ -1161,6 +1209,19 @@ export default function AdminPage() {
                   })()}
                   {t("filterBookmarked")}
                 </button>
+                {whitelistedLocationIds.size > 0 && (
+                  <button
+                    onClick={() => setWhitelistFilter(!whitelistFilter)}
+                    className={`flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      whitelistFilter
+                        ? "bg-kv-green/10 text-kv-green/90"
+                        : "bg-white text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Filter className="h-4 w-4" />
+                    {t("filterWhitelisted")}
+                  </button>
+                )}
               </div>
             </div>
 

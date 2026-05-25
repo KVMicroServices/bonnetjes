@@ -243,6 +243,7 @@
     "failedToLoadPreview": "Kon nie voorskou laai nie",
     "searchPlaceholder": "Soek op resensie-ID of ligging-ID...",
     "filterBookmarked": "Boekmerk",
+    "filterWhitelisted": "Goedgekeurde liggings",
     "addBookmark": "Boekmerk hierdie kwitansie",
     "removeBookmark": "Verwyder boekmerk",
     "bookmarkAdded": "Boekmerk bygevoeg",
