@@ -1,5 +1,20 @@
 # Changes
 
+## [150] Make database seed env-driven
+
+**What**: Admin seed now reads email, password, and name from `ADMIN_SEED_*` env vars instead of hardcoded values. Update block now syncs password/name/role on re-run.
+**Why**: Changing admin credentials required editing source code; now it's config-only.
+**Files**:
+- scripts/seed.ts
+- .env.example
+
+## [149] Add retry-on-401 to Kiyoh reviewer email resolution
+
+**What**: When the Kiyoh review list API returns 401 (expired/invalidated token), the code now invalidates the cached token and retries once with a fresh authentication.
+**Why**: Cached tokens could become stale server-side before the 25-minute local TTL, causing dispute outcome emails to be silently skipped.
+**Files**:
+- lib/review-disable/kiyoh-review-client.ts
+
 ## [148] Fix review findings from 26.05.22.2-verification-criteria-adjuster
 
 **What**: Resolved all findings from code review — banned patterns (ternaries, short-circuits, double negation, magic string), two stability bugs (cached rejected seeding promise, deleteOverride crash on missing record), and two logic bugs (failure reason filtering inconsistency in streaming/dispute routes).

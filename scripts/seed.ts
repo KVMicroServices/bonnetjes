@@ -3,43 +3,42 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+const ADMIN_EMAIL = process.env.ADMIN_SEED_EMAIL;
+const ADMIN_PASSWORD = process.env.ADMIN_SEED_PASSWORD;
+const ADMIN_NAME = process.env.ADMIN_SEED_NAME || "Admin";
+
 async function main() {
   console.log("Seeding database...");
 
-  // Create admin user
-  const adminPassword = await bcrypt.hash("K@ntG3ssD0e!@#$", 10);
-  const admin = await prisma.user.upsert({
-    where: { email: "john@doe.com" },
-    update: {},
-    create: {
-      email: "john@doe.com",
-      name: "John Doe",
-      password: adminPassword,
-      role: "admin"
-    }
-  });
-  console.log("Admin user created:", admin.email);
+  if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+    console.error("Missing required env vars: ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD");
+    process.exit(1);
+  }
 
-  // Create a sample regular user
-  const userPassword = await bcrypt.hash("T3stUs0r$#@!", 10);
-  const user = await prisma.user.upsert({
-    where: { email: "test@user.com" },
-    update: {},
+  const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
+
+  const admin = await prisma.user.upsert({
+    where: { email: ADMIN_EMAIL },
+    update: {
+      name: ADMIN_NAME,
+      password: hashedPassword,
+      role: "admin",
+    },
     create: {
-      email: "test@user.com",
-      name: "Test User",
-      password: userPassword,
-      role: "user"
-    }
+      email: ADMIN_EMAIL,
+      name: ADMIN_NAME,
+      password: hashedPassword,
+      role: "admin",
+    },
   });
-  console.log("Test user created:", user.email);
+  console.log("Admin user seeded:", admin.email);
 
   console.log("Seeding completed!");
 }
 
 main()
-  .catch((e) => {
-    console.error("Seeding error:", e);
+  .catch((error) => {
+    console.error("Seeding error:", error);
     process.exit(1);
   })
   .finally(async () => {
