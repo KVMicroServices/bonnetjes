@@ -1,5 +1,6 @@
 import { Queue } from "bullmq";
 import { getRedisConnection } from "./connection";
+import { prisma } from "@/lib/db";
 
 // ─── Queue Names ─────────────────────────────────────────────────────────────
 
@@ -58,6 +59,11 @@ export async function enqueueReceiptProcessing(
   userId: string
 ): Promise<string> {
   const queue = getReceiptProcessingQueue();
+
+  await prisma.receipt.update({
+    where: { id: receiptId },
+    data: { queuedAt: new Date() },
+  });
 
   const job = await queue.add(
     "process-receipt",

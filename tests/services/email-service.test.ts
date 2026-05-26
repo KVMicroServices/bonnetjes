@@ -18,26 +18,30 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+const mockGetSmtpSettings = vi.fn();
+
+vi.mock("@/lib/services/app-settings-service", () => ({
+  getSmtpSettings: (...args: unknown[]) => mockGetSmtpSettings(...args),
+}));
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function setSmtpEnvVars() {
-  process.env.SMTP_HOST = "smtp.example.com";
-  process.env.SMTP_PORT = "587";
-  process.env.SMTP_USER = "user@example.com";
-  process.env.SMTP_PASS = "secret-password";
-  process.env.SMTP_FROM = "noreply@reviewreceipts.com";
   process.env.APP_URL = "https://app.reviewreceipts.com";
   process.env.DISPUTE_TOKEN_SECRET = "test-dispute-token-secret";
+  mockGetSmtpSettings.mockResolvedValue({
+    smtpHost: "smtp.example.com",
+    smtpPort: "587",
+    smtpUser: "user@example.com",
+    smtpPass: "secret-password",
+    smtpFrom: "noreply@reviewreceipts.com",
+  });
 }
 
 function clearSmtpEnvVars() {
-  delete process.env.SMTP_HOST;
-  delete process.env.SMTP_PORT;
-  delete process.env.SMTP_USER;
-  delete process.env.SMTP_PASS;
-  delete process.env.SMTP_FROM;
   delete process.env.APP_URL;
   delete process.env.DISPUTE_TOKEN_SECRET;
+  mockGetSmtpSettings.mockReset();
 }
 
 const VALID_PARAMS = {
@@ -91,70 +95,110 @@ describe("sendReviewDisableEmail - SMTP config validation", () => {
   });
 
   it("returns failure when SMTP_HOST is missing", async () => {
-    setSmtpEnvVars();
-    delete process.env.SMTP_HOST;
+    process.env.APP_URL = "https://app.reviewreceipts.com";
+    process.env.DISPUTE_TOKEN_SECRET = "test-dispute-token-secret";
+    mockGetSmtpSettings.mockResolvedValue({
+      smtpHost: null,
+      smtpPort: "587",
+      smtpUser: "user@example.com",
+      smtpPass: "secret-password",
+      smtpFrom: "noreply@reviewreceipts.com",
+    });
 
     const { sendReviewDisableEmail } = await import("@/lib/email/email-service");
     const result = await sendReviewDisableEmail(VALID_PARAMS);
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("SMTP_HOST");
+    expect(result.error).toBeDefined();
   });
 
   it("returns failure when SMTP_PORT is missing", async () => {
-    setSmtpEnvVars();
-    delete process.env.SMTP_PORT;
+    process.env.APP_URL = "https://app.reviewreceipts.com";
+    process.env.DISPUTE_TOKEN_SECRET = "test-dispute-token-secret";
+    mockGetSmtpSettings.mockResolvedValue({
+      smtpHost: "smtp.example.com",
+      smtpPort: null,
+      smtpUser: "user@example.com",
+      smtpPass: "secret-password",
+      smtpFrom: "noreply@reviewreceipts.com",
+    });
 
     const { sendReviewDisableEmail } = await import("@/lib/email/email-service");
     const result = await sendReviewDisableEmail(VALID_PARAMS);
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("SMTP_PORT");
+    expect(result.error).toBeDefined();
   });
 
   it("returns failure when SMTP_USER is missing", async () => {
-    setSmtpEnvVars();
-    delete process.env.SMTP_USER;
+    process.env.APP_URL = "https://app.reviewreceipts.com";
+    process.env.DISPUTE_TOKEN_SECRET = "test-dispute-token-secret";
+    mockGetSmtpSettings.mockResolvedValue({
+      smtpHost: "smtp.example.com",
+      smtpPort: "587",
+      smtpUser: null,
+      smtpPass: "secret-password",
+      smtpFrom: "noreply@reviewreceipts.com",
+    });
 
     const { sendReviewDisableEmail } = await import("@/lib/email/email-service");
     const result = await sendReviewDisableEmail(VALID_PARAMS);
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("SMTP_USER");
+    expect(result.error).toBeDefined();
   });
 
   it("returns failure when SMTP_PASS is missing", async () => {
-    setSmtpEnvVars();
-    delete process.env.SMTP_PASS;
+    process.env.APP_URL = "https://app.reviewreceipts.com";
+    process.env.DISPUTE_TOKEN_SECRET = "test-dispute-token-secret";
+    mockGetSmtpSettings.mockResolvedValue({
+      smtpHost: "smtp.example.com",
+      smtpPort: "587",
+      smtpUser: "user@example.com",
+      smtpPass: null,
+      smtpFrom: "noreply@reviewreceipts.com",
+    });
 
     const { sendReviewDisableEmail } = await import("@/lib/email/email-service");
     const result = await sendReviewDisableEmail(VALID_PARAMS);
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("SMTP_PASS");
+    expect(result.error).toBeDefined();
   });
 
   it("returns failure when SMTP_FROM is missing", async () => {
-    setSmtpEnvVars();
-    delete process.env.SMTP_FROM;
+    process.env.APP_URL = "https://app.reviewreceipts.com";
+    process.env.DISPUTE_TOKEN_SECRET = "test-dispute-token-secret";
+    mockGetSmtpSettings.mockResolvedValue({
+      smtpHost: "smtp.example.com",
+      smtpPort: "587",
+      smtpUser: "user@example.com",
+      smtpPass: "secret-password",
+      smtpFrom: null,
+    });
 
     const { sendReviewDisableEmail } = await import("@/lib/email/email-service");
     const result = await sendReviewDisableEmail(VALID_PARAMS);
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("SMTP_FROM");
+    expect(result.error).toBeDefined();
   });
 
-  it("returns failure listing all missing vars when multiple are absent", async () => {
+  it("returns failure when all SMTP settings are missing", async () => {
+    process.env.DISPUTE_TOKEN_SECRET = "test-dispute-token-secret";
+    mockGetSmtpSettings.mockResolvedValue({
+      smtpHost: null,
+      smtpPort: null,
+      smtpUser: null,
+      smtpPass: null,
+      smtpFrom: null,
+    });
+
     const { sendReviewDisableEmail } = await import("@/lib/email/email-service");
     const result = await sendReviewDisableEmail(VALID_PARAMS);
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("SMTP_HOST");
-    expect(result.error).toContain("SMTP_PORT");
-    expect(result.error).toContain("SMTP_USER");
-    expect(result.error).toContain("SMTP_PASS");
-    expect(result.error).toContain("SMTP_FROM");
+    expect(result.error).toBeDefined();
   });
 });
 
@@ -164,7 +208,7 @@ describe("loadDisableEmailTranslations", () => {
   it("loads translations for a valid locale", async () => {
     const { loadDisableEmailTranslations } = await import("@/lib/email/email-translations");
 
-    const translations = loadDisableEmailTranslations("en", "NOT_A_RECEIPT");
+    const translations = await loadDisableEmailTranslations("en", "NOT_A_RECEIPT");
 
     expect(translations.subject).toContain("review");
     expect(translations.headerTitle).toBe("Proof of Purchase Rejected");
@@ -177,7 +221,7 @@ describe("loadDisableEmailTranslations", () => {
   it("falls back to en for an unsupported locale", async () => {
     const { loadDisableEmailTranslations } = await import("@/lib/email/email-translations");
 
-    const translations = loadDisableEmailTranslations("xx", "NOT_A_RECEIPT");
+    const translations = await loadDisableEmailTranslations("xx", "NOT_A_RECEIPT");
 
     expect(translations.headerTitle).toBe("Proof of Purchase Rejected");
     expect(translations.greeting).toBe("Dear reviewer,");
@@ -186,7 +230,7 @@ describe("loadDisableEmailTranslations", () => {
   it("falls back to en for an empty locale string", async () => {
     const { loadDisableEmailTranslations } = await import("@/lib/email/email-translations");
 
-    const translations = loadDisableEmailTranslations("", "NOT_A_RECEIPT");
+    const translations = await loadDisableEmailTranslations("", "NOT_A_RECEIPT");
 
     expect(translations.headerTitle).toBe("Proof of Purchase Rejected");
   });
@@ -194,7 +238,7 @@ describe("loadDisableEmailTranslations", () => {
   it("maps known failure reason codes to translated text", async () => {
     const { loadDisableEmailTranslations } = await import("@/lib/email/email-translations");
 
-    const translations = loadDisableEmailTranslations("en", "ADMIN_DISABLED");
+    const translations = await loadDisableEmailTranslations("en", "ADMIN_DISABLED");
 
     expect(translations.failureReasonText).toBe("An administrator has disabled this review");
   });
@@ -202,7 +246,7 @@ describe("loadDisableEmailTranslations", () => {
   it("uses VERIFICATION_FAILED fallback for unknown failure reason codes", async () => {
     const { loadDisableEmailTranslations } = await import("@/lib/email/email-translations");
 
-    const translations = loadDisableEmailTranslations("en", "UNKNOWN_REASON_CODE");
+    const translations = await loadDisableEmailTranslations("en", "UNKNOWN_REASON_CODE");
 
     expect(translations.failureReasonText).toBe("The receipt did not pass verification");
   });

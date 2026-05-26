@@ -6,17 +6,13 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { disableReviewByReceiptId } from "@/lib/review-disable/review-disable-service";
+import { isAutoDisableEnabled, isLocationAllowedForAutoDisable } from "@/lib/services/app-settings-service";
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const isAdmin = (session.user as any).role === "admin";
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
     const receipts = await prisma.receipt.findMany({
@@ -26,7 +22,9 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json(receipts);
+    const response = NextResponse.json(receipts);
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    return response;
   } catch (error) {
     logger.error({ error }, "Admin receipts error");
     return NextResponse.json({ error: "Failed to fetch receipts" }, { status: 500 });
@@ -39,10 +37,6 @@ export async function PATCH(request: Request) {
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const isAdmin = (session.user as any).role === "admin";
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
 
     const { id, verificationStatus } = await request.json();
     const updated = await prisma.receipt.update({
@@ -51,11 +45,24 @@ export async function PATCH(request: Request) {
     });
 
     // Check if auto-disable is enabled and receipt was rejected
-    const autoDisableEnabled = process.env.RECEIPT_AUTO_DISABLE_ENABLED === "true";
+    const autoDisableEnabled = await isAutoDisableEnabled();
     if (autoDisableEnabled && verificationStatus === "rejected") {
-      disableReviewByReceiptId(id).catch((error) => {
-        logger.error({ error, receiptId: id }, "Auto-disable review failed (non-blocking)");
+      const syncState = await prisma.receiptSyncState.findFirst({
+        where: { receiptId: id },
+        select: { reviewId: true, locationId: true },
       });
+      const canDisableReview = syncState !== null;
+
+      if (canDisableReview) {
+        const locationAllowed = await isLocationAllowedForAutoDisable(syncState.locationId);
+        if (locationAllowed) {
+          disableReviewByReceiptId(id).catch((error) => {
+            logger.error({ error, receiptId: id }, "Auto-disable review failed (non-blocking)");
+          });
+        }
+      }
+
+      return NextResponse.json({ ...updated, canDisableReview });
     }
 
     // Check if a linked ReceiptSyncState exists for this receipt

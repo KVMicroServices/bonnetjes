@@ -2,43 +2,42 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Header } from "@/components/header";
 import {
   Shield,
   Receipt,
-  Users,
   AlertTriangle,
   CheckCircle,
   XCircle,
   Clock,
   Filter,
   Loader2,
-  BarChart3,
   Copy,
   Download,
   Eye,
   Check,
   X as XIcon,
-  Flag,
   Calendar,
   DollarSign,
   User,
   FileText,
   ChevronLeft,
   ChevronRight,
-  ThumbsUp,
-  ThumbsDown,
   Mail,
   CloudDownload,
-  Ban,
-  ChevronDown,
-  Power
+  Power,
+  Scale,
+  Search,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
+import { CommentThread } from "@/components/comment-thread";
+import { clientLogger } from "@/lib/client-logger";
 
 const REJECTION_EMAIL_TEMPLATE = `Beste heer/mevrouw,
 
@@ -67,6 +66,50 @@ Wij horen graag van u.
 Met vriendelijke groet, With kind regards,
 
 Deniz, Review adviseur`;
+
+// ─── Confidence Display Helpers ───────────────────────────────────────────────
+
+const CONFIDENCE_HIGH_THRESHOLD = 80;
+const CONFIDENCE_MEDIUM_THRESHOLD = 50;
+const POLLING_INTERVAL_MS = 15000;
+const QUEUE_PAGE_SIZE = 20;
+const REVIEW_REQUIRED_PAGE_SIZE = 10;
+const DISPUTES_PAGE_SIZE = 20;
+const FRAUD_HIGH_THRESHOLD = 50;
+const FRAUD_MEDIUM_THRESHOLD = 30;
+const SEARCH_DEBOUNCE_MILLISECONDS = 400;
+const SYNC_INDICATOR_DURATION_MILLISECONDS = 3000;
+
+function getFraudRiskColorClass(score: number | null | undefined): string {
+  const value = score ?? 0;
+  if (value >= FRAUD_HIGH_THRESHOLD) {
+    return "text-red-600";
+  }
+  if (value >= FRAUD_MEDIUM_THRESHOLD) {
+    return "text-orange-600";
+  }
+  return "text-green-600";
+}
+
+function getConfidenceColorClass(confidence: number | null | undefined): string {
+  const value = confidence ?? 0;
+  if (value >= CONFIDENCE_HIGH_THRESHOLD) {
+    return "text-green-600";
+  }
+  if (value >= CONFIDENCE_MEDIUM_THRESHOLD) {
+    return "text-orange-600";
+  }
+  return "text-red-600";
+}
+
+function formatConfidenceDisplay(confidence: number | null | undefined): string {
+  if (confidence != null) {
+    return `${confidence}%`;
+  }
+  return "N/A";
+}
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface AdminStats {
   totalReceipts: number;
@@ -107,164 +150,116 @@ interface ReceiptData {
   suspiciousPatterns: string | null;
   receiptReadable: boolean | null;
   createdAt: string;
+  queuedAt: string | null;
   processedAt: string | null;
+  locationId: string | null;
   user: { id: string; name: string | null; email: string };
 }
 
-function ManualDisableForm() {
-  const [isOpen, setIsOpen] = useState(false);
-  const td = useTranslations("ReviewDisable");
-  const [reviewId, setReviewId] = useState("");
-  const [locationId, setLocationId] = useState("");
-  const [tenantId, setTenantId] = useState("99");
-  const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setResult(null);
-
-    try {
-      const response = await fetch("/api/admin/reviews/disable", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "disable-manual",
-          reviewId: reviewId.trim(),
-          locationId: locationId.trim(),
-          tenantId: Number(tenantId),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setResult({ success: true, message: td("successMessage") });
-        setReviewId("");
-        setLocationId("");
-        setTenantId("99");
-      } else {
-        setResult({ success: false, message: data.error || td("errorMessage") });
-      }
-    } catch {
-      setResult({ success: false, message: td("networkError") });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const isFormValid = reviewId.trim().length > 0 && locationId.trim().length > 0 && tenantId.trim().length > 0;
-
-  return (
-    <div className="mb-6 rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between px-5 py-4 text-left"
-      >
-        <div className="flex items-center gap-2">
-          <Ban className="h-4 w-4 text-red-500" />
-          <span className="text-sm font-semibold text-gray-900">{td("title")}</span>
-        </div>
-        {isOpen ? (
-          <ChevronDown className="h-4 w-4 text-gray-500" />
-        ) : (
-          <ChevronRight className="h-4 w-4 text-gray-500" />
-        )}
-      </button>
-
-      {isOpen && (
-        <form onSubmit={handleSubmit} className="border-t px-5 pb-5 pt-4">
-          <p className="mb-4 text-xs text-gray-500">
-            {td("description")}
-          </p>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div>
-              <label htmlFor="manual-review-id" className="mb-1 block text-xs font-medium text-gray-700">
-                {td("reviewIdLabel")}
-              </label>
-              <input
-                id="manual-review-id"
-                type="text"
-                value={reviewId}
-                onChange={(event) => setReviewId(event.target.value)}
-                placeholder={td("reviewIdPlaceholder")}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
-              />
-            </div>
-            <div>
-              <label htmlFor="manual-location-id" className="mb-1 block text-xs font-medium text-gray-700">
-                {td("locationIdLabel")}
-              </label>
-              <input
-                id="manual-location-id"
-                type="text"
-                value={locationId}
-                onChange={(event) => setLocationId(event.target.value)}
-                placeholder={td("locationIdPlaceholder")}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
-              />
-            </div>
-            <div>
-              <label htmlFor="manual-tenant-id" className="mb-1 block text-xs font-medium text-gray-700">
-                {td("tenantIdLabel")}
-              </label>
-              <input
-                id="manual-tenant-id"
-                type="text"
-                value={tenantId}
-                onChange={(event) => setTenantId(event.target.value)}
-                placeholder="98"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={submitting || !isFormValid}
-              className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-            >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
-              {td("submitButton")}
-            </button>
-
-            {result && (
-              <span className={`text-sm ${result.success ? "text-green-600" : "text-red-600"}`}>
-                {result.message}
-              </span>
-            )}
-          </div>
-        </form>
-      )}
-    </div>
-  );
+interface DisputeData {
+  id: string;
+  reviewId: string;
+  tenantId: number | null;
+  locationId: string | null;
+  receiptId: string;
+  status: string;
+  failureReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  receipt: ReceiptData | null;
 }
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
   const { toast } = useToast();
   const t = useTranslations("Admin");
+
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [receipts, setReceipts] = useState<ReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<"queue" | "stats" | "users">("queue");
+  const [activeTab, setActiveTab] = useState<"queue" | "disputes" | "manual-disable">("queue");
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [users, setUsers] = useState<any[]>([]);
-  const [updatingUser, setUpdatingUser] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [disablingReviewId, setDisablingReviewId] = useState<string | null>(null);
   const [reviewDisabledReceipts, setReviewDisabledReceipts] = useState<Set<string>>(new Set());
 
+  // Queue pagination state
+  const [queueCursor, setQueueCursor] = useState<string | null>(null);
+  const queueCursorRef = useRef<string | null>(null);
+  const [queueHasMore, setQueueHasMore] = useState(false);
+  const [queueLoadingMore, setQueueLoadingMore] = useState(false);
+
+  // Manual disable form state
+  const [manualReviewId, setManualReviewId] = useState("");
+  const [manualLocationId, setManualLocationId] = useState("");
+  const [manualTenantId, setManualTenantId] = useState("");
+  const [manualDisableLoading, setManualDisableLoading] = useState(false);
+
+  // Review-required list state
+  const [reviewRequiredReceipts, setReviewRequiredReceipts] = useState<ReceiptData[]>([]);
+  const [reviewRequiredCursor, setReviewRequiredCursor] = useState<string | null>(null);
+  const reviewRequiredCursorRef = useRef<string | null>(null);
+  const [reviewRequiredHasMore, setReviewRequiredHasMore] = useState(false);
+  const [reviewRequiredLoading, setReviewRequiredLoading] = useState(false);
+  const [reviewTimeRange, setReviewTimeRange] = useState<string>("all");
+
+  // Disputes tab state
+  const [disputes, setDisputes] = useState<DisputeData[]>([]);
+  const [disputesCursor, setDisputesCursor] = useState<string | null>(null);
+  const [disputesHasMore, setDisputesHasMore] = useState(false);
+  const [disputesLoading, setDisputesLoading] = useState(false);
+  const [disputeTimeRange, setDisputeTimeRange] = useState<string>("all");
+  const [selectedDispute, setSelectedDispute] = useState<DisputeData | null>(null);
+  const [disputePreviewUrl, setDisputePreviewUrl] = useState<string | null>(null);
+  const [disputePreviewLoading, setDisputePreviewLoading] = useState(false);
+  const [updatingDisputeId, setUpdatingDisputeId] = useState<string | null>(null);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Bookmark state
+  const [bookmarkedReceiptIds, setBookmarkedReceiptIds] = useState<Set<string>>(new Set());
+  const [bookmarkFilter, setBookmarkFilter] = useState(false);
+  const [togglingBookmarkId, setTogglingBookmarkId] = useState<string | null>(null);
+
+  // Whitelist filter state
+  const [whitelistedLocationIds, setWhitelistedLocationIds] = useState<Set<string>>(new Set());
+  const [whitelistFilter, setWhitelistFilter] = useState(false);
+  const [reviewRequiredWhitelistFilter, setReviewRequiredWhitelistFilter] = useState(false);
+
   const isAdmin = (session?.user as any)?.role === "admin";
+
+  // ─── Time Range Helpers ──────────────────────────────────────────────────────
+
+  function getTimeRangeParams(range: string): { from?: string; to?: string } {
+    if (range === "all") {
+      return {};
+    }
+    const now = new Date();
+    const from = new Date();
+    if (range === "24h") {
+      from.setHours(now.getHours() - 24);
+    } else if (range === "7d") {
+      from.setDate(now.getDate() - 7);
+    } else if (range === "30d") {
+      from.setDate(now.getDate() - 30);
+    } else if (range === "90d") {
+      from.setDate(now.getDate() - 90);
+    }
+    return { from: from.toISOString(), to: now.toISOString() };
+  }
+
+  // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(REJECTION_EMAIL_TEMPLATE);
@@ -272,6 +267,95 @@ export default function AdminPage() {
       title: t("copied"),
       description: t("copiedDescription")
     });
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      setActiveSearch(value.trim());
+      queueCursorRef.current = null;
+      setQueueCursor(null);
+    }, SEARCH_DEBOUNCE_MILLISECONDS);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setActiveSearch("");
+    queueCursorRef.current = null;
+    setQueueCursor(null);
+  };
+
+  const fetchBookmarks = useCallback(async () => {
+    try {
+      const response = await fetch("/api/bookmarks");
+      if (response.ok) {
+        const data = await response.json();
+        setBookmarkedReceiptIds(new Set(data.bookmarkedReceiptIds));
+      }
+    } catch (error) {
+      clientLogger.error({ error }, "Failed to fetch bookmarks");
+    }
+  }, []);
+
+  const fetchWhitelist = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/settings");
+      if (response.ok) {
+        const data = await response.json();
+        const whitelist: string[] = data.autoDisableLocationWhitelist || [];
+        setWhitelistedLocationIds(new Set(whitelist));
+      }
+    } catch (error) {
+      clientLogger.error({ error }, "Failed to fetch whitelist");
+    }
+  }, []);
+
+  const handleToggleBookmark = async (receiptId: string) => {
+    setTogglingBookmarkId(receiptId);
+    const isCurrentlyBookmarked = bookmarkedReceiptIds.has(receiptId);
+
+    try {
+      if (isCurrentlyBookmarked) {
+        const response = await fetch(`/api/bookmarks?receiptId=${receiptId}`, {
+          method: "DELETE",
+        });
+        if (response.ok) {
+          setBookmarkedReceiptIds((previous) => {
+            const updated = new Set(previous);
+            updated.delete(receiptId);
+            return updated;
+          });
+          toast({
+            title: t("bookmarkRemoved"),
+            description: t("bookmarkRemovedDescription"),
+          });
+        }
+      } else {
+        const response = await fetch("/api/bookmarks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ receiptId }),
+        });
+        if (response.ok) {
+          setBookmarkedReceiptIds((previous) => {
+            const updated = new Set(previous);
+            updated.add(receiptId);
+            return updated;
+          });
+          toast({
+            title: t("bookmarkAdded"),
+            description: t("bookmarkAddedDescription"),
+          });
+        }
+      }
+    } catch (error) {
+      clientLogger.error({ error }, "Failed to toggle bookmark");
+    } finally {
+      setTogglingBookmarkId(null);
+    }
   };
 
   const triggerSync = async () => {
@@ -285,7 +369,65 @@ export default function AdminPage() {
     } catch {
       // silent fail
     } finally {
-      setSyncing(false);
+      // Keep the syncing indicator visible briefly, then refetch receipts
+      setTimeout(() => {
+        setSyncing(false);
+        fetchData(true);
+      }, SYNC_INDICATOR_DURATION_MILLISECONDS);
+    }
+  };
+
+  const handleManualDisable = async (action: "disable-manual" | "enable-manual") => {
+    const trimmedReviewId = manualReviewId.trim();
+    const trimmedLocationId = manualLocationId.trim();
+    const parsedTenantId = parseInt(manualTenantId.trim(), 10);
+
+    if (!trimmedReviewId || !trimmedLocationId || isNaN(parsedTenantId) || parsedTenantId <= 0) {
+      toast({
+        title: t("manualDisableValidationError"),
+        description: t("manualDisableValidationDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setManualDisableLoading(true);
+    try {
+      const response = await fetch("/api/admin/reviews/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          reviewId: trimmedReviewId,
+          locationId: trimmedLocationId,
+          tenantId: parsedTenantId,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        const isDisable = action === "disable-manual";
+        toast({
+          title: t("reviewToggled"),
+          description: isDisable ? t("reviewDisabled") : t("reviewEnabled"),
+        });
+        setManualReviewId("");
+        setManualLocationId("");
+        setManualTenantId("");
+      } else {
+        toast({
+          title: t("reviewToggleFailed"),
+          description: data.error || t("reviewToggleFailedDescription"),
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: t("reviewToggleFailed"),
+        description: t("reviewToggleFailedDescription"),
+        variant: "destructive",
+      });
+    } finally {
+      setManualDisableLoading(false);
     }
   };
 
@@ -333,15 +475,34 @@ export default function AdminPage() {
     }
   };
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [statsRes, receiptsRes, usersRes] = await Promise.all([
-        fetch("/api/admin/stats"),
-        fetch("/api/receipts"),
-        fetch("/api/admin/users")
-      ]);
+  // ─── Data Fetching ─────────────────────────────────────────────────────────
 
-      if (statsRes.ok) {
+  const fetchData = useCallback(async (reset: boolean = true) => {
+    if (!reset) {
+      setQueueLoadingMore(true);
+    }
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", String(QUEUE_PAGE_SIZE));
+      if (!reset && queueCursorRef.current) {
+        params.set("cursor", queueCursorRef.current);
+      }
+      if (activeSearch.length > 0) {
+        params.set("search", activeSearch);
+      }
+
+      const fetches: Promise<Response>[] = [
+        fetch(`/api/receipts?${params.toString()}`)
+      ];
+      if (reset) {
+        fetches.push(fetch("/api/admin/stats"));
+      }
+
+      const responses = await Promise.all(fetches);
+      const receiptsRes = responses[0];
+      const statsRes = responses[1];
+
+      if (statsRes && statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(statsData);
       }
@@ -351,51 +512,200 @@ export default function AdminPage() {
         const receiptsList = Array.isArray(receiptsData)
           ? receiptsData
           : receiptsData.receipts;
-        setReceipts(receiptsList || []);
-      }
 
-      if (usersRes.ok) {
-        const usersData = await usersRes.json();
-        setUsers(usersData);
-      }
+        if (reset) {
+          setReceipts(receiptsList || []);
+        } else {
+          setReceipts(previous => [...previous, ...(receiptsList || [])]);
+        }
 
+        const nextCursor = receiptsData.nextCursor || null;
+        queueCursorRef.current = nextCursor;
+        setQueueCursor(nextCursor);
+        setQueueHasMore(receiptsData.hasMore || false);
+      }
     } catch (error) {
-      console.error("Failed to fetch admin data:", error);
+      clientLogger.error({ error }, "Failed to fetch admin data");
     } finally {
       setLoading(false);
+      setQueueLoadingMore(false);
     }
-  }, []);
+  }, [activeSearch]);
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    setUpdatingUser(userId);
+  const fetchReviewRequired = useCallback(async (reset: boolean = false) => {
+    setReviewRequiredLoading(true);
     try {
-      const res = await fetch("/api/admin/users", {
+      const timeParams = getTimeRangeParams(reviewTimeRange);
+      const params = new URLSearchParams();
+      params.set("status", "requires_review");
+      params.set("limit", String(REVIEW_REQUIRED_PAGE_SIZE));
+      if (timeParams.from) {
+        params.set("from", timeParams.from);
+      }
+      if (timeParams.to) {
+        params.set("to", timeParams.to);
+      }
+      if (!reset && reviewRequiredCursorRef.current) {
+        params.set("cursor", reviewRequiredCursorRef.current);
+      }
+
+      const response = await fetch(`/api/admin/receipts/review-required?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (reset) {
+          setReviewRequiredReceipts(data.receipts);
+        } else {
+          setReviewRequiredReceipts(prev => [...prev, ...data.receipts]);
+        }
+        reviewRequiredCursorRef.current = data.nextCursor;
+        setReviewRequiredCursor(data.nextCursor);
+        setReviewRequiredHasMore(data.hasMore);
+      }
+    } catch (error) {
+      clientLogger.error({ error }, "Failed to fetch review-required receipts");
+    } finally {
+      setReviewRequiredLoading(false);
+    }
+  }, [reviewTimeRange]);
+
+  const fetchDisputes = useCallback(async (reset: boolean = false) => {
+    setDisputesLoading(true);
+    try {
+      const timeParams = getTimeRangeParams(disputeTimeRange);
+      const params = new URLSearchParams();
+      params.set("limit", String(DISPUTES_PAGE_SIZE));
+      if (timeParams.from) {
+        params.set("from", timeParams.from);
+      }
+      if (timeParams.to) {
+        params.set("to", timeParams.to);
+      }
+      if (!reset && disputesCursor) {
+        params.set("cursor", disputesCursor);
+      }
+
+      const response = await fetch(`/api/admin/disputes?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (reset) {
+          setDisputes(data.disputes);
+        } else {
+          setDisputes(prev => [...prev, ...data.disputes]);
+        }
+        setDisputesCursor(data.nextCursor);
+        setDisputesHasMore(data.hasMore);
+      }
+    } catch (error) {
+      clientLogger.error({ error }, "Failed to fetch disputes");
+    } finally {
+      setDisputesLoading(false);
+    }
+  }, [disputeTimeRange, disputesCursor]);
+
+  const handleDisputeAction = async (disputeId: string, action: "accept" | "reject") => {
+    setUpdatingDisputeId(disputeId);
+    try {
+      const response = await fetch("/api/admin/disputes", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, role: newRole })
+        body: JSON.stringify({ disputeId, action }),
       });
-      if (res.ok) {
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-        toast({ title: t("roleUpdated"), description: t("roleUpdatedDescription", { role: newRole }) });
+
+      if (response.ok) {
+        const newStatus = action === "accept" ? "verified" : "rejected";
+        setDisputes(prev =>
+          prev.map(dispute => {
+            if (dispute.id === disputeId) {
+              return { ...dispute, status: newStatus };
+            }
+            return dispute;
+          })
+        );
+        toast({
+          title: t("statusUpdated"),
+          description: t("disputeActionSuccess", { action })
+        });
+        if (selectedDispute?.id === disputeId) {
+          setSelectedDispute(prev => prev ? { ...prev, status: newStatus } : null);
+        }
+      } else {
+        toast({
+          title: t("failedToUpdate"),
+          description: t("disputeActionFailed"),
+          variant: "destructive"
+        });
       }
     } catch {
-      toast({ title: t("roleUpdateFailed"), description: t("roleUpdateFailedDescription"), variant: "destructive" });
+      toast({
+        title: t("failedToUpdate"),
+        description: t("disputeActionFailed"),
+        variant: "destructive"
+      });
     } finally {
-      setUpdatingUser(null);
+      setUpdatingDisputeId(null);
     }
   };
+
+  // ─── Effects ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/login");
     } else if (status === "authenticated") {
-      if (!isAdmin) {
-        router.replace("/dashboard");
-      } else {
-        fetchData();
-      }
+      fetchData();
+      fetchReviewRequired(true);
+      fetchBookmarks();
+      fetchWhitelist();
     }
-  }, [status, isAdmin, router, fetchData]);
+  }, [status, router, fetchData, fetchReviewRequired, fetchBookmarks, fetchWhitelist]);
+
+  useEffect(() => {
+    if (status !== "authenticated") {
+      return;
+    }
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, POLLING_INTERVAL_MS);
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [status, fetchData]);
+
+  // Refetch when search changes
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSearch]);
+
+  // Cleanup search debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (status === "authenticated") {
+      setReviewRequiredCursor(null);
+      reviewRequiredCursorRef.current = null;
+      fetchReviewRequired(true);
+    }
+  }, [reviewTimeRange]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (status === "authenticated" && activeTab === "disputes") {
+      setDisputesCursor(null);
+      fetchDisputes(true);
+    }
+  }, [activeTab, disputeTimeRange]);
+
+  // ─── Receipt Preview Handlers ────────────────────────────────────────────────
 
   const handleViewReceipt = async (receipt: ReceiptData) => {
     setSelectedReceipt(receipt);
@@ -407,7 +717,7 @@ export default function AdminPage() {
         setPreviewUrl(downloadUrl);
       }
     } catch (error) {
-      console.error("Failed to load preview:", error);
+      clientLogger.error({ error }, "Failed to load preview");
       toast({
         title: "Error",
         description: t("failedToLoad"),
@@ -423,10 +733,31 @@ export default function AdminPage() {
     setPreviewUrl(null);
   };
 
-  const handleStatusUpdate = async (
-    receiptId: string,
-    newStatus: string
-  ) => {
+  const handleViewDispute = async (dispute: DisputeData) => {
+    setSelectedDispute(dispute);
+    if (!dispute.receipt) {
+      return;
+    }
+    setDisputePreviewLoading(true);
+    try {
+      const response = await fetch(`/api/receipts/${dispute.receipt.id}/download`);
+      if (response.ok) {
+        const { downloadUrl } = await response.json();
+        setDisputePreviewUrl(downloadUrl);
+      }
+    } catch (error) {
+      clientLogger.error({ error }, "Failed to load dispute preview");
+    } finally {
+      setDisputePreviewLoading(false);
+    }
+  };
+
+  const handleCloseDisputePreview = () => {
+    setSelectedDispute(null);
+    setDisputePreviewUrl(null);
+  };
+
+  const handleStatusUpdate = async (receiptId: string, newStatus: string) => {
     setUpdatingId(receiptId);
     try {
       const response = await fetch(`/api/receipts/${receiptId}`, {
@@ -441,13 +772,13 @@ export default function AdminPage() {
           description: t("statusUpdatedDescription", { status: newStatus })
         });
         fetchData();
-        // Update selected receipt if it's currently being viewed
+        fetchReviewRequired(true);
         if (selectedReceipt?.id === receiptId) {
           setSelectedReceipt(prev => prev ? { ...prev, verificationStatus: newStatus } : null);
         }
       }
     } catch (error) {
-      console.error("Failed to update receipt:", error);
+      clientLogger.error({ error }, "Failed to update receipt");
       toast({
         title: "Error",
         description: t("failedToUpdate"),
@@ -463,13 +794,13 @@ export default function AdminPage() {
       const response = await fetch(`/api/receipts/${receipt.id}/download`);
       if (response.ok) {
         const { downloadUrl, filename } = await response.json();
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = filename || "receipt";
-        a.click();
+        const anchor = document.createElement("a");
+        anchor.href = downloadUrl;
+        anchor.download = filename || "receipt";
+        anchor.click();
       }
     } catch (error) {
-      console.error("Download error:", error);
+      clientLogger.error({ error }, "Download error");
     }
   };
 
@@ -482,6 +813,8 @@ export default function AdminPage() {
     }
   };
 
+  // ─── Loading / Auth Guards ───────────────────────────────────────────────────
+
   if (status === "loading" || (status === "authenticated" && loading)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -490,16 +823,35 @@ export default function AdminPage() {
     );
   }
 
-  if (status === "unauthenticated" || !isAdmin) {
+  if (status === "unauthenticated") {
     return null;
   }
 
+  // ─── Derived State ─────────────────────────────────────────────────────────
+
   const filteredReceipts = (receipts ?? []).filter((r) => {
+    if (bookmarkFilter && !bookmarkedReceiptIds.has(r?.id)) {
+      return false;
+    }
+    if (whitelistFilter) {
+      if (!r?.locationId || !whitelistedLocationIds.has(r.locationId)) {
+        return false;
+      }
+    }
     if (filter === "all") return true;
     if (filter === "rejected") {
       return r?.verificationStatus === "rejected" || r?.verificationStatus === "flagged";
     }
     return r?.verificationStatus === filter;
+  });
+
+  const filteredReviewRequired = reviewRequiredReceipts.filter((r) => {
+    if (reviewRequiredWhitelistFilter) {
+      if (!r?.locationId || !whitelistedLocationIds.has(r.locationId)) {
+        return false;
+      }
+    }
+    return true;
   });
 
   const formatDate = (dateString: string | null) => {
@@ -511,8 +863,15 @@ export default function AdminPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const formatFailureReason = (reason: string | null) => {
+    if (!reason) {
+      return "—";
+    }
+    return reason.replace(/_/g, " ");
+  };
+
+  const getStatusBadge = (receiptStatus: string) => {
+    switch (receiptStatus) {
       case "verified":
         return "bg-green-100 text-green-700";
       case "rejected":
@@ -526,8 +885,8 @@ export default function AdminPage() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (receiptStatus: string) => {
+    switch (receiptStatus) {
       case "verified":
         return <CheckCircle className="h-4 w-4" />;
       case "rejected":
@@ -543,6 +902,28 @@ export default function AdminPage() {
 
   const currentIndex = selectedReceipt ? filteredReceipts.findIndex(r => r.id === selectedReceipt.id) : -1;
   const isPdf = selectedReceipt?.originalFilename?.toLowerCase().endsWith(".pdf");
+  const isDisputePdf = selectedDispute?.receipt?.originalFilename?.toLowerCase().endsWith(".pdf");
+
+  // ─── Time Range Filter Component ────────────────────────────────────────────
+
+  const TimeRangeFilter = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+    <div className="flex items-center gap-2">
+      <Calendar className="h-4 w-4 text-gray-500" />
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700"
+      >
+        <option value="all">{t("timeRangeAll")}</option>
+        <option value="24h">{t("timeRange24h")}</option>
+        <option value="7d">{t("timeRange7d")}</option>
+        <option value="30d">{t("timeRange30d")}</option>
+        <option value="90d">{t("timeRange90d")}</option>
+      </select>
+    </div>
+  );
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -565,91 +946,158 @@ export default function AdminPage() {
             disabled={syncing}
             className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
-            <CloudDownload className={`h-4 w-4 ${syncing ? "animate-pulse" : ""}`} />
-            {t("syncNow")}
+            {(() => {
+              if (syncing) {
+                return <Loader2 className="h-4 w-4 animate-spin" />;
+              }
+              return <CloudDownload className="h-4 w-4" />;
+            })()}
+            {(() => {
+              if (syncing) {
+                return t("syncing");
+              }
+              return t("syncNow");
+            })()}
           </button>
         </div>
 
-        {/* Stats Overview */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl bg-white p-5 shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">{t("totalReceipts")}</p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {stats?.totalReceipts ?? 0}
-                </p>
-              </div>
-              <div className="rounded-lg bg-blue-100 p-3">
-                <Receipt className="h-6 w-6 text-blue-600" />
-              </div>
+        {/* Human Review Required Section */}
+        <div className="mb-8 rounded-xl bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b px-6 py-4">
+            <div className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-blue-600" />
+              <h2 className="text-lg font-semibold text-gray-900">{t("humanReviewRequired")}</h2>
+              {reviewRequiredReceipts.length > 0 && (
+                <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-blue-100 px-2 text-xs font-bold text-blue-700">
+                  {reviewRequiredReceipts.length}{reviewRequiredHasMore ? "+" : ""}
+                </span>
+              )}
             </div>
-          </motion.div>
+            <div className="flex items-center gap-3">
+              <TimeRangeFilter value={reviewTimeRange} onChange={setReviewTimeRange} />
+              {whitelistedLocationIds.size > 0 && (
+                <button
+                  onClick={() => setReviewRequiredWhitelistFilter(!reviewRequiredWhitelistFilter)}
+                  className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    reviewRequiredWhitelistFilter
+                      ? "bg-kv-green/10 text-kv-green/90"
+                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-100"
+                  }`}
+                >
+                  <Filter className="h-3.5 w-3.5" />
+                  {t("filterWhitelisted")}
+                </button>
+              )}
+            </div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="rounded-xl bg-white p-5 shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">{t("pendingReview")}</p>
-                <p className="text-3xl font-bold text-yellow-600">
-                  {stats?.pendingCount ?? 0}
-                </p>
+          <div className="max-h-[400px] overflow-y-auto">
+            {reviewRequiredLoading && reviewRequiredReceipts.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
               </div>
-              <div className="rounded-lg bg-yellow-100 p-3">
-                <Clock className="h-6 w-6 text-yellow-600" />
+            ) : filteredReviewRequired.length === 0 ? (
+              <div className="py-12 text-center">
+                <CheckCircle className="mx-auto mb-3 h-10 w-10 text-green-400" />
+                <p className="text-sm font-medium text-gray-700">{t("noReviewRequired")}</p>
+                <p className="text-xs text-gray-500">{t("noReviewRequiredDescription")}</p>
               </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="rounded-xl bg-white p-5 shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">{t("totalUsers")}</p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {stats?.totalUsers ?? 0}
-                </p>
+            ) : (
+              <table className="w-full">
+                <thead className="sticky top-0 bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipt")}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("queuedAt")}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("confidence")}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("failureReason")}</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("actions")}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredReviewRequired.map((receipt) => (
+                    <tr key={receipt.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => handleViewReceipt(receipt)}
+                          className="flex items-center gap-2 text-left hover:text-kv-green"
+                        >
+                          <div className="rounded-lg bg-blue-50 p-2">
+                            <FileText className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 truncate max-w-[180px]">
+                              {receipt.originalFilename}
+                            </p>
+                            {receipt.extractedShopName && (
+                              <p className="text-xs text-gray-500 truncate max-w-[180px]">
+                                {receipt.extractedShopName}
+                              </p>
+                            )}
+                          </div>
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{formatDate(receipt.queuedAt)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-sm font-medium ${getConfidenceColorClass(receipt.ocrConfidence)}`}>
+                          {formatConfidenceDisplay(receipt.ocrConfidence)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{formatFailureReason(receipt.failureReason)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleViewReceipt(receipt)}
+                            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                            title={t("viewReceipt")}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleStatusUpdate(receipt.id, "verified")}
+                            disabled={updatingId === receipt.id}
+                            className="rounded-lg p-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
+                            title={t("approve")}
+                          >
+                            {(() => {
+                              if (updatingId === receipt.id) {
+                                return <Loader2 className="h-4 w-4 animate-spin" />;
+                              }
+                              return <Check className="h-4 w-4" />;
+                            })()}
+                          </button>
+                          <button
+                            onClick={() => handleStatusUpdate(receipt.id, "rejected")}
+                            disabled={updatingId === receipt.id}
+                            className="rounded-lg p-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                            title={t("reject")}
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {reviewRequiredHasMore && (
+              <div className="border-t px-4 py-3 text-center">
+                <button
+                  onClick={() => fetchReviewRequired(false)}
+                  disabled={reviewRequiredLoading}
+                  className="text-sm font-medium text-kv-green hover:text-kv-green/80 disabled:opacity-50"
+                >
+                  {(() => {
+                    if (reviewRequiredLoading) {
+                      return <Loader2 className="inline h-4 w-4 animate-spin" />;
+                    }
+                    return t("loadMore");
+                  })()}
+                </button>
               </div>
-              <div className="rounded-lg bg-purple-100 p-3">
-                <Users className="h-6 w-6 text-purple-600" />
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="rounded-xl bg-white p-5 shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">{t("highRisk")}</p>
-                <p className="text-3xl font-bold text-red-600">
-                  {stats?.fraudStats?.highRiskCount ?? 0}
-                </p>
-              </div>
-              <div className="rounded-lg bg-red-100 p-3">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
-              </div>
-            </div>
-          </motion.div>
+            )}
+          </div>
         </div>
-
-        {/* Manual disable form */}
-        <ManualDisableForm />
 
         {/* Tabs */}
         <div className="mb-6 flex gap-2 flex-wrap">
@@ -670,31 +1118,58 @@ export default function AdminPage() {
             )}
           </button>
           <button
-            onClick={() => setActiveTab("users")}
+            onClick={() => setActiveTab("disputes")}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
-              activeTab === "users"
+              activeTab === "disputes"
                 ? "bg-kv-green text-white"
                 : "bg-white text-gray-700 hover:bg-gray-100"
             }`}
           >
-            <Users className="h-4 w-4" />
-            {t("users")}
+            <Scale className="h-4 w-4" />
+            {t("disputesTab")}
+            {disputes.filter((dispute) => dispute.status === "pending" || dispute.status === "requires_review").length > 0 && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-kv-orange text-[10px] font-bold text-white">
+                {disputes.filter((dispute) => dispute.status === "pending" || dispute.status === "requires_review").length}
+              </span>
+            )}
           </button>
           <button
-            onClick={() => setActiveTab("stats")}
+            onClick={() => setActiveTab("manual-disable")}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
-              activeTab === "stats"
+              activeTab === "manual-disable"
                 ? "bg-kv-green text-white"
                 : "bg-white text-gray-700 hover:bg-gray-100"
             }`}
           >
-            <BarChart3 className="h-4 w-4" />
-            {t("statistics")}
+            <Power className="h-4 w-4" />
+            {t("manualDisableTab")}
           </button>
         </div>
 
         {activeTab === "queue" && (
           <>
+            {/* Search Bar */}
+            <div className="mb-4">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                  className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+                />
+                {searchQuery.length > 0 && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:text-gray-600"
+                  >
+                    <XIcon className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Filter */}
             <div className="mb-6 flex items-center gap-4">
               <Filter className="h-5 w-5 text-gray-500" />
@@ -718,6 +1193,35 @@ export default function AdminPage() {
                     {item.label}
                   </button>
                 ))}
+                <button
+                  onClick={() => setBookmarkFilter(!bookmarkFilter)}
+                  className={`flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    bookmarkFilter
+                      ? "bg-kv-green/10 text-kv-green/90"
+                      : "bg-white text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  {(() => {
+                    if (bookmarkFilter) {
+                      return <BookmarkCheck className="h-4 w-4" />;
+                    }
+                    return <Bookmark className="h-4 w-4" />;
+                  })()}
+                  {t("filterBookmarked")}
+                </button>
+                {whitelistedLocationIds.size > 0 && (
+                  <button
+                    onClick={() => setWhitelistFilter(!whitelistFilter)}
+                    className={`flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      whitelistFilter
+                        ? "bg-kv-green/10 text-kv-green/90"
+                        : "bg-white text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Filter className="h-4 w-4" />
+                    {t("filterWhitelisted")}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -736,10 +1240,12 @@ export default function AdminPage() {
                   <thead className="bg-gray-50 border-b">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipt")}</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("user")}</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("date")}</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("amount")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("locationId")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("queuedAt")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("processedAt")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("confidence")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("risk")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("failureReason")}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("status")}</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("actions")}</th>
                     </tr>
@@ -747,7 +1253,6 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-gray-100">
                     {filteredReceipts.map((receipt) => (
                       <tr key={receipt.id} className="hover:bg-gray-50 transition-colors">
-                        {/* Receipt Info */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <button
@@ -770,36 +1275,14 @@ export default function AdminPage() {
                             </button>
                           </div>
                         </td>
-                        {/* User */}
+                        <td className="px-4 py-3 text-sm text-gray-700 font-mono">{receipt.locationId || "—"}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{formatDate(receipt.queuedAt)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{formatDate(receipt.processedAt)}</td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-700 truncate max-w-[120px]">
-                              {receipt.user?.name || receipt.user?.email}
-                            </span>
-                          </div>
+                          <span className={`text-sm font-medium ${getConfidenceColorClass(receipt.ocrConfidence)}`}>
+                            {formatConfidenceDisplay(receipt.ocrConfidence)}
+                          </span>
                         </td>
-                        {/* Date */}
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-700">
-                              {formatDate(receipt.extractedDate)}
-                            </span>
-                          </div>
-                        </td>
-                        {/* Amount */}
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-700">
-                              {receipt.extractedAmount != null
-                                ? `$${receipt.extractedAmount.toFixed(2)}`
-                                : "N/A"}
-                            </span>
-                          </div>
-                        </td>
-                        {/* Risk */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             {receipt.isDuplicate && (
@@ -808,45 +1291,49 @@ export default function AdminPage() {
                                 Dup
                               </span>
                             )}
-                            <span
-                              className={`text-sm font-medium ${
-                                (receipt.fraudRiskScore ?? 0) >= 50
-                                  ? "text-red-600"
-                                  : (receipt.fraudRiskScore ?? 0) >= 30
-                                  ? "text-orange-600"
-                                  : "text-green-600"
-                              }`}
-                            >
+                            <span className={`text-sm font-medium ${getFraudRiskColorClass(receipt.fraudRiskScore)}`}>
                               {receipt.fraudRiskScore ?? 0}%
                             </span>
                           </div>
                         </td>
-                        {/* Status */}
+                        <td className="px-4 py-3 text-sm text-gray-700">{formatFailureReason(receipt.failureReason)}</td>
                         <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${getStatusBadge(
-                              receipt.verificationStatus
-                            )}`}
-                          >
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${getStatusBadge(receipt.verificationStatus)}`}>
                             {getStatusIcon(receipt.verificationStatus)}
                             {receipt.verificationStatus}
                           </span>
                         </td>
-                        {/* Actions */}
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => handleViewReceipt(receipt)}
-                              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                              title={t("viewReceipt")}
-                            >
+                            <button onClick={() => handleViewReceipt(receipt)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700" title={t("viewReceipt")}>
                               <Eye className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => handleDownload(receipt)}
-                              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                              title={t("download")}
+                              onClick={() => handleToggleBookmark(receipt.id)}
+                              disabled={togglingBookmarkId === receipt.id}
+                              className={`rounded-lg p-2 disabled:opacity-50 ${
+                                bookmarkedReceiptIds.has(receipt.id)
+                                  ? "text-kv-green hover:bg-green-50"
+                                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                              }`}
+                              title={(() => {
+                                if (bookmarkedReceiptIds.has(receipt.id)) {
+                                  return t("removeBookmark");
+                                }
+                                return t("addBookmark");
+                              })()}
                             >
+                              {(() => {
+                                if (togglingBookmarkId === receipt.id) {
+                                  return <Loader2 className="h-4 w-4 animate-spin" />;
+                                }
+                                if (bookmarkedReceiptIds.has(receipt.id)) {
+                                  return <BookmarkCheck className="h-4 w-4" />;
+                                }
+                                return <Bookmark className="h-4 w-4" />;
+                              })()}
+                            </button>
+                            <button onClick={() => handleDownload(receipt)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700" title={t("download")}>
                               <Download className="h-4 w-4" />
                             </button>
                             <button
@@ -855,11 +1342,12 @@ export default function AdminPage() {
                               className="rounded-lg p-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
                               title={t("approve")}
                             >
-                              {updatingId === receipt.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Check className="h-4 w-4" />
-                              )}
+                              {(() => {
+                                if (updatingId === receipt.id) {
+                                  return <Loader2 className="h-4 w-4 animate-spin" />;
+                                }
+                                return <Check className="h-4 w-4" />;
+                              })()}
                             </button>
                             <button
                               onClick={() => handleStatusUpdate(receipt.id, "rejected")}
@@ -870,11 +1358,7 @@ export default function AdminPage() {
                               <XIcon className="h-4 w-4" />
                             </button>
                             {receipt.verificationStatus === "rejected" && (
-                              <button
-                                onClick={() => setShowEmailModal(true)}
-                                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                                title={t("emailTemplate")}
-                              >
+                              <button onClick={() => setShowEmailModal(true)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700" title={t("emailTemplate")}>
                                 <Mail className="h-4 w-4" />
                               </button>
                             )}
@@ -883,17 +1367,26 @@ export default function AdminPage() {
                                 onClick={() => handleToggleReview(receipt.id)}
                                 disabled={disablingReviewId === receipt.id}
                                 className={`rounded-lg p-2 disabled:opacity-50 ${
-                                  reviewDisabledReceipts.has(receipt.id)
-                                    ? "text-green-600 hover:bg-green-50"
-                                    : "text-orange-600 hover:bg-orange-50"
+                                  (() => {
+                                    if (reviewDisabledReceipts.has(receipt.id)) {
+                                      return "text-green-600 hover:bg-green-50";
+                                    }
+                                    return "text-orange-600 hover:bg-orange-50";
+                                  })()
                                 }`}
-                                title={reviewDisabledReceipts.has(receipt.id) ? t("enableReview") : t("disableReview")}
+                                title={(() => {
+                                  if (reviewDisabledReceipts.has(receipt.id)) {
+                                    return t("enableReview");
+                                  }
+                                  return t("disableReview");
+                                })()}
                               >
-                                {disablingReviewId === receipt.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Power className="h-4 w-4" />
-                                )}
+                                {(() => {
+                                  if (disablingReviewId === receipt.id) {
+                                    return <Loader2 className="h-4 w-4 animate-spin" />;
+                                  }
+                                  return <Power className="h-4 w-4" />;
+                                })()}
                               </button>
                             )}
                           </div>
@@ -904,140 +1397,236 @@ export default function AdminPage() {
                 </table>
               </div>
             )}
+            {queueHasMore && (
+              <div className="border-t px-4 py-3 text-center">
+                <button
+                  onClick={() => fetchData(false)}
+                  disabled={queueLoadingMore}
+                  className="text-sm font-medium text-kv-green hover:text-kv-green/80 disabled:opacity-50"
+                >
+                  {(() => {
+                    if (queueLoadingMore) {
+                      return <Loader2 className="inline h-4 w-4 animate-spin" />;
+                    }
+                    return t("loadMore");
+                  })()}
+                </button>
+              </div>
+            )}
           </>
         )}
 
-        {activeTab === "stats" && (
-          <div className="space-y-6">
-            {/* Fraud Statistics */}
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-                <Shield className="h-5 w-5 text-kv-green" />
-                {t("fraudDetection")}
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-lg bg-gray-50 p-4">
-                  <p className="text-sm text-gray-600">{t("averageRiskScore")}</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {stats?.fraudStats?.averageRiskScore ?? 0}%
-                  </p>
-                </div>
-                <div className="rounded-lg bg-gray-50 p-4">
-                  <div className="flex items-center gap-2">
-                    <Copy className="h-4 w-4 text-red-500" />
-                    <p className="text-sm text-gray-600">{t("duplicatesDetected")}</p>
+        {activeTab === "disputes" && (
+          <>
+            <div className="mb-6 flex items-center justify-between">
+              <p className="text-sm text-gray-600">{t("disputesDescription")}</p>
+              <TimeRangeFilter value={disputeTimeRange} onChange={setDisputeTimeRange} />
+            </div>
+
+            {disputesLoading && disputes.length === 0 ? (
+              <div className="flex items-center justify-center rounded-xl bg-white py-16 shadow-sm">
+                <Loader2 className="h-8 w-8 animate-spin text-kv-green" />
+              </div>
+            ) : disputes.length === 0 ? (
+              <div className="rounded-xl bg-white p-12 text-center shadow-sm">
+                <Scale className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+                <h3 className="mb-2 text-lg font-semibold text-gray-900">{t("noDisputes")}</h3>
+                <p className="text-gray-600">{t("noDisputesDescription")}</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl bg-white shadow-sm">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("receipt")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("disputeReviewId")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("locationId")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("disputeDate")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("confidence")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("failureReason")}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("status")}</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{t("actions")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {disputes.map((dispute) => (
+                      <tr key={dispute.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => handleViewDispute(dispute)}
+                            className="flex items-center gap-2 text-left hover:text-kv-green"
+                          >
+                            <div className="rounded-lg bg-purple-50 p-2">
+                              <Scale className="h-4 w-4 text-purple-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 truncate max-w-[180px]">
+                                {dispute.receipt?.originalFilename || "—"}
+                              </p>
+                              {dispute.receipt?.extractedShopName && (
+                                <p className="text-xs text-gray-500 truncate max-w-[180px]">
+                                  {dispute.receipt.extractedShopName}
+                                </p>
+                              )}
+                            </div>
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 font-mono">{dispute.reviewId}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 font-mono">{dispute.locationId || "—"}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{formatDate(dispute.createdAt)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-sm font-medium ${getConfidenceColorClass(dispute.receipt?.ocrConfidence)}`}>
+                            {formatConfidenceDisplay(dispute.receipt?.ocrConfidence)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{formatFailureReason(dispute.failureReason)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${getStatusBadge(dispute.status)}`}>
+                            {getStatusIcon(dispute.status)}
+                            {dispute.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => handleViewDispute(dispute)}
+                              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                              title={t("viewReceipt")}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDisputeAction(dispute.id, "accept")}
+                              disabled={updatingDisputeId === dispute.id || dispute.status === "verified"}
+                              className="rounded-lg p-2 text-green-600 hover:bg-green-50 disabled:opacity-50"
+                              title={t("disputeAccept")}
+                            >
+                              {(() => {
+                                if (updatingDisputeId === dispute.id) {
+                                  return <Loader2 className="h-4 w-4 animate-spin" />;
+                                }
+                                return <Check className="h-4 w-4" />;
+                              })()}
+                            </button>
+                            <button
+                              onClick={() => handleDisputeAction(dispute.id, "reject")}
+                              disabled={updatingDisputeId === dispute.id || dispute.status === "rejected"}
+                              className="rounded-lg p-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                              title={t("disputeReject")}
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {disputesHasMore && (
+                  <div className="border-t px-4 py-3 text-center">
+                    <button
+                      onClick={() => fetchDisputes(false)}
+                      disabled={disputesLoading}
+                      className="text-sm font-medium text-kv-green hover:text-kv-green/80 disabled:opacity-50"
+                    >
+                      {(() => {
+                        if (disputesLoading) {
+                          return <Loader2 className="inline h-4 w-4 animate-spin" />;
+                        }
+                        return t("loadMore");
+                      })()}
+                    </button>
                   </div>
-                  <p className="text-2xl font-bold text-red-600">
-                    {stats?.fraudStats?.duplicateCount ?? 0}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-gray-50 p-4">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    <p className="text-sm text-gray-600">{t("highRiskSubmissions")}</p>
-                  </div>
-                  <p className="text-2xl font-bold text-orange-600">
-                    {stats?.fraudStats?.highRiskCount ?? 0}
-                  </p>
-                </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === "manual-disable" && (
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">{t("manualDisableTitle")}</h2>
+              <p className="text-sm text-gray-600">{t("manualDisableDescription")}</p>
+            </div>
+
+            <div className="max-w-md space-y-4">
+              <div>
+                <label htmlFor="manual-review-id" className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("manualDisableReviewIdLabel")}
+                </label>
+                <input
+                  id="manual-review-id"
+                  type="text"
+                  value={manualReviewId}
+                  onChange={(e) => setManualReviewId(e.target.value)}
+                  placeholder={t("manualDisableReviewIdPlaceholder")}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="manual-location-id" className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("manualDisableLocationIdLabel")}
+                </label>
+                <input
+                  id="manual-location-id"
+                  type="text"
+                  value={manualLocationId}
+                  onChange={(e) => setManualLocationId(e.target.value)}
+                  placeholder={t("manualDisableLocationIdPlaceholder")}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="manual-tenant-id" className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("manualDisableTenantIdLabel")}
+                </label>
+                <input
+                  id="manual-tenant-id"
+                  type="number"
+                  value={manualTenantId}
+                  onChange={(e) => setManualTenantId(e.target.value)}
+                  placeholder={t("manualDisableTenantIdPlaceholder")}
+                  min="1"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-kv-green focus:outline-none focus:ring-1 focus:ring-kv-green"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => handleManualDisable("disable-manual")}
+                  disabled={manualDisableLoading}
+                  className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {(() => {
+                    if (manualDisableLoading) {
+                      return <Loader2 className="h-4 w-4 animate-spin" />;
+                    }
+                    return <Power className="h-4 w-4" />;
+                  })()}
+                  {t("manualDisableButton")}
+                </button>
+                <button
+                  onClick={() => handleManualDisable("enable-manual")}
+                  disabled={manualDisableLoading}
+                  className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  {(() => {
+                    if (manualDisableLoading) {
+                      return <Loader2 className="h-4 w-4 animate-spin" />;
+                    }
+                    return <Power className="h-4 w-4" />;
+                  })()}
+                  {t("manualEnableButton")}
+                </button>
               </div>
             </div>
-
-            {/* Recent Actions */}
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-semibold text-gray-900">{t("recentActions")}</h3>
-              {(stats?.recentActions?.length ?? 0) === 0 ? (
-                <p className="text-gray-500">{t("noRecentActions")}</p>
-              ) : (
-                <div className="space-y-3">
-                  {stats?.recentActions?.map((action) => (
-                    <div key={action.id} className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {action?.admin?.name ?? action?.admin?.email} - {action?.action}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Receipt: {action?.receipt?.extractedShopName ?? "Pending"}
-                        </p>
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        {action?.createdAt ? new Date(action.createdAt).toLocaleString() : ""}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         )}
 
-        {activeTab === "users" && (
-          <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-            <div className="border-b px-6 py-4 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">{t("userManagement")}</h3>
-              <span className="text-sm text-gray-500">{t("usersCount", { count: users.length })}</span>
-            </div>
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gebruiker</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bonnetjes</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lid sinds</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actie</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {users.map(u => (
-                  <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-kv-green/10 text-sm font-semibold text-kv-green">
-                          {(u.name || u.email || "?").charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900 text-sm">{u.name || "—"}</p>
-                          <p className="text-xs text-gray-500">{u.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{u._count?.receipts ?? 0}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString("nl-NL") : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        u.role === "admin" ? "bg-kv-green/10 text-kv-green" : "bg-gray-100 text-gray-600"
-                      }`}>
-                        {u.role === "admin" ? "Admin" : "Gebruiker"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {updatingUser === u.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin ml-auto text-gray-400" />
-                      ) : u.role === "admin" ? (
-                        <button
-                          onClick={() => handleRoleChange(u.id, "user")}
-                          disabled={u.email === "marketing@kiyoh.co.za"}
-                          className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          Maak gebruiker
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleRoleChange(u.id, "admin")}
-                          className="rounded-lg bg-kv-green/10 px-3 py-1 text-xs font-medium text-kv-green hover:bg-kv-green/20"
-                        >
-                          Maak admin
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </main>
 
       {/* Receipt Preview Modal */}
@@ -1057,28 +1646,17 @@ export default function AdminPage() {
               className="relative flex max-h-[90vh] w-full max-w-5xl gap-4 rounded-2xl bg-white p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Close button */}
-              <button
-                onClick={handleClosePreview}
-                className="absolute right-4 top-4 z-10 rounded-lg bg-white p-2 text-gray-500 shadow-md hover:bg-gray-100"
-              >
+              <button onClick={handleClosePreview} className="absolute right-4 top-4 z-10 rounded-lg bg-white p-2 text-gray-500 shadow-md hover:bg-gray-100">
                 <XIcon className="h-5 w-5" />
               </button>
 
-              {/* Navigation buttons */}
               {currentIndex > 0 && (
-                <button
-                  onClick={() => navigateReceipt("prev")}
-                  className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white p-2 text-gray-600 shadow-md hover:bg-gray-100"
-                >
+                <button onClick={() => navigateReceipt("prev")} className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white p-2 text-gray-600 shadow-md hover:bg-gray-100">
                   <ChevronLeft className="h-6 w-6" />
                 </button>
               )}
               {currentIndex < filteredReceipts.length - 1 && (
-                <button
-                  onClick={() => navigateReceipt("next")}
-                  className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white p-2 text-gray-600 shadow-md hover:bg-gray-100"
-                >
+                <button onClick={() => navigateReceipt("next")} className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white p-2 text-gray-600 shadow-md hover:bg-gray-100">
                   <ChevronRight className="h-6 w-6" />
                 </button>
               )}
@@ -1089,144 +1667,156 @@ export default function AdminPage() {
                   <Loader2 className="h-8 w-8 animate-spin text-kv-green" />
                 ) : previewUrl ? (
                   isPdf ? (
-                    <iframe
-                      src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewUrl)}&embedded=true`}
-                      className="w-full h-full min-h-[500px]"
-                      title="Receipt PDF"
-                    />
+                    <iframe src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewUrl)}&embedded=true`} className="w-full h-full min-h-[500px]" title="Receipt PDF" />
                   ) : (
                     <div className="relative w-full h-full min-h-[500px]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={previewUrl}
-                        alt="Receipt"
-                        className="max-w-full max-h-full object-contain mx-auto"
-                        style={{ maxHeight: "500px" }}
-                      />
+                      <img src={previewUrl} alt="Receipt" className="max-w-full max-h-full object-contain mx-auto" style={{ maxHeight: "500px" }} />
                     </div>
                   )
                 ) : (
-                  <p className="text-gray-500">Failed to load preview</p>
+                  <p className="text-gray-500">{t("failedToLoadPreview")}</p>
                 )}
               </div>
 
               {/* Details Panel */}
               <div className="w-80 flex-shrink-0 overflow-y-auto">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">
-                  {selectedReceipt.originalFilename}
-                </h3>
-
+                <h3 className="text-lg font-bold text-gray-900 mb-4">{selectedReceipt.originalFilename}</h3>
                 <div className="space-y-4">
-                  {/* Status Badge */}
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600">Status:</span>
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${getStatusBadge(
-                        selectedReceipt.verificationStatus
-                      )}`}
-                    >
+                    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${getStatusBadge(selectedReceipt.verificationStatus)}`}>
                       {getStatusIcon(selectedReceipt.verificationStatus)}
                       {selectedReceipt.verificationStatus}
                     </span>
                   </div>
 
-                  {/* User */}
                   <div className="rounded-lg bg-gray-50 p-3">
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <User className="h-3 w-3" /> Submitted by
-                    </p>
-                    <p className="font-medium text-gray-900">
-                      {selectedReceipt.user?.name || selectedReceipt.user?.email}
-                    </p>
+                    <p className="text-xs text-gray-500 flex items-center gap-1"><User className="h-3 w-3" /> Submitted by</p>
+                    <p className="font-medium text-gray-900">{selectedReceipt.user?.name || selectedReceipt.user?.email}</p>
                   </div>
 
-                  {/* Extracted Data */}
+                  {selectedReceipt.locationId && (
+                    <div className="rounded-lg bg-gray-50 p-3">
+                      <p className="text-xs text-gray-500">{t("locationId")}</p>
+                      <p className="font-medium text-gray-900 font-mono text-sm">{selectedReceipt.locationId}</p>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <div className="rounded-lg bg-gray-50 p-3">
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Calendar className="h-3 w-3" /> Date
-                      </p>
-                      <p className="font-medium text-gray-900">
-                        {formatDate(selectedReceipt.extractedDate)}
-                      </p>
+                      <p className="text-xs text-gray-500 flex items-center gap-1"><Calendar className="h-3 w-3" /> Date</p>
+                      <p className="font-medium text-gray-900">{formatDate(selectedReceipt.extractedDate)}</p>
                     </div>
                     <div className="rounded-lg bg-gray-50 p-3">
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" /> Amount
-                      </p>
+                      <p className="text-xs text-gray-500 flex items-center gap-1"><DollarSign className="h-3 w-3" /> Amount</p>
                       <p className="font-medium text-gray-900">
-                        {selectedReceipt.extractedAmount != null
-                          ? `$${selectedReceipt.extractedAmount.toFixed(2)}`
-                          : "N/A"}
+                        {selectedReceipt.extractedAmount != null ? `$${selectedReceipt.extractedAmount.toFixed(2)}` : "N/A"}
                       </p>
                     </div>
                   </div>
 
-                  {/* Fraud Risk */}
                   <div className="rounded-lg bg-gray-50 p-3">
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <Shield className="h-3 w-3" /> Fraud Risk Score
-                    </p>
+                    <p className="text-xs text-gray-500 flex items-center gap-1"><Shield className="h-3 w-3" /> Fraud Risk Score</p>
                     <div className="flex items-center gap-2">
-                      <p
-                        className={`text-xl font-bold ${
-                          (selectedReceipt.fraudRiskScore ?? 0) >= 50
-                            ? "text-red-600"
-                            : (selectedReceipt.fraudRiskScore ?? 0) >= 30
-                            ? "text-orange-600"
-                            : "text-green-600"
-                        }`}
-                      >
+                      <p className={`text-xl font-bold ${getFraudRiskColorClass(selectedReceipt.fraudRiskScore)}`}>
                         {selectedReceipt.fraudRiskScore ?? 0}%
                       </p>
                       {selectedReceipt.isDuplicate && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                          <Copy className="h-3 w-3" />
-                          Duplicate
+                          <Copy className="h-3 w-3" /> Duplicate
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* AI Reasoning */}
                   {selectedReceipt.ocrReasoning && (
                     <div className="rounded-lg bg-blue-50 p-3">
-                      <p className="text-xs font-medium text-blue-700 mb-1">AI Analysis</p>
+                      <p className="text-xs font-medium text-blue-700 mb-1">{t("aiAnalysis")}</p>
                       <p className="text-sm text-blue-900">{selectedReceipt.ocrReasoning}</p>
                     </div>
                   )}
 
-                  {/* Failure Reason */}
                   {selectedReceipt.failureReason && (
                     <div className="rounded-lg bg-red-50 p-3">
                       <p className="text-xs font-medium text-red-700 mb-1">{t("failureReason")}</p>
-                      <p className="text-sm font-medium text-red-900">
-                        {selectedReceipt.failureReason.replace(/_/g, " ")}
-                      </p>
+                      <p className="text-sm font-medium text-red-900">{selectedReceipt.failureReason.replace(/_/g, " ")}</p>
                     </div>
                   )}
 
-                  {/* Secondary Analysis */}
-                  {selectedReceipt.secondaryAnalysis && (
-                    <div className="rounded-lg bg-amber-50 p-3">
-                      <p className="text-xs font-medium text-amber-700 mb-1">{t("secondaryAnalysis")}</p>
-                      <p className="text-sm text-amber-900">{selectedReceipt.secondaryAnalysis}</p>
-                    </div>
-                  )}
+                  {selectedReceipt.secondaryAnalysis && (() => {
+                    try {
+                      const parsed = JSON.parse(selectedReceipt.secondaryAnalysis);
+                      const verdictLabels: Record<string, string> = {
+                        confirmed_rejection: t("verdictConfirmedRejection"),
+                        overturned_to_verified: t("verdictOverturnedToVerified"),
+                        requires_review: t("verdictRequiresReview"),
+                      };
+                      const verdictColors: Record<string, string> = {
+                        confirmed_rejection: "bg-red-100 text-red-800",
+                        overturned_to_verified: "bg-green-100 text-green-800",
+                        requires_review: "bg-amber-100 text-amber-800",
+                      };
+                      const verdictKey = parsed.verdict || "";
+                      return (
+                        <div className="rounded-lg bg-amber-50 p-3 space-y-2">
+                          <p className="text-xs font-medium text-amber-700 mb-1">{t("secondaryAnalysis")}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-gray-600">{t("secondaryVerdict")}:</span>
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${verdictColors[verdictKey] || "bg-gray-100 text-gray-800"}`}>
+                              {verdictLabels[verdictKey] || verdictKey}
+                            </span>
+                          </div>
+                          {parsed.reasoning && (
+                            <div>
+                              <span className="text-xs font-medium text-gray-600">{t("secondaryReasoning")}:</span>
+                              <p className="text-sm text-amber-900 mt-0.5">{parsed.reasoning}</p>
+                            </div>
+                          )}
+                          {parsed.confidence !== undefined && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-gray-600">{t("secondaryConfidence")}:</span>
+                              <span className="text-sm text-amber-900">{parsed.confidence}%</span>
+                            </div>
+                          )}
+                          {(parsed.extractedShopName || parsed.extractedDate || parsed.extractedAmount !== null) && (
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-amber-900">
+                              {parsed.extractedShopName && (
+                                <span><span className="text-xs font-medium text-gray-600">{t("secondaryExtractedShop")}:</span> {parsed.extractedShopName}</span>
+                              )}
+                              {parsed.extractedDate && (
+                                <span><span className="text-xs font-medium text-gray-600">{t("secondaryExtractedDate")}:</span> {parsed.extractedDate}</span>
+                              )}
+                              {parsed.extractedAmount !== null && parsed.extractedAmount !== undefined && (
+                                <span><span className="text-xs font-medium text-gray-600">{t("secondaryExtractedAmount")}:</span> €{parsed.extractedAmount}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    } catch {
+                      return (
+                        <div className="rounded-lg bg-amber-50 p-3">
+                          <p className="text-xs font-medium text-amber-700 mb-1">{t("secondaryAnalysis")}</p>
+                          <p className="text-sm text-amber-900">{selectedReceipt.secondaryAnalysis}</p>
+                        </div>
+                      );
+                    }
+                  })()}
 
-                  {/* Action Buttons */}
                   <div className="flex gap-2 pt-4 border-t">
                     <button
                       onClick={() => handleStatusUpdate(selectedReceipt.id, "verified")}
                       disabled={updatingId === selectedReceipt.id || selectedReceipt.verificationStatus === "verified"}
                       className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
                     >
-                      {updatingId === selectedReceipt.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Check className="h-4 w-4" />
-                      )}
-                      Approve
+                      {(() => {
+                        if (updatingId === selectedReceipt.id) {
+                          return <Loader2 className="h-4 w-4 animate-spin" />;
+                        }
+                        return <Check className="h-4 w-4" />;
+                      })()}
+                      {t("approve")}
                     </button>
                     <button
                       onClick={() => handleStatusUpdate(selectedReceipt.id, "rejected")}
@@ -1234,25 +1824,179 @@ export default function AdminPage() {
                       className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
                     >
                       <XIcon className="h-4 w-4" />
-                      Reject
+                      {t("reject")}
                     </button>
                   </div>
                   {selectedReceipt.verificationStatus === "rejected" && (
-                    <button
-                      onClick={() => setShowEmailModal(true)}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      <Mail className="h-4 w-4" />
-                      Email
+                    <button onClick={() => setShowEmailModal(true)} className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                      <Mail className="h-4 w-4" /> Email
                     </button>
                   )}
-                  <button
-                    onClick={() => handleDownload(selectedReceipt)}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download
+                  <button onClick={() => handleDownload(selectedReceipt)} className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <Download className="h-4 w-4" /> Download
                   </button>
+
+                  {/* Comment Thread */}
+                  <div className="pt-4 border-t">
+                    <CommentThread
+                      receiptId={selectedReceipt.id}
+                      currentUserId={(session?.user as any)?.id || ""}
+                      isAdmin={isAdmin}
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Dispute Preview Modal */}
+      <AnimatePresence>
+        {selectedDispute && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            onClick={handleCloseDisputePreview}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative flex max-h-[90vh] w-full max-w-5xl gap-4 rounded-2xl bg-white p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button onClick={handleCloseDisputePreview} className="absolute right-4 top-4 z-10 rounded-lg bg-white p-2 text-gray-500 shadow-md hover:bg-gray-100">
+                <XIcon className="h-5 w-5" />
+              </button>
+
+              {/* Image Preview */}
+              <div className="flex-1 flex items-center justify-center bg-gray-100 rounded-xl overflow-hidden min-h-[500px]">
+                {disputePreviewLoading ? (
+                  <Loader2 className="h-8 w-8 animate-spin text-kv-green" />
+                ) : disputePreviewUrl ? (
+                  isDisputePdf ? (
+                    <iframe src={`https://docs.google.com/viewer?url=${encodeURIComponent(disputePreviewUrl)}&embedded=true`} className="w-full h-full min-h-[500px]" title="Dispute Receipt PDF" />
+                  ) : (
+                    <div className="relative w-full h-full min-h-[500px]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={disputePreviewUrl} alt="Dispute Receipt" className="max-w-full max-h-full object-contain mx-auto" style={{ maxHeight: "500px" }} />
+                    </div>
+                  )
+                ) : (
+                  <p className="text-gray-500">{t("failedToLoadPreview")}</p>
+                )}
+              </div>
+
+              {/* Details Panel */}
+              <div className="w-80 flex-shrink-0 overflow-y-auto">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">{t("disputeDetails")}</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Status:</span>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${getStatusBadge(selectedDispute.status)}`}>
+                      {getStatusIcon(selectedDispute.status)}
+                      {selectedDispute.status}
+                    </span>
+                  </div>
+
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-xs text-gray-500">{t("disputeReviewId")}</p>
+                    <p className="font-medium text-gray-900 font-mono text-sm">{selectedDispute.reviewId}</p>
+                  </div>
+
+                  {selectedDispute.locationId && (
+                    <div className="rounded-lg bg-gray-50 p-3">
+                      <p className="text-xs text-gray-500">{t("disputeLocationId")}</p>
+                      <p className="font-medium text-gray-900 font-mono text-sm">{selectedDispute.locationId}</p>
+                    </div>
+                  )}
+
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-xs text-gray-500 flex items-center gap-1"><Calendar className="h-3 w-3" /> {t("disputeDate")}</p>
+                    <p className="font-medium text-gray-900">{formatDate(selectedDispute.createdAt)}</p>
+                  </div>
+
+                  {selectedDispute.receipt && (
+                    <>
+                      <div className="space-y-2">
+                        <div className="rounded-lg bg-gray-50 p-3">
+                          <p className="text-xs text-gray-500">{t("receipt")}</p>
+                          <p className="font-medium text-gray-900 text-sm truncate">{selectedDispute.receipt.originalFilename}</p>
+                        </div>
+                        {selectedDispute.receipt.extractedShopName && (
+                          <div className="rounded-lg bg-gray-50 p-3">
+                            <p className="text-xs text-gray-500">{t("shop")}</p>
+                            <p className="font-medium text-gray-900">{selectedDispute.receipt.extractedShopName}</p>
+                          </div>
+                        )}
+                        <div className="rounded-lg bg-gray-50 p-3">
+                          <p className="text-xs text-gray-500 flex items-center gap-1"><DollarSign className="h-3 w-3" /> {t("amount")}</p>
+                          <p className="font-medium text-gray-900">
+                            {selectedDispute.receipt.extractedAmount != null ? `$${selectedDispute.receipt.extractedAmount.toFixed(2)}` : "N/A"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg bg-gray-50 p-3">
+                        <p className="text-xs text-gray-500">{t("confidence")}</p>
+                        <span className={`text-lg font-bold ${getConfidenceColorClass(selectedDispute.receipt.ocrConfidence)}`}>
+                          {formatConfidenceDisplay(selectedDispute.receipt.ocrConfidence)}
+                        </span>
+                      </div>
+
+                      {selectedDispute.receipt.ocrReasoning && (
+                        <div className="rounded-lg bg-blue-50 p-3">
+                          <p className="text-xs font-medium text-blue-700 mb-1">{t("aiAnalysis")}</p>
+                          <p className="text-sm text-blue-900">{selectedDispute.receipt.ocrReasoning}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {selectedDispute.failureReason && (
+                    <div className="rounded-lg bg-red-50 p-3">
+                      <p className="text-xs font-medium text-red-700 mb-1">{t("failureReason")}</p>
+                      <p className="text-sm font-medium text-red-900">{selectedDispute.failureReason.replace(/_/g, " ")}</p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-4 border-t">
+                    <button
+                      onClick={() => handleDisputeAction(selectedDispute.id, "accept")}
+                      disabled={updatingDisputeId === selectedDispute.id || selectedDispute.status === "verified"}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {(() => {
+                        if (updatingDisputeId === selectedDispute.id) {
+                          return <Loader2 className="h-4 w-4 animate-spin" />;
+                        }
+                        return <Check className="h-4 w-4" />;
+                      })()}
+                      {t("disputeAccept")}
+                    </button>
+                    <button
+                      onClick={() => handleDisputeAction(selectedDispute.id, "reject")}
+                      disabled={updatingDisputeId === selectedDispute.id || selectedDispute.status === "rejected"}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      <XIcon className="h-4 w-4" />
+                      {t("disputeReject")}
+                    </button>
+                  </div>
+
+                  {/* Comment Thread */}
+                  {selectedDispute.receipt && (
+                    <div className="pt-4 border-t">
+                      <CommentThread
+                        receiptId={selectedDispute.receipt.id}
+                        currentUserId={(session?.user as any)?.id || ""}
+                        isAdmin={isAdmin}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -1277,11 +2021,7 @@ export default function AdminPage() {
               className="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Close button */}
-              <button
-                onClick={() => setShowEmailModal(false)}
-                className="absolute right-4 top-4 rounded-lg p-2 text-gray-500 hover:bg-gray-100"
-              >
+              <button onClick={() => setShowEmailModal(false)} className="absolute right-4 top-4 rounded-lg p-2 text-gray-500 hover:bg-gray-100">
                 <XIcon className="h-5 w-5" />
               </button>
 
@@ -1298,18 +2038,11 @@ export default function AdminPage() {
               </div>
 
               <div className="flex gap-3 mt-6 justify-end">
-                <button
-                  onClick={() => setShowEmailModal(false)}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
+                <button onClick={() => setShowEmailModal(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                   Close
                 </button>
-                <button
-                  onClick={handleCopyEmail}
-                  className="flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white hover:bg-kv-green/90"
-                >
-                  <Copy className="h-4 w-4" />
-                  Copy to Clipboard
+                <button onClick={handleCopyEmail} className="flex items-center gap-2 rounded-lg bg-kv-green px-4 py-2 text-sm font-medium text-white hover:bg-kv-green/90">
+                  <Copy className="h-4 w-4" /> Copy to Clipboard
                 </button>
               </div>
             </motion.div>

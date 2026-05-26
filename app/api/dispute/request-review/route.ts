@@ -4,8 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/db";
-import { requestHumanReview } from "@/lib/services/dispute-service";
+import { requestHumanReview, findOriginalReceiptIdByReviewId } from "@/lib/services/dispute-service";
 import { resolveDisputeToken } from "@/lib/dispute/dispute-token-http";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
 const requestReviewSchema = z.object({
   token: z.string().min(1),
@@ -38,6 +39,20 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: result.statusCode });
+    }
+
+    recordAuditEvent("system", "dispute_human_review_requested", undefined, {
+      receiptId: result.receiptId,
+      reviewId: tokenResult.payload.reviewId,
+    });
+
+    const originalReceiptId = await findOriginalReceiptIdByReviewId(prisma, tokenResult.payload.reviewId);
+    if (originalReceiptId) {
+      recordAuditEvent("system", "dispute_human_review_requested", undefined, {
+        receiptId: originalReceiptId,
+        disputeReceiptId: result.receiptId,
+        reviewId: tokenResult.payload.reviewId,
+      });
     }
 
     return NextResponse.json({

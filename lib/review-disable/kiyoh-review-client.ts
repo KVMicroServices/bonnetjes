@@ -1,11 +1,12 @@
 import { logger } from "@/lib/logger";
-import { authenticateKiyohAdmin } from "./kiyoh-auth-client";
+import { authenticateKiyohAdmin, invalidateKiyohTokenCache } from "./kiyoh-auth-client";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const KIYOH_REVIEW_BASE_URL = "https://www.kiyoh.com/v1/review";
 const KLANTENVERTELLEN_REVIEW_BASE_URL = "https://www.klantenvertellen.nl/v1/review";
 const KIYOH_TENANT_ID = 98;
+const HTTP_UNAUTHORIZED = 401;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -40,12 +41,40 @@ function getReviewListBaseUrl(tenantId: number): string {
 /**
  * Resolves the reviewer's email address from the Kiyoh review API.
  * Never throws — returns a failure result on any error.
+ * Retries once on 401 by invalidating the cached token and re-authenticating.
  */
 export async function resolveReviewerEmail(
   reviewId: string,
   locationId: string,
   tenantId: number
 ): Promise<ReviewerEmailResult> {
+  const firstAttempt = await fetchReviewerEmail(reviewId, locationId, tenantId);
+
+  if (firstAttempt.retryDueToExpiredToken) {
+    logger.info(
+      { reviewId, locationId, tenantId },
+      "Kiyoh review API returned 401, invalidating token cache and retrying"
+    );
+    invalidateKiyohTokenCache();
+    const retryAttempt = await fetchReviewerEmail(reviewId, locationId, tenantId);
+    return retryAttempt.result;
+  }
+
+  return firstAttempt.result;
+}
+
+// ─── Internal Fetch ──────────────────────────────────────────────────────────
+
+interface FetchReviewerEmailOutcome {
+  readonly result: ReviewerEmailResult;
+  readonly retryDueToExpiredToken: boolean;
+}
+
+async function fetchReviewerEmail(
+  reviewId: string,
+  locationId: string,
+  tenantId: number
+): Promise<FetchReviewerEmailOutcome> {
   let bearerToken: string;
 
   try {
@@ -62,7 +91,10 @@ export async function resolveReviewerEmail(
       { reviewId, locationId, tenantId, error: errorMessage },
       "Failed to authenticate with Kiyoh for reviewer email resolution"
     );
-    return { success: false, error: `Authentication failed: ${errorMessage}` };
+    return {
+      result: { success: false, error: `Authentication failed: ${errorMessage}` },
+      retryDueToExpiredToken: false,
+    };
   }
 
   const baseUrl = getReviewListBaseUrl(tenantId);
@@ -93,7 +125,27 @@ export async function resolveReviewerEmail(
       { url: baseUrl, reviewId, locationId, tenantId, error: errorMessage },
       "Kiyoh review list fetch threw an exception"
     );
-    return { success: false, error: `Network error: ${errorMessage}` };
+    return {
+      result: { success: false, error: `Network error: ${errorMessage}` },
+      retryDueToExpiredToken: false,
+    };
+  }
+
+  if (response.status === HTTP_UNAUTHORIZED) {
+    let responseBody: string;
+    try {
+      responseBody = await response.text();
+    } catch {
+      responseBody = "(failed to read response body)";
+    }
+    logger.warn(
+      { status: response.status, body: responseBody, reviewId, locationId, tenantId },
+      "Kiyoh review list API returned 401, token may be expired"
+    );
+    return {
+      result: { success: false, error: `HTTP ${response.status}: ${responseBody}` },
+      retryDueToExpiredToken: true,
+    };
   }
 
   if (!response.ok) {
@@ -107,7 +159,10 @@ export async function resolveReviewerEmail(
       { status: response.status, body: responseBody, reviewId, locationId, tenantId },
       "Kiyoh review list API returned non-OK status"
     );
-    return { success: false, error: `HTTP ${response.status}: ${responseBody}` };
+    return {
+      result: { success: false, error: `HTTP ${response.status}: ${responseBody}` },
+      retryDueToExpiredToken: false,
+    };
   }
 
   let responseData: ReadonlyArray<ReviewDetailDto>;
@@ -118,7 +173,10 @@ export async function resolveReviewerEmail(
         { reviewId, locationId, tenantId },
         "Kiyoh review API returned non-array response"
       );
-      return { success: false, error: "Unexpected response format (not an array)" };
+      return {
+        result: { success: false, error: "Unexpected response format (not an array)" },
+        retryDueToExpiredToken: false,
+      };
     }
     responseData = parsed as ReadonlyArray<ReviewDetailDto>;
   } catch (parseError) {
@@ -132,7 +190,10 @@ export async function resolveReviewerEmail(
       { reviewId, locationId, tenantId, error: errorMessage },
       "Kiyoh review list response was not valid JSON"
     );
-    return { success: false, error: `Invalid JSON response: ${errorMessage}` };
+    return {
+      result: { success: false, error: `Invalid JSON response: ${errorMessage}` },
+      retryDueToExpiredToken: false,
+    };
   }
 
   if (responseData.length === 0) {
@@ -140,7 +201,10 @@ export async function resolveReviewerEmail(
       { reviewId, locationId, tenantId },
       "Kiyoh review list returned no reviews"
     );
-    return { success: false, error: "No reviews found for the given reviewId" };
+    return {
+      result: { success: false, error: "No reviews found for the given reviewId" },
+      retryDueToExpiredToken: false,
+    };
   }
 
   const firstReview = responseData[0];
@@ -151,7 +215,10 @@ export async function resolveReviewerEmail(
       { reviewId, locationId, tenantId },
       "Kiyoh review response missing email field"
     );
-    return { success: false, error: "Review found but email field is empty" };
+    return {
+      result: { success: false, error: "Review found but email field is empty" },
+      retryDueToExpiredToken: false,
+    };
   }
 
   logger.info(
@@ -159,5 +226,8 @@ export async function resolveReviewerEmail(
     "Successfully resolved reviewer email from Kiyoh API"
   );
 
-  return { success: true, email: reviewerEmail };
+  return {
+    result: { success: true, email: reviewerEmail },
+    retryDueToExpiredToken: false,
+  };
 }

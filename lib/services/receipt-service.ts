@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
 // ─── Dependencies ────────────────────────────────────────────────────────────
 
@@ -88,7 +89,9 @@ interface ReceiptWithUser {
   fraudRiskScore: number | null;
   createdAt: Date;
   updatedAt: Date;
+  queuedAt: Date | null;
   processedAt: Date | null;
+  locationId: string | null;
   user: ReceiptUser;
 }
 
@@ -196,13 +199,37 @@ export async function listReceipts(
   dependencies: ReceiptServiceDependencies,
   userId: string,
   isAdmin: boolean,
-  options?: { cursor?: string; limit?: number }
+  options?: { cursor?: string; limit?: number; search?: string }
 ): Promise<ListReceiptsResult> {
-  let whereClause = {};
-  if (!isAdmin) {
-    whereClause = { userId };
-  }
   const limit = options?.limit ?? 15;
+
+  // If a search term is provided, find matching receipt IDs via ReceiptSyncState
+  let searchReceiptIds: string[] | null = null;
+  if (options?.search && options.search.trim().length > 0) {
+    const searchTerm = options.search.trim();
+    const matchingSyncStates = await dependencies.database.receiptSyncState.findMany({
+      where: {
+        OR: [
+          { reviewId: { contains: searchTerm, mode: "insensitive" } },
+          { locationId: { contains: searchTerm, mode: "insensitive" } },
+        ],
+        receiptId: { not: null },
+      },
+      select: { receiptId: true },
+    });
+    searchReceiptIds = matchingSyncStates
+      .map((state) => state.receiptId)
+      .filter((id): id is string => id !== null);
+
+    if (searchReceiptIds.length === 0) {
+      return { success: true, receipts: [], nextCursor: null, hasMore: false };
+    }
+  }
+
+  const whereClause: Record<string, unknown> = {};
+  if (searchReceiptIds !== null) {
+    whereClause.id = { in: searchReceiptIds };
+  }
 
   const findOptions: Record<string, unknown> = {
     where: whereClause,
@@ -236,7 +263,29 @@ export async function listReceipts(
     nextCursor = resultReceipts[resultReceipts.length - 1].id;
   }
 
-  return { success: true, receipts: resultReceipts, nextCursor, hasMore };
+  // Fetch locationId from ReceiptSyncState for each receipt
+  const receiptIds = resultReceipts.map((receipt) => receipt.id);
+  const syncStates = await dependencies.database.receiptSyncState.findMany({
+    where: { receiptId: { in: receiptIds } },
+    select: { receiptId: true, locationId: true },
+  });
+  const locationIdMap = new Map(
+    syncStates.map((state) => [state.receiptId, state.locationId])
+  );
+
+  const enrichedReceipts = resultReceipts.map((receipt) => {
+    const locationId = locationIdMap.get(receipt.id);
+    let resolvedLocationId: string | null = null;
+    if (locationId) {
+      resolvedLocationId = locationId;
+    }
+    return {
+      ...receipt,
+      locationId: resolvedLocationId,
+    };
+  });
+
+  return { success: true, receipts: enrichedReceipts, nextCursor, hasMore };
 }
 
 /** Retrieve a single receipt with access control. */
@@ -265,11 +314,7 @@ export async function getReceipt(
     return { success: false, error: "Receipt not found", statusCode: 404 };
   }
 
-  if (!isAdmin && receipt.userId !== userId) {
-    return { success: false, error: "Access denied", statusCode: 403 };
-  }
-
-  return { success: true, receipt };
+  return { success: true, receipt: { ...receipt, locationId: null } };
 }
 
 /** Create a receipt with fraud detection pipeline. */
@@ -362,6 +407,11 @@ export async function updateReceiptStatus(
     },
   });
 
+  recordAuditEvent("moderation", status, adminId, {
+    receiptId,
+    action: status,
+  });
+
   return { success: true, receipt };
 }
 
@@ -452,10 +502,6 @@ export async function getDownloadUrl(
     return { success: false, error: "Receipt not found", statusCode: 404 };
   }
 
-  if (!isAdmin && receipt.userId !== userId) {
-    return { success: false, error: "Access denied", statusCode: 403 };
-  }
-
   if (isAdmin) {
     await dependencies.database.adminAction.create({
       data: {
@@ -466,9 +512,15 @@ export async function getDownloadUrl(
     });
   }
 
+  // Use preview image for non-browser-viewable formats (HEIC, DOC, DOCX)
+  let effectivePath = receipt.cloudStoragePath;
+  if (receipt.previewStoragePath) {
+    effectivePath = receipt.previewStoragePath;
+  }
+
   // Handle KV-synced receipts (stored in external S3 bucket, not R2)
-  if (receipt.cloudStoragePath.startsWith(KV_SYNC_PATH_PREFIX)) {
-    const s3Key = receipt.cloudStoragePath.substring(KV_SYNC_PATH_PREFIX.length);
+  if (effectivePath.startsWith(KV_SYNC_PATH_PREFIX)) {
+    const s3Key = effectivePath.substring(KV_SYNC_PATH_PREFIX.length);
     const downloadUrl = await getKvSyncDownloadUrl(s3Key);
     if (!downloadUrl) {
       return { success: false, error: "KV S3 bucket not configured", statusCode: 503 };
@@ -481,7 +533,7 @@ export async function getDownloadUrl(
   }
 
   const downloadUrl = await dependencies.storage.getFileUrl(
-    receipt.cloudStoragePath,
+    effectivePath,
     receipt.isPublic
   );
 

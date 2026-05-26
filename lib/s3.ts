@@ -162,3 +162,28 @@ export async function getFileAsBuffer(cloud_storage_path: string): Promise<Buffe
 
   return Buffer.concat(chunks);
 }
+
+/** Upload a buffer directly to S3 (server-side, no presigned URL needed). */
+export async function uploadBuffer(
+  buffer: Buffer,
+  cloudStoragePath: string,
+  contentType: string
+): Promise<void> {
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: cloudStoragePath,
+    Body: buffer,
+    ContentType: contentType,
+  });
+
+  await s3Client.send(command);
+}
+
+/** Generate a storage path for a preview image derived from the original file. */
+export function generatePreviewStoragePath(
+  originalPath: string,
+  extension: string
+): string {
+  const basePath = originalPath.replace(/\.[^.]+$/, "");
+  return `${basePath}-preview${extension}`;
+}

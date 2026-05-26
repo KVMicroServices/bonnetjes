@@ -23,6 +23,38 @@ export interface DisableEmailTranslations {
   readonly failureReasonText: string;
 }
 
+export interface VerifiedEmailTranslations {
+  readonly subject: string;
+  readonly headerTagline: string;
+  readonly headerTitle: string;
+  readonly greeting: string;
+  readonly body: string;
+  readonly thankYou: string;
+  readonly signOff: string;
+  readonly teamName: string;
+  readonly termsButtonText: string;
+  readonly privacyButtonText: string;
+  readonly questionsLabel: string;
+  readonly shopLabel: string;
+  readonly dateLabel: string;
+  readonly amountLabel: string;
+}
+
+export interface FinalRejectionEmailTranslations {
+  readonly subject: string;
+  readonly headerTagline: string;
+  readonly headerTitle: string;
+  readonly greeting: string;
+  readonly body: string;
+  readonly reasonLabel: string;
+  readonly supportPrompt: string;
+  readonly signOff: string;
+  readonly teamName: string;
+  readonly termsButtonText: string;
+  readonly privacyButtonText: string;
+  readonly questionsLabel: string;
+}
+
 export interface DisableEmailBrand {
   readonly brandName: string;
   readonly logoUrl: string;
@@ -37,6 +69,22 @@ export interface DisableEmailData {
   readonly locationId: string;
   readonly disputeUrl: string;
   readonly translations: DisableEmailTranslations;
+  readonly brand: DisableEmailBrand;
+}
+
+export interface VerifiedEmailData {
+  readonly reviewId: string;
+  readonly extractedShopName: string | null;
+  readonly extractedDate: string | null;
+  readonly extractedAmount: number | null;
+  readonly translations: VerifiedEmailTranslations;
+  readonly brand: DisableEmailBrand;
+}
+
+export interface FinalRejectionEmailData {
+  readonly reviewId: string;
+  readonly failureReasonText: string;
+  readonly translations: FinalRejectionEmailTranslations;
   readonly brand: DisableEmailBrand;
 }
 
@@ -234,6 +282,283 @@ export function renderDisableEmailHtml(data: DisableEmailData): string {
             <tr>${renderMainCard(data)}</tr>
             <tr><td style="height:24px;line-height:24px;font-size:0;">&nbsp;</td></tr>
             <tr>${renderFooterCard(data)}</tr>
+            <tr><td style="height:24px;line-height:24px;font-size:0;">&nbsp;</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </center>
+</body>
+</html>`;
+}
+
+// ─── Verified Email ──────────────────────────────────────────────────────────
+
+function renderVerifiedMainCard(data: VerifiedEmailData): string {
+  const translations = data.translations;
+  const cardStyle = [
+    `background-color:${CARD_BACKGROUND}`,
+    `border-radius:${CARD_RADIUS_PX}px`,
+    "padding:20px",
+    "text-align:center",
+    "box-shadow:0 8px 20px rgba(0,0,0,0.05)",
+  ].join(";");
+
+  const detailsStyle = [
+    "background-color:#f9f9f9",
+    "border-radius:8px",
+    "padding:12px 16px",
+    "margin:0 0 24px 0",
+    "text-align:left",
+    `color:${TEXT_COLOR}`,
+    "font-size:14px",
+    "line-height:1.5",
+  ].join(";");
+
+  let detailsBlock = "";
+  const hasDetails = data.extractedShopName || data.extractedDate || data.extractedAmount !== null;
+  if (hasDetails) {
+    const lines: string[] = [];
+    if (data.extractedShopName) {
+      lines.push(`<strong>${escapeHtml(translations.shopLabel)}:</strong> ${escapeHtml(data.extractedShopName)}`);
+    }
+    if (data.extractedDate) {
+      lines.push(`<strong>${escapeHtml(translations.dateLabel)}:</strong> ${escapeHtml(data.extractedDate)}`);
+    }
+    if (data.extractedAmount !== null) {
+      lines.push(`<strong>${escapeHtml(translations.amountLabel)}:</strong> ${escapeHtml(String(data.extractedAmount))}`);
+    }
+    detailsBlock = `<div style="${detailsStyle}">${lines.join("<br />")}</div>`;
+  }
+
+  return `
+    <td style="${cardStyle}">
+      <h1 style="font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;color:${TEXT_COLOR};margin:0;">
+        <span style="font-size:22px">${escapeHtml(translations.headerTagline)}</span><br />
+        <span style="font-size:32px">${escapeHtml(translations.headerTitle)}</span>
+      </h1>
+      <div style="height:20px;line-height:20px;font-size:0;">&nbsp;</div>
+      <p style="text-align:left;font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;font-size:16px;line-height:1.6;color:${TEXT_COLOR};margin:15px 0;">
+        ${escapeHtml(translations.greeting)}
+      </p>
+      <p style="text-align:left;font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;font-size:16px;line-height:1.6;color:${TEXT_COLOR};margin:15px 0;">
+        ${escapeHtml(translations.body)}
+      </p>
+      ${detailsBlock}
+      <p style="text-align:left;font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;font-size:16px;line-height:1.6;color:${TEXT_COLOR};margin:15px 0;">
+        ${escapeHtml(translations.thankYou)}
+      </p>
+    </td>`;
+}
+
+function renderVerifiedFooterCard(data: VerifiedEmailData): string {
+  const translations = data.translations;
+  const brand = data.brand;
+
+  const cardStyle = [
+    `background-color:${CARD_BACKGROUND}`,
+    `border-radius:${CARD_RADIUS_PX}px`,
+    "padding:20px",
+    "text-align:center",
+    "box-shadow:0 8px 20px rgba(0,0,0,0.05)",
+  ].join(";");
+
+  const termsButtonStyle = [
+    `background-color:${SECONDARY_BUTTON_COLOR}`,
+    "color:#ffffff",
+    "padding:10px 20px",
+    "text-decoration:none",
+    "border-radius:5px",
+    "display:inline-block",
+    "font-weight:bold",
+    "font-family:Arial, sans-serif",
+  ].join(";");
+
+  return `
+    <td style="${cardStyle}">
+      <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-top:1px solid ${FOOTER_BORDER_COLOR};padding-top:20px;" width="100%">
+        <tr>
+          <td style="text-align:center;">
+            <p style="margin:0;font-size:20px;color:${TEXT_COLOR};font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;">
+              ${escapeHtml(translations.signOff)}<br />
+              <strong>${escapeHtml(translations.teamName)}</strong>
+            </p>
+            <div style="margin:20px 0;">
+              <a href="${brand.termsUrl}" target="_blank" style="${termsButtonStyle}">
+                ${escapeHtml(translations.termsButtonText)}
+              </a>
+              &nbsp;&nbsp;
+              <a href="${brand.privacyPolicyUrl}" target="_blank" style="${termsButtonStyle}">
+                ${escapeHtml(translations.privacyButtonText)}
+              </a>
+            </div>
+            <p style="font-size:14px;color:${MUTED_TEXT_COLOR};font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;">
+              ${escapeHtml(translations.questionsLabel)}
+              <a href="mailto:${brand.supportEmail}" style="color:${SECONDARY_BUTTON_COLOR};text-decoration:none;" target="_blank">${escapeHtml(brand.supportEmail)}</a>
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>`;
+}
+
+export function renderVerifiedEmailSubject(data: VerifiedEmailData): string {
+  return data.translations.subject;
+}
+
+export function renderVerifiedEmailHtml(data: VerifiedEmailData): string {
+  const escapedSubject = escapeHtml(data.translations.subject);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapedSubject}</title>
+</head>
+<body style="margin:0;padding:0;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;width:100%;background-color:${PAGE_BACKGROUND};">
+  <center>
+    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse !important;margin:0;padding:0;width:100%;background-color:${PAGE_BACKGROUND};">
+      <tr>
+        <td align="center" valign="top" style="padding:20px;width:100%;background-color:${PAGE_BACKGROUND};">
+          <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px !important;">
+            <tr>${renderBannerCell(data.brand)}</tr>
+            <tr>${renderVerifiedMainCard(data)}</tr>
+            <tr><td style="height:24px;line-height:24px;font-size:0;">&nbsp;</td></tr>
+            <tr>${renderVerifiedFooterCard(data)}</tr>
+            <tr><td style="height:24px;line-height:24px;font-size:0;">&nbsp;</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </center>
+</body>
+</html>`;
+}
+
+// ─── Final Rejection Email (Dispute Failed) ──────────────────────────────────
+
+function renderFinalRejectionMainCard(data: FinalRejectionEmailData): string {
+  const translations = data.translations;
+  const cardStyle = [
+    `background-color:${CARD_BACKGROUND}`,
+    `border-radius:${CARD_RADIUS_PX}px`,
+    "padding:20px",
+    "text-align:center",
+    "box-shadow:0 8px 20px rgba(0,0,0,0.05)",
+  ].join(";");
+
+  const reasonStyle = [
+    "background-color:#f9f9f9",
+    "border-radius:8px",
+    "padding:12px 16px",
+    "margin:0 0 24px 0",
+    "text-align:left",
+    `color:${TEXT_COLOR}`,
+    "font-size:14px",
+    "line-height:1.5",
+  ].join(";");
+
+  return `
+    <td style="${cardStyle}">
+      <h1 style="font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;color:${TEXT_COLOR};margin:0;">
+        <span style="font-size:22px">${escapeHtml(translations.headerTagline)}</span><br />
+        <span style="font-size:32px">${escapeHtml(translations.headerTitle)}</span>
+      </h1>
+      <div style="height:20px;line-height:20px;font-size:0;">&nbsp;</div>
+      <p style="text-align:left;font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;font-size:16px;line-height:1.6;color:${TEXT_COLOR};margin:15px 0;">
+        ${escapeHtml(translations.greeting)}
+      </p>
+      <p style="text-align:left;font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;font-size:16px;line-height:1.6;color:${TEXT_COLOR};margin:15px 0;">
+        ${escapeHtml(translations.body)}
+      </p>
+      <div style="${reasonStyle}">
+        <strong>${escapeHtml(translations.reasonLabel)}:</strong> ${escapeHtml(data.failureReasonText)}
+      </div>
+      <p style="text-align:left;font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;font-size:16px;line-height:1.6;color:${TEXT_COLOR};margin:15px 0;">
+        ${escapeHtml(translations.supportPrompt)}
+      </p>
+      <p style="text-align:center;font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;font-size:16px;line-height:1.6;color:${TEXT_COLOR};margin:15px 0;">
+        <a href="mailto:${escapeHtml(data.brand.supportEmail)}" style="color:${PRIMARY_BUTTON_COLOR};font-weight:bold;text-decoration:none;">${escapeHtml(data.brand.supportEmail)}</a>
+      </p>
+    </td>`;
+}
+
+function renderFinalRejectionFooterCard(data: FinalRejectionEmailData): string {
+  const translations = data.translations;
+  const brand = data.brand;
+
+  const cardStyle = [
+    `background-color:${CARD_BACKGROUND}`,
+    `border-radius:${CARD_RADIUS_PX}px`,
+    "padding:20px",
+    "text-align:center",
+    "box-shadow:0 8px 20px rgba(0,0,0,0.05)",
+  ].join(";");
+
+  const termsButtonStyle = [
+    `background-color:${SECONDARY_BUTTON_COLOR}`,
+    "color:#ffffff",
+    "padding:10px 20px",
+    "text-decoration:none",
+    "border-radius:5px",
+    "display:inline-block",
+    "font-weight:bold",
+    "font-family:Arial, sans-serif",
+  ].join(";");
+
+  return `
+    <td style="${cardStyle}">
+      <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-top:1px solid ${FOOTER_BORDER_COLOR};padding-top:20px;" width="100%">
+        <tr>
+          <td style="text-align:center;">
+            <p style="margin:0;font-size:20px;color:${TEXT_COLOR};font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;">
+              ${escapeHtml(translations.signOff)}<br />
+              <strong>${escapeHtml(translations.teamName)}</strong>
+            </p>
+            <div style="margin:20px 0;">
+              <a href="${brand.termsUrl}" target="_blank" style="${termsButtonStyle}">
+                ${escapeHtml(translations.termsButtonText)}
+              </a>
+              &nbsp;&nbsp;
+              <a href="${brand.privacyPolicyUrl}" target="_blank" style="${termsButtonStyle}">
+                ${escapeHtml(translations.privacyButtonText)}
+              </a>
+            </div>
+            <p style="font-size:14px;color:${MUTED_TEXT_COLOR};font-family:'Helvetica Neue',Helvetica,Arial,Verdana,sans-serif;">
+              ${escapeHtml(translations.questionsLabel)}
+              <a href="mailto:${brand.supportEmail}" style="color:${SECONDARY_BUTTON_COLOR};text-decoration:none;" target="_blank">${escapeHtml(brand.supportEmail)}</a>
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>`;
+}
+
+export function renderFinalRejectionEmailSubject(data: FinalRejectionEmailData): string {
+  return data.translations.subject;
+}
+
+export function renderFinalRejectionEmailHtml(data: FinalRejectionEmailData): string {
+  const escapedSubject = escapeHtml(data.translations.subject);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapedSubject}</title>
+</head>
+<body style="margin:0;padding:0;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;width:100%;background-color:${PAGE_BACKGROUND};">
+  <center>
+    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse !important;margin:0;padding:0;width:100%;background-color:${PAGE_BACKGROUND};">
+      <tr>
+        <td align="center" valign="top" style="padding:20px;width:100%;background-color:${PAGE_BACKGROUND};">
+          <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px !important;">
+            <tr>${renderBannerCell(data.brand)}</tr>
+            <tr>${renderFinalRejectionMainCard(data)}</tr>
+            <tr><td style="height:24px;line-height:24px;font-size:0;">&nbsp;</td></tr>
+            <tr>${renderFinalRejectionFooterCard(data)}</tr>
             <tr><td style="height:24px;line-height:24px;font-size:0;">&nbsp;</td></tr>
           </table>
         </td>

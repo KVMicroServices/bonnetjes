@@ -43,6 +43,7 @@ interface ReceiptData {
   suspiciousPatterns: string | null;
   receiptReadable: boolean | null;
   createdAt: string;
+  queuedAt: string | null;
   processedAt: string | null;
   user: { id: string; name: string | null; email: string };
 }
@@ -340,12 +341,65 @@ export function AdminReceiptCard({
                 )}
 
                 {/* Secondary Analysis */}
-                {receipt?.secondaryAnalysis && (
-                  <div className="rounded-lg bg-amber-50 p-3">
-                    <p className="text-xs font-medium text-amber-700">{t("secondaryAnalysis")}</p>
-                    <p className="text-sm text-amber-900">{receipt.secondaryAnalysis}</p>
-                  </div>
-                )}
+                {receipt?.secondaryAnalysis && (() => {
+                  try {
+                    const parsed = JSON.parse(receipt.secondaryAnalysis);
+                    const verdictLabels: Record<string, string> = {
+                      confirmed_rejection: t("verdictConfirmedRejection"),
+                      overturned_to_verified: t("verdictOverturnedToVerified"),
+                      requires_review: t("verdictRequiresReview"),
+                    };
+                    const verdictColors: Record<string, string> = {
+                      confirmed_rejection: "bg-red-100 text-red-800",
+                      overturned_to_verified: "bg-green-100 text-green-800",
+                      requires_review: "bg-amber-100 text-amber-800",
+                    };
+                    const verdictKey = parsed.verdict || "";
+                    return (
+                      <div className="rounded-lg bg-amber-50 p-3 space-y-2">
+                        <p className="text-xs font-medium text-amber-700">{t("secondaryAnalysis")}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-gray-600">{t("secondaryVerdict")}:</span>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${verdictColors[verdictKey] || "bg-gray-100 text-gray-800"}`}>
+                            {verdictLabels[verdictKey] || verdictKey}
+                          </span>
+                        </div>
+                        {parsed.reasoning && (
+                          <div>
+                            <span className="text-xs font-medium text-gray-600">{t("secondaryReasoning")}:</span>
+                            <p className="text-sm text-amber-900 mt-0.5">{parsed.reasoning}</p>
+                          </div>
+                        )}
+                        {parsed.confidence !== undefined && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-gray-600">{t("secondaryConfidence")}:</span>
+                            <span className="text-sm text-amber-900">{parsed.confidence}%</span>
+                          </div>
+                        )}
+                        {(parsed.extractedShopName || parsed.extractedDate || parsed.extractedAmount !== null) && (
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-amber-900">
+                            {parsed.extractedShopName && (
+                              <span><span className="text-xs font-medium text-gray-600">{t("secondaryExtractedShop")}:</span> {parsed.extractedShopName}</span>
+                            )}
+                            {parsed.extractedDate && (
+                              <span><span className="text-xs font-medium text-gray-600">{t("secondaryExtractedDate")}:</span> {parsed.extractedDate}</span>
+                            )}
+                            {parsed.extractedAmount !== null && parsed.extractedAmount !== undefined && (
+                              <span><span className="text-xs font-medium text-gray-600">{t("secondaryExtractedAmount")}:</span> €{parsed.extractedAmount}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  } catch {
+                    return (
+                      <div className="rounded-lg bg-amber-50 p-3">
+                        <p className="text-xs font-medium text-amber-700">{t("secondaryAnalysis")}</p>
+                        <p className="text-sm text-amber-900">{receipt.secondaryAnalysis}</p>
+                      </div>
+                    );
+                  }
+                })()}
               </div>
             </div>
 
@@ -441,6 +495,24 @@ export function AdminReceiptCard({
               </div>
             </div>
           </div>
+
+          {/* Timestamps */}
+          {(receipt.queuedAt || receipt.processedAt) && (
+            <div className="mt-4 flex flex-wrap gap-3 text-xs text-gray-500">
+              {receipt.queuedAt && (
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  <span>{t("queuedAt")}: {new Date(receipt.queuedAt).toLocaleString()}</span>
+                </div>
+              )}
+              {receipt.processedAt && (
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3" />
+                  <span>{t("processedAt")}: {new Date(receipt.processedAt).toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="mt-6 border-t pt-4">
