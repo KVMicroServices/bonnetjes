@@ -10,22 +10,23 @@ bonnetjes/
 │   ├── signup/                 # Signup page
 │   ├── dashboard/              # User dashboard
 │   ├── archive/                # Archived receipts
-│   ├── admin/                  # Admin pages
+│   ├── admin/                  # Admin settings (only section requiring admin role)
 │   │   ├── page.tsx            # Admin dashboard
 │   │   ├── moderation/         # Receipt moderation
 │   │   ├── reviews/            # Review management
-│   │   └── settings/automation # Automation workflow config
+│   │   └── settings/automation # Automation workflow config (admin-only)
 │   └── api/                    # API routes (Route Handlers)
 │       ├── auth/               # NextAuth + login endpoints
 │       ├── receipts/           # Receipt CRUD, OCR, download
 │       ├── upload/             # File upload
 │       ├── drive/              # Google Drive import
 │       ├── reviews/            # Review platform operations
-│       ├── admin/              # Admin-only endpoints
+│       ├── admin/              # Admin-scoped endpoints (settings require admin role, others auth-only)
 │       │   ├── receipts/       # Admin receipt management
 │       │   ├── reviews/        # Review notifications
 │       │   ├── automation/     # Workflow CRUD + execution
 │       │   ├── stats/          # Dashboard statistics
+│       │   ├── settings/       # System settings (admin role required)
 │       │   └── users/          # User management
 │       └── health/             # Health check (Railway)
 ├── components/
@@ -65,6 +66,7 @@ bonnetjes/
 - **Pages** are React Server Components by default
 - **Client components** use `"use client"` directive
 - **Database access** goes through `lib/db.ts` (Prisma singleton)
-- **Auth checks** use NextAuth `getServerSession` in API routes
+- **Auth checks** use NextAuth `getServerSession` in API routes — check for authenticated session only, not role (except `/api/admin/settings`)
 - **File storage** uses S3-compatible API via `lib/s3.ts`
 - **UI components** from shadcn/ui are in `components/ui/` — add new ones via CLI, don't hand-edit
+- **Access control**: All routes require authentication. Only `/api/admin/settings` additionally requires `role === "admin"`. Do not add admin role checks elsewhere unless explicitly asked.

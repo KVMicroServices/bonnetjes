@@ -5,6 +5,7 @@ import type { ReviewDisableJobData } from "./review-disable-queue";
 import { prisma } from "@/lib/db";
 import { disableReviewByReceiptId } from "@/lib/review-disable/review-disable-service";
 import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
+import { resolveLocationLocaleWithFallback } from "@/lib/review-disable/kiyoh-location-client";
 import { sendReviewDisableEmail } from "@/lib/email/email-service";
 import { logger } from "@/lib/logger";
 
@@ -65,7 +66,6 @@ async function processReviewDisableJob(job: Job<ReviewDisableJobData>): Promise<
 // ─── Email Notification Helper ─────────────────────────────────────────────
 
 const DEFAULT_FAILURE_REASON = "VERIFICATION_FAILED";
-const EMAIL_LOCALE = "en";
 
 async function sendDisableNotificationEmail(
   receiptId: string,
@@ -85,6 +85,8 @@ async function sendDisableNotificationEmail(
     }
 
     const recipientEmail = emailResolution.email;
+
+    const locale = await resolveLocationLocaleWithFallback(locationId, tenantId);
 
     let failureReason = DEFAULT_FAILURE_REASON;
     try {
@@ -111,7 +113,7 @@ async function sendDisableNotificationEmail(
 
     const sendResult = await sendReviewDisableEmail({
       recipientEmail: recipientEmail,
-      locale: EMAIL_LOCALE,
+      locale: locale,
       reviewId: reviewId,
       locationId: locationId,
       tenantId: tenantId,

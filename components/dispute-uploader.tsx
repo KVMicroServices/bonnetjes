@@ -371,9 +371,6 @@ export function DisputeUploader({ token, reviewId }: DisputeUploaderProps) {
                   {failureTranslations(`failure_${result.failureReason}`)}
                 </p>
               )}
-              {result.ocrReasoning && (
-                <p className="mt-2 text-sm text-red-700/80">{result.ocrReasoning}</p>
-              )}
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">

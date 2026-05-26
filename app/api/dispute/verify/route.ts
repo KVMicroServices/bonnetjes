@@ -19,6 +19,7 @@ import {
   parseOcrResult,
   determineVerificationStatus,
   runSecondaryAnalysis,
+  buildOcrPromptWithDynamicReasons,
   type OcrApiConfig,
   type OcrMessage,
   type ParsedOcrResult,
@@ -26,9 +27,19 @@ import {
 } from "@/lib/services/ocr-service";
 import {
   verifyDisputeReceipt,
+  findOriginalReceiptIdByReviewId,
   type DisputeOcrAdapter,
 } from "@/lib/services/dispute-service";
 import { resolveDisputeToken } from "@/lib/dispute/dispute-token-http";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
+import { sendNotification } from "@/lib/services/notification-service";
+import {
+  getOcrPromptCriteria,
+  getSecondaryPromptCriteria,
+  getHighConfidenceThreshold,
+  getReceiptMaxAgeMonths,
+} from "@/lib/services/app-settings-service";
+import { getEnabledFailureReasonsWithDescriptions } from "@/lib/services/failure-reason-service";
 
 const verifyRequestSchema = z.object({
   token: z.string().min(1),
@@ -88,6 +99,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: result.statusCode });
     }
 
+    recordAuditEvent("system", "dispute_processed", undefined, {
+      receiptId: result.receipt.id,
+      outcome: result.receipt.verificationStatus,
+    });
+
+    const originalReceiptId = await findOriginalReceiptIdByReviewId(prisma, tokenResult.payload.reviewId);
+    if (originalReceiptId) {
+      recordAuditEvent("system", "dispute_processed", undefined, {
+        receiptId: originalReceiptId,
+        disputeReceiptId: result.receipt.id,
+        reviewId: tokenResult.payload.reviewId,
+        outcome: result.receipt.verificationStatus,
+      });
+    }
+
+    let notificationReceiptId = result.receipt.id;
+    if (originalReceiptId) {
+      notificationReceiptId = originalReceiptId;
+    }
+
+    sendNotification({
+      type: "dispute_received",
+      title: "New dispute received",
+      body: `A customer submitted a dispute for review ${tokenResult.payload.reviewId}. Outcome: ${result.receipt.verificationStatus}`,
+      metadata: {
+        receiptId: notificationReceiptId,
+        disputeReceiptId: result.receipt.id,
+        reviewId: tokenResult.payload.reviewId,
+        verificationStatus: result.receipt.verificationStatus,
+      },
+    });
+
     return NextResponse.json(result.receipt);
   } catch (error) {
     logger.error({ error }, "Dispute verify error");
@@ -97,10 +140,22 @@ export async function POST(request: NextRequest) {
 
 function createOcrAdapter(): DisputeOcrAdapter {
   const config: OcrApiConfig = createOcrApiConfig({ streaming: false });
+  let allowedReasonCodes: readonly string[] | null = null;
 
   return {
     async buildMessages(fileBuffer, fileType, originalFilename) {
-      return buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config);
+      const customCriteria = await getOcrPromptCriteria();
+      let dynamicReasons: ReadonlyArray<{ code: string; description: string }> | null = null;
+      try {
+        dynamicReasons = await getEnabledFailureReasonsWithDescriptions();
+      } catch (error) {
+        logger.warn({ error }, "Failed to load dynamic failure reasons for dispute OCR prompt");
+      }
+      if (dynamicReasons) {
+        allowedReasonCodes = dynamicReasons.map((reason) => reason.code);
+      }
+      const ocrPrompt = buildOcrPromptWithDynamicReasons(customCriteria, dynamicReasons);
+      return buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config, ocrPrompt);
     },
     async runOcr(messages) {
       const apiResult = await callOcrApi(messages as ReadonlyArray<OcrMessage>, config);
@@ -110,7 +165,7 @@ function createOcrAdapter(): DisputeOcrAdapter {
 
       const llmResponse = await apiResult.response.json();
       const rawContent: string = llmResponse.choices[0].message.content;
-      const parsed = parseOcrResult(rawContent);
+      const parsed = parseOcrResult(rawContent, allowedReasonCodes);
 
       return {
         extractedShopName: parsed.extractedShopName,
@@ -122,11 +177,14 @@ function createOcrAdapter(): DisputeOcrAdapter {
         failureReason: parsed.failureReason,
       };
     },
-    decideStatus(parsed, isDuplicate) {
+    async decideStatus(parsed, isDuplicate) {
+      const highConfidence = await getHighConfidenceThreshold();
+      const maxAgeMonths = await getReceiptMaxAgeMonths();
       const decision = determineVerificationStatus(
         toParsedOcrResult(parsed),
         isDuplicate,
-        parsed.extractedDate
+        parsed.extractedDate,
+        { highConfidence, maxAgeMonths }
       );
       return {
         status: decision.status,
@@ -136,13 +194,15 @@ function createOcrAdapter(): DisputeOcrAdapter {
       };
     },
     async runSecondary(messages, parsed, failureReason) {
-      const verdict = await runSecondaryAnalysis(
+      const customSecondaryCriteria = await getSecondaryPromptCriteria();
+      const result = await runSecondaryAnalysis(
         messages as ReadonlyArray<OcrMessage>,
         toParsedOcrResult(parsed),
         failureReason as FailureReason,
-        config
+        config,
+        customSecondaryCriteria
       );
-      return verdict;
+      return result;
     },
   };
 }
@@ -166,3 +226,5 @@ function toParsedOcrResult(input: {
     failureReason: input.failureReason as FailureReason | null,
   };
 }
+
+

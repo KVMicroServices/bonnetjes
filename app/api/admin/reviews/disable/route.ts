@@ -13,7 +13,9 @@ import {
   enableReviewManual,
 } from "@/lib/review-disable/review-disable-service";
 import { resolveReviewerEmail } from "@/lib/review-disable/kiyoh-review-client";
+import { resolveLocationLocaleWithFallback } from "@/lib/review-disable/kiyoh-location-client";
 import { sendReviewDisableEmail } from "@/lib/email/email-service";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
 const disableByReceiptSchema = z.object({
   action: z.literal("disable"),
@@ -47,7 +49,6 @@ const requestSchema = z.discriminatedUnion("action", [
 ]);
 
 const ADMIN_DISABLED_REASON = "ADMIN_DISABLED";
-const DEFAULT_EMAIL_LOCALE = "en";
 
 /**
  * Attempts to resolve the reviewer email and send a disable notification.
@@ -70,9 +71,11 @@ async function sendDisableNotification(
       return;
     }
 
+    const locale = await resolveLocationLocaleWithFallback(locationId, tenantId);
+
     const sendResult = await sendReviewDisableEmail({
       recipientEmail: emailResolution.email,
-      locale: DEFAULT_EMAIL_LOCALE,
+      locale: locale,
       reviewId: reviewId,
       locationId: locationId,
       tenantId: tenantId,
@@ -104,11 +107,6 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-
-    const isAdmin = (session.user as any).role === "admin";
-    if (!isAdmin) {
-      return NextResponse.json({ success: false, error: "Admin access required" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -155,6 +153,11 @@ export async function POST(request: Request) {
         ).catch(() => {});
       }
 
+      recordAuditEvent("moderation", data.action, (session.user as any).id, {
+        receiptId: data.receiptId,
+        action: data.action,
+      });
+
       return NextResponse.json({ success: true, reviewId: result.reviewId });
     }
 
@@ -164,6 +167,12 @@ export async function POST(request: Request) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 404 });
       }
+
+      recordAuditEvent("moderation", data.action, (session.user as any).id, {
+        receiptId: data.receiptId,
+        action: data.action,
+      });
+
       return NextResponse.json({ success: true, reviewId: result.reviewId });
     }
 
@@ -181,6 +190,11 @@ export async function POST(request: Request) {
         ADMIN_DISABLED_REASON
       ).catch(() => {});
 
+      recordAuditEvent("moderation", data.action, (session.user as any).id, {
+        reviewId: data.reviewId,
+        action: data.action,
+      });
+
       return NextResponse.json({ success: true });
     }
 
@@ -190,6 +204,12 @@ export async function POST(request: Request) {
       if (!result.success) {
         return NextResponse.json({ success: false, error: result.error }, { status: 500 });
       }
+
+      recordAuditEvent("moderation", data.action, (session.user as any).id, {
+        reviewId: data.reviewId,
+        action: data.action,
+      });
+
       return NextResponse.json({ success: true });
     }
 

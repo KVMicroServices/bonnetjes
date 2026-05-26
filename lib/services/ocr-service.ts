@@ -1,6 +1,26 @@
 import { PrismaClient } from "@prisma/client";
+import { z } from "zod";
 import { logger } from "@/lib/logger";
 import { convertPdfToImages } from "@/lib/pdf-to-image";
+import {
+  needsConversion,
+  convertForOcr,
+  isDocFile,
+} from "@/lib/file-conversion";
+import {
+  getHighConfidenceThreshold,
+  getOcrPromptCriteria,
+  getSecondaryPromptCriteria,
+  getReceiptMaxAgeMonths,
+} from "@/lib/services/app-settings-service";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
+import {
+  FAILURE_REASONS,
+  buildOcrPromptWithDynamicReasons,
+  buildSecondaryPrompt,
+} from "@/lib/services/ocr-constants";
+import { getEnabledFailureReasonsWithDescriptions } from "@/lib/services/failure-reason-service";
+import type { FailureReason } from "@/lib/services/ocr-constants";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -9,65 +29,7 @@ const DEFAULT_AI_MODEL = "gpt-5.4-nano";
 const DEFAULT_SECONDARY_AI_MODEL = "gpt-5.4-mini";
 const MAX_TOKENS = 2000;
 const HIGH_CONFIDENCE_THRESHOLD = 70;
-const LOW_CONFIDENCE_THRESHOLD = 30;
-const OCR_REASONING_MAX_TOKENS = parseInt(process.env.OCR_REASONING_MAX_TOKENS || "150", 10);
-
-const OCR_PROMPT = `You are a receipt verification expert. ALWAYS respond in English regardless of the language on the receipt.
-
-Analyze this receipt and extract the following information:
-
-1. Shop/Store name (the business name on the receipt)
-2. Transaction date (format: YYYY-MM-DD)
-3. Total amount (number only, without currency symbol)
-4. Whether the receipt is clearly readable
-5. Your confidence level (0-100)
-6. Brief reasoning about your analysis in English (keep under ${OCR_REASONING_MAX_TOKENS} tokens)
-7. If this is NOT a valid receipt or cannot be verified, provide a failure reason from this exact list:
-   - NOT_A_RECEIPT: The image is not a purchase receipt
-   - IMAGE_UNCLEAR: The image is too blurry, dark, or damaged to read
-   - INSUFFICIENT_INFO: The receipt lacks key information (shop name, date, or amount)
-   - UNREADABLE_TEXT: Text is present but cannot be reliably extracted
-   - MISSING_KEY_FIELDS: Some required fields (shop, date, amount) are completely absent
-
-Respond with JSON in this exact format:
-{
-  "extractedShopName": "string - shop name from receipt, or null if not found",
-  "extractedDate": "YYYY-MM-DD or null if not found",
-  "extractedAmount": number or null if not found,
-  "receiptReadable": true/false,
-  "confidence": 0-100,
-  "reasoning": "1-2 sentences max, always in English",
-  "failureReason": "one of the failure codes above, or null if receipt is valid"
-}
-
-Respond with raw JSON only. All text in your response must be in English.`;
-
-const SECONDARY_ANALYSIS_PROMPT = `You are a receipt verification quality assurance expert. ALWAYS respond in English.
-
-A receipt was analyzed and REJECTED by the primary OCR model. Your job is to independently review the receipt image and the primary model's reasoning, then either confirm the rejection or overturn it with justification.
-
-Primary analysis result:
-- Extracted shop name: {shopName}
-- Extracted date: {date}
-- Extracted amount: {amount}
-- Confidence: {confidence}
-- Readable: {readable}
-- Failure reason: {failureReason}
-- Reasoning: {reasoning}
-
-Instructions:
-1. Look at the receipt image yourself. Do NOT blindly trust the primary analysis.
-2. Consider whether the failure reason is justified given what you can see.
-3. If the rejection is clearly correct, respond with "Initial analysis valid".
-4. If you disagree with the rejection or see information the primary model missed, explain what you found and why the rejection may be wrong.
-5. If the receipt is borderline (partially readable, some fields visible but not all), note which fields you can confirm and which are genuinely unreadable.
-
-Respond with JSON in this exact format:
-{
-  "secondaryVerdict": "string - either 'Initial analysis valid' or a detailed explanation of your findings (2-4 sentences, always in English)"
-}
-
-Respond with raw JSON only. All text must be in English.`;
+const DEFAULT_MAX_AGE_MONTHS = 6;
 
 // ─── Dependencies ────────────────────────────────────────────────────────────
 
@@ -123,20 +85,11 @@ export interface OcrMessage {
   content: ReadonlyArray<MessageContent>;
 }
 
-// ─── Failure Reason Constants ─────────────────────────────────────────────────
+// ─── Re-exports ──────────────────────────────────────────────────────────────
 
-export const FAILURE_REASONS = [
-  "NOT_A_RECEIPT",
-  "IMAGE_UNCLEAR",
-  "INSUFFICIENT_INFO",
-  "DUPLICATE_RECEIPT",
-  "RECEIPT_TOO_OLD",
-  "SUSPECTED_FRAUD",
-  "UNREADABLE_TEXT",
-  "MISSING_KEY_FIELDS"
-] as const;
-
-export type FailureReason = typeof FAILURE_REASONS[number];
+// Re-export from constants for backward compatibility
+export { FAILURE_REASONS, buildOcrPrompt, buildOcrPromptWithDynamicReasons, buildSecondaryPrompt, OCR_PROMPT_DEFAULT_CRITERIA, SECONDARY_PROMPT_DEFAULT_CRITERIA } from "@/lib/services/ocr-constants";
+export type { FailureReason } from "@/lib/services/ocr-constants";
 
 // ─── Result Types ────────────────────────────────────────────────────────────
 
@@ -160,9 +113,29 @@ export interface ParsedOcrResult {
   failureReason: FailureReason | null;
 }
 
+export type SecondaryVerdict = "confirmed_rejection" | "overturned_to_verified" | "requires_review";
+
 export interface SecondaryAnalysisResult {
-  secondaryVerdict: string;
+  verdict: SecondaryVerdict;
+  reasoning: string;
+  extractedShopName: string | null;
+  extractedDate: string | null;
+  extractedAmount: number | null;
+  receiptReadable: boolean;
+  confidence: number;
+  failureReason: string | null;
 }
+
+const secondaryAnalysisResultSchema = z.object({
+  verdict: z.enum(["confirmed_rejection", "overturned_to_verified", "requires_review"]),
+  reasoning: z.string(),
+  extractedShopName: z.string().nullable(),
+  extractedDate: z.string().nullable(),
+  extractedAmount: z.number().nullable(),
+  receiptReadable: z.boolean(),
+  confidence: z.number().min(0).max(100),
+  failureReason: z.string().nullable(),
+});
 
 export type VerificationStatus = "pending" | "verified" | "rejected" | "requires_review";
 
@@ -186,8 +159,7 @@ export type ProcessOcrResult =
 /** Construct LLM messages for OCR extraction based on file type. */
 export function buildOcrMessages(
   fileBuffer: Buffer,
-  fileType: string,
-  originalFilename: string
+  ocrPrompt: string
 ): ReadonlyArray<OcrMessage> {
   const base64Content = fileBuffer.toString("base64");
   const mimeType = "image/jpeg";
@@ -197,7 +169,7 @@ export function buildOcrMessages(
     {
       role: "user",
       content: [
-        { type: "text", text: OCR_PROMPT },
+        { type: "text", text: ocrPrompt },
         { type: "image_url", image_url: { url: dataUri } }
       ]
     }
@@ -206,17 +178,75 @@ export function buildOcrMessages(
   return messages;
 }
 
-/** Build OCR messages, converting PDFs to images first. */
+/** Build OCR messages, converting PDFs and unsupported formats to images first. */
 export async function buildOcrMessagesWithFileUpload(
   fileBuffer: Buffer,
   fileType: string,
   originalFilename: string,
-  config: OcrApiConfig
+  _config: OcrApiConfig,
+  ocrPrompt: string
 ): Promise<ReadonlyArray<OcrMessage>> {
   const isPdf = fileType === "pdf" || originalFilename.toLowerCase().endsWith(".pdf");
+  const requiresConversion = needsConversion(originalFilename);
+
+  // Handle HEIC, DOC, DOCX conversion
+  if (requiresConversion) {
+    const conversionResult = await convertForOcr(fileBuffer, originalFilename);
+
+    if (!conversionResult.success) {
+      logger.error(
+        { error: conversionResult.error, filename: originalFilename },
+        "File conversion failed, cannot process receipt"
+      );
+      throw new Error(`File conversion failed: ${conversionResult.error}`);
+    }
+
+    // DOC files are converted to PDF first, then need PDF→image pipeline
+    if (isDocFile(originalFilename)) {
+      const pdfConversionResult = await convertPdfToImages(conversionResult.buffer);
+
+      if (!pdfConversionResult.success) {
+        logger.error(
+          { error: pdfConversionResult.error, filename: originalFilename },
+          "DOC→PDF→image conversion failed"
+        );
+        throw new Error(`DOC conversion failed: ${pdfConversionResult.error}`);
+      }
+
+      if (pdfConversionResult.pages.length === 0) {
+        throw new Error("DOC conversion produced no pages");
+      }
+
+      const imageContent: MessageContent[] = [
+        { type: "text", text: ocrPrompt }
+      ];
+
+      for (const page of pdfConversionResult.pages) {
+        const base64Content = page.pngBuffer.toString("base64");
+        const dataUri = `data:image/png;base64,${base64Content}`;
+        imageContent.push({ type: "image_url", image_url: { url: dataUri } });
+      }
+
+      return [{ role: "user", content: imageContent }];
+    }
+
+    // HEIC and DOCX produce a single image buffer directly
+    const base64Content = conversionResult.buffer.toString("base64");
+    const dataUri = `data:${conversionResult.mimeType};base64,${base64Content}`;
+
+    return [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: ocrPrompt },
+          { type: "image_url", image_url: { url: dataUri } }
+        ]
+      }
+    ];
+  }
 
   if (!isPdf) {
-    return buildOcrMessages(fileBuffer, fileType, originalFilename);
+    return buildOcrMessages(fileBuffer, ocrPrompt);
   }
 
   const conversionResult = await convertPdfToImages(fileBuffer);
@@ -234,7 +264,7 @@ export async function buildOcrMessagesWithFileUpload(
   }
 
   const imageContent: MessageContent[] = [
-    { type: "text", text: OCR_PROMPT }
+    { type: "text", text: ocrPrompt }
   ];
 
   for (const page of conversionResult.pages) {
@@ -288,7 +318,7 @@ export async function callOcrApi(
 }
 
 /** Parse raw JSON string from LLM into a structured OCR result. */
-export function parseOcrResult(rawJson: string): ParsedOcrResult {
+export function parseOcrResult(rawJson: string, allowedReasons?: readonly string[] | null): ParsedOcrResult {
   const parsed: OcrExtractedResult = JSON.parse(rawJson);
 
   let extractedDate: Date | null = null;
@@ -303,8 +333,15 @@ export function parseOcrResult(rawJson: string): ParsedOcrResult {
     extractedAmount = parseFloat(String(parsed.extractedAmount));
   }
 
+  let validReasons: readonly string[];
+  if (allowedReasons) {
+    validReasons = allowedReasons;
+  } else {
+    validReasons = FAILURE_REASONS;
+  }
+
   let failureReason: FailureReason | null = null;
-  if (parsed.failureReason && FAILURE_REASONS.includes(parsed.failureReason as FailureReason)) {
+  if (parsed.failureReason && validReasons.includes(parsed.failureReason as FailureReason)) {
     failureReason = parsed.failureReason as FailureReason;
   }
 
@@ -323,17 +360,27 @@ export function parseOcrResult(rawJson: string): ParsedOcrResult {
 export function determineVerificationStatus(
   ocrResult: ParsedOcrResult,
   isDuplicate: boolean,
-  receiptDate: Date | null
+  receiptDate: Date | null,
+  thresholds?: { highConfidence?: number; maxAgeMonths?: number }
 ): VerificationDecision {
+  let confidenceThreshold = HIGH_CONFIDENCE_THRESHOLD;
+  if (thresholds && thresholds.highConfidence !== undefined) {
+    confidenceThreshold = thresholds.highConfidence;
+  }
+  let maxAgeMonths = DEFAULT_MAX_AGE_MONTHS;
+  if (thresholds && thresholds.maxAgeMonths !== undefined) {
+    maxAgeMonths = thresholds.maxAgeMonths;
+  }
+
   let isDateTooOld = false;
   let dateValidationMessage = "";
 
   if (receiptDate) {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    isDateTooOld = receiptDate < sixMonthsAgo;
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(cutoffDate.getMonth() - maxAgeMonths);
+    isDateTooOld = receiptDate < cutoffDate;
     if (isDateTooOld) {
-      dateValidationMessage = "Receipt is older than 6 months and cannot be accepted.";
+      dateValidationMessage = `Receipt is older than ${maxAgeMonths} months and cannot be accepted.`;
     }
   }
 
@@ -345,23 +392,17 @@ export function determineVerificationStatus(
     return { status: "rejected", failureReason: "DUPLICATE_RECEIPT", isDateTooOld, dateValidationMessage };
   }
 
-  const hasHighConfidence = ocrResult.confidence >= HIGH_CONFIDENCE_THRESHOLD;
+  const meetsThreshold = ocrResult.confidence >= confidenceThreshold;
   const isReadable = ocrResult.receiptReadable;
   const hasShopName = ocrResult.extractedShopName !== null;
   const hasDate = receiptDate !== null;
+  const hasNoFailure = ocrResult.failureReason === null;
 
-  if (hasHighConfidence && isReadable && hasShopName && hasDate) {
+  if (meetsThreshold && hasNoFailure && isReadable && hasShopName && hasDate) {
     return { status: "verified", failureReason: null, isDateTooOld, dateValidationMessage };
   }
 
-  const hasLowConfidence = ocrResult.confidence < LOW_CONFIDENCE_THRESHOLD;
-
-  if (!isReadable || hasLowConfidence) {
-    const failureReason = ocrResult.failureReason || "IMAGE_UNCLEAR";
-    return { status: "rejected", failureReason, isDateTooOld, dateValidationMessage };
-  }
-
-  return { status: "requires_review", failureReason: null, isDateTooOld, dateValidationMessage };
+  return { status: "requires_review", failureReason: ocrResult.failureReason, isDateTooOld, dateValidationMessage };
 }
 
 /** Run a secondary AI analysis on a rejected receipt to confirm or add nuance. */
@@ -369,8 +410,9 @@ export async function runSecondaryAnalysis(
   messages: ReadonlyArray<OcrMessage>,
   ocrResult: ParsedOcrResult,
   failureReason: FailureReason,
-  config: OcrApiConfig
-): Promise<string> {
+  config: OcrApiConfig,
+  customSecondaryCriteria: string | null
+): Promise<SecondaryAnalysisResult | null> {
   let dateString = "null";
   if (ocrResult.extractedDate) {
     dateString = ocrResult.extractedDate.toISOString().split("T")[0];
@@ -381,8 +423,17 @@ export async function runSecondaryAnalysis(
     amountString = String(ocrResult.extractedAmount);
   }
 
-  const filledPrompt = SECONDARY_ANALYSIS_PROMPT
-    .replace("{shopName}", ocrResult.extractedShopName || "null")
+  const fullSecondaryPrompt = buildSecondaryPrompt(customSecondaryCriteria);
+
+  let shopNameForPrompt: string;
+  if (ocrResult.extractedShopName) {
+    shopNameForPrompt = ocrResult.extractedShopName;
+  } else {
+    shopNameForPrompt = "null";
+  }
+
+  const filledPrompt = fullSecondaryPrompt
+    .replace("{shopName}", shopNameForPrompt)
     .replace("{date}", dateString)
     .replace("{amount}", amountString)
     .replace("{confidence}", String(ocrResult.confidence))
@@ -401,7 +452,12 @@ export async function runSecondaryAnalysis(
     }
   ];
 
-  const secondaryModel = process.env.SECONDARY_AI_MODEL_NAME || DEFAULT_SECONDARY_AI_MODEL;
+  let secondaryModel: string;
+  if (process.env.SECONDARY_AI_MODEL_NAME) {
+    secondaryModel = process.env.SECONDARY_AI_MODEL_NAME;
+  } else {
+    secondaryModel = DEFAULT_SECONDARY_AI_MODEL;
+  }
 
   const requestBody = {
     model: secondaryModel,
@@ -423,17 +479,40 @@ export async function runSecondaryAnalysis(
 
     if (!response.ok) {
       logger.warn({ status: response.status }, "Secondary analysis API call failed");
-      return "Secondary analysis unavailable";
+      return null;
     }
 
     const llmResponse = await response.json();
     const rawContent: string = llmResponse.choices[0].message.content;
-    const parsed: SecondaryAnalysisResult = JSON.parse(rawContent);
-    return parsed.secondaryVerdict;
+    const rawParsed = JSON.parse(rawContent);
+    const validationResult = secondaryAnalysisResultSchema.safeParse(rawParsed);
+
+    if (!validationResult.success) {
+      logger.warn({ errors: validationResult.error.issues }, "Secondary analysis failed schema validation");
+      return null;
+    }
+
+    const parsed: SecondaryAnalysisResult = validationResult.data;
+
+    return parsed;
   } catch (error) {
     logger.warn({ error }, "Secondary analysis parsing failed");
-    return "Secondary analysis unavailable";
+    return null;
   }
+}
+
+/** Build the OCR prompt, always appending dynamic failure reasons from DB. */
+async function buildDynamicOcrPrompt(): Promise<string> {
+  const customCriteria = await getOcrPromptCriteria();
+
+  let dynamicReasons: ReadonlyArray<{ code: string; description: string }> | null = null;
+  try {
+    dynamicReasons = await getEnabledFailureReasonsWithDescriptions();
+  } catch (error) {
+    logger.warn({ error }, "Failed to load dynamic failure reasons for OCR prompt, falling back to hardcoded list");
+  }
+
+  return buildOcrPromptWithDynamicReasons(customCriteria, dynamicReasons);
 }
 
 /** Full OCR pipeline: fetch file, run OCR, update fraud scores, persist to database. */
@@ -451,12 +530,37 @@ export async function processReceiptOcr(
 
   const fileBuffer = await dependencies.storage.getFileAsBuffer(receipt.cloudStoragePath);
 
-  const fileType = receipt.fileType || "image";
-  const originalFilename = receipt.originalFilename || "receipt";
+  let fileType: string;
+  if (receipt.fileType) {
+    fileType = receipt.fileType;
+  } else {
+    fileType = "image";
+  }
+  let originalFilename: string;
+  if (receipt.originalFilename) {
+    originalFilename = receipt.originalFilename;
+  } else {
+    originalFilename = "receipt";
+  }
 
-  const aiBaseUrl = process.env.AI_API_BASE_URL || DEFAULT_AI_BASE_URL;
-  const aiModel = process.env.AI_MODEL_NAME || DEFAULT_AI_MODEL;
-  const aiApiKey = process.env.AI_API_KEY || "";
+  let aiBaseUrl: string;
+  if (process.env.AI_API_BASE_URL) {
+    aiBaseUrl = process.env.AI_API_BASE_URL;
+  } else {
+    aiBaseUrl = DEFAULT_AI_BASE_URL;
+  }
+  let aiModel: string;
+  if (process.env.AI_MODEL_NAME) {
+    aiModel = process.env.AI_MODEL_NAME;
+  } else {
+    aiModel = DEFAULT_AI_MODEL;
+  }
+  let aiApiKey: string;
+  if (process.env.AI_API_KEY) {
+    aiApiKey = process.env.AI_API_KEY;
+  } else {
+    aiApiKey = "";
+  }
 
   const config: OcrApiConfig = {
     baseUrl: aiBaseUrl,
@@ -465,7 +569,7 @@ export async function processReceiptOcr(
     streaming: false
   };
 
-  const messages = await buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config);
+  const messages = await buildOcrMessagesWithFileUpload(fileBuffer, fileType, originalFilename, config, await buildDynamicOcrPrompt());
 
   const apiResult = await callOcrApi(messages, config);
 
@@ -476,35 +580,115 @@ export async function processReceiptOcr(
   const llmResponse = await apiResult.response.json();
   const rawContent: string = llmResponse.choices[0].message.content;
 
-  const ocrResult = parseOcrResult(rawContent);
+  let allowedReasons: readonly string[] | null = null;
+  try {
+    const enabledReasons = await getEnabledFailureReasonsWithDescriptions();
+    allowedReasons = enabledReasons.map((reason) => reason.code);
+  } catch (error) {
+    logger.warn({ error }, "Failed to load enabled failure reasons for parsing, allowing all built-in reasons");
+  }
+  const ocrResult = parseOcrResult(rawContent, allowedReasons);
+
+  const highConfidence = await getHighConfidenceThreshold();
+  const maxAgeMonths = await getReceiptMaxAgeMonths();
 
   const verificationDecision = determineVerificationStatus(
     ocrResult,
     receipt.isDuplicate,
-    ocrResult.extractedDate
+    ocrResult.extractedDate,
+    { highConfidence, maxAgeMonths }
   );
 
   let secondaryAnalysis: string | null = null;
-  if (verificationDecision.status === "rejected" && verificationDecision.failureReason) {
-    secondaryAnalysis = await runSecondaryAnalysis(
+  let finalVerificationStatus = verificationDecision.status;
+  let finalFailureReason = verificationDecision.failureReason;
+  let finalShopName = ocrResult.extractedShopName;
+  let finalDate = ocrResult.extractedDate;
+  let finalAmount = ocrResult.extractedAmount;
+  let finalConfidence = ocrResult.confidence;
+  let finalReadable = ocrResult.receiptReadable;
+
+  const isHardRuleRejection = verificationDecision.failureReason === "DUPLICATE_RECEIPT"
+    || verificationDecision.failureReason === "RECEIPT_TOO_OLD";
+  const needsSecondaryAnalysis = verificationDecision.status !== "verified" && !isHardRuleRejection;
+
+  if (needsSecondaryAnalysis) {
+    let primaryFailureReason: FailureReason;
+    if (ocrResult.failureReason) {
+      primaryFailureReason = ocrResult.failureReason;
+    } else {
+      primaryFailureReason = "IMAGE_UNCLEAR";
+    }
+    const secondaryResult = await runSecondaryAnalysis(
       messages,
       ocrResult,
-      verificationDecision.failureReason,
-      config
+      primaryFailureReason,
+      config,
+      await getSecondaryPromptCriteria()
     );
+
+    if (secondaryResult) {
+      secondaryAnalysis = JSON.stringify(secondaryResult);
+
+      if (secondaryResult.extractedShopName !== null) {
+        finalShopName = secondaryResult.extractedShopName;
+      }
+      if (secondaryResult.extractedDate !== null) {
+        finalDate = new Date(secondaryResult.extractedDate);
+      }
+      if (secondaryResult.extractedAmount !== null) {
+        finalAmount = secondaryResult.extractedAmount;
+      }
+      finalConfidence = secondaryResult.confidence;
+      finalReadable = secondaryResult.receiptReadable;
+
+      if (secondaryResult.verdict === "confirmed_rejection") {
+        finalVerificationStatus = "rejected";
+        if (secondaryResult.failureReason && FAILURE_REASONS.includes(secondaryResult.failureReason as FailureReason)) {
+          finalFailureReason = secondaryResult.failureReason as FailureReason;
+        }
+      } else if (secondaryResult.verdict === "overturned_to_verified" || secondaryResult.verdict === "requires_review") {
+        const secondaryOcrResult: ParsedOcrResult = {
+          extractedShopName: finalShopName,
+          extractedDate: finalDate,
+          extractedAmount: finalAmount,
+          receiptReadable: finalReadable,
+          confidence: finalConfidence,
+          reasoning: secondaryResult.reasoning,
+          failureReason: secondaryResult.failureReason as FailureReason | null,
+        };
+
+        const secondaryDecision = determineVerificationStatus(
+          secondaryOcrResult,
+          receipt.isDuplicate,
+          finalDate,
+          { highConfidence, maxAgeMonths }
+        );
+
+        finalVerificationStatus = secondaryDecision.status;
+        finalFailureReason = secondaryDecision.failureReason;
+      }
+    }
   }
 
   const patternAnalysis = await dependencies.fraudDetection.detectSuspiciousPatterns(
     receipt.userId,
-    ocrResult.extractedShopName,
-    ocrResult.extractedAmount
+    finalShopName,
+    finalAmount
   );
+
+  let manipulationScore: number;
+  if (receipt.manipulationScore) {
+    manipulationScore = receipt.manipulationScore;
+  } else {
+    manipulationScore = 0;
+  }
 
   const newFraudRiskScore = dependencies.fraudDetection.calculateFraudRiskScore(
     receipt.isDuplicate,
-    receipt.manipulationScore || 0,
+    manipulationScore,
     patternAnalysis.riskScore,
-    ocrResult.confidence
+    finalConfidence
   );
 
   let ocrReasoning = ocrResult.reasoning;
@@ -515,31 +699,70 @@ export async function processReceiptOcr(
   await dependencies.database.receipt.update({
     where: { id: receiptId },
     data: {
-      extractedShopName: ocrResult.extractedShopName,
-      extractedDate: ocrResult.extractedDate,
-      extractedAmount: ocrResult.extractedAmount,
-      ocrConfidence: ocrResult.confidence,
+      extractedShopName: finalShopName,
+      extractedDate: finalDate,
+      extractedAmount: finalAmount,
+      ocrConfidence: finalConfidence,
       ocrReasoning,
-      receiptReadable: ocrResult.receiptReadable,
-      failureReason: verificationDecision.failureReason,
+      receiptReadable: finalReadable,
+      failureReason: finalFailureReason,
       secondaryAnalysis,
       suspiciousPatterns: JSON.stringify(patternAnalysis.patterns),
       fraudRiskScore: newFraudRiskScore,
-      verificationStatus: verificationDecision.status,
+      verificationStatus: finalVerificationStatus,
       processedAt: new Date()
     }
   });
 
-  return { success: true, verificationStatus: verificationDecision.status };
+  recordAuditEvent("ai_judgement", finalVerificationStatus, undefined, {
+    receiptId,
+    verdict: finalVerificationStatus,
+    confidence: finalConfidence,
+  });
+
+  if (secondaryAnalysis) {
+    const parsedSecondary = JSON.parse(secondaryAnalysis) as SecondaryAnalysisResult;
+    recordAuditEvent("secondary_analysis", parsedSecondary.verdict, undefined, {
+      receiptId,
+      verdict: parsedSecondary.verdict,
+      confidence: parsedSecondary.confidence,
+    });
+  }
+
+  return { success: true, verificationStatus: finalVerificationStatus };
 }
 
 /** Create an OcrApiConfig from environment variables with defaults. */
 export function createOcrApiConfig(overrides?: Partial<OcrApiConfig>): OcrApiConfig {
-  const baseUrl = overrides?.baseUrl || process.env.AI_API_BASE_URL || DEFAULT_AI_BASE_URL;
-  const apiKey = overrides?.apiKey || process.env.AI_API_KEY || "";
-  const model = overrides?.model || process.env.AI_MODEL_NAME || DEFAULT_AI_MODEL;
+  let baseUrl: string;
+  if (overrides && overrides.baseUrl) {
+    baseUrl = overrides.baseUrl;
+  } else if (process.env.AI_API_BASE_URL) {
+    baseUrl = process.env.AI_API_BASE_URL;
+  } else {
+    baseUrl = DEFAULT_AI_BASE_URL;
+  }
+
+  let apiKey: string;
+  if (overrides && overrides.apiKey) {
+    apiKey = overrides.apiKey;
+  } else if (process.env.AI_API_KEY) {
+    apiKey = process.env.AI_API_KEY;
+  } else {
+    apiKey = "";
+  }
+
+  let model: string;
+  if (overrides && overrides.model) {
+    model = overrides.model;
+  } else if (process.env.AI_MODEL_NAME) {
+    model = process.env.AI_MODEL_NAME;
+  } else {
+    model = DEFAULT_AI_MODEL;
+  }
+
   let streaming = false;
-  if (overrides?.streaming !== undefined) {
+  if (overrides && overrides.streaming !== undefined) {
     streaming = overrides.streaming;
   }
 

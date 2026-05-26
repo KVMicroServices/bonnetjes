@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { recordAuditEvent } from "@/lib/services/audit-log-service";
 
 // ─── Dependencies ────────────────────────────────────────────────────────────
 
@@ -161,7 +162,8 @@ export async function listUsers(
 export async function updateUserRole(
   dependencies: AdminServiceDependencies,
   targetUserId: string,
-  newRole: string
+  newRole: string,
+  adminId?: string
 ): Promise<UpdateUserRoleResult> {
   const database = dependencies.database;
 
@@ -171,7 +173,7 @@ export async function updateUserRole(
 
   const targetUser = await database.user.findUnique({
     where: { id: targetUserId },
-    select: { email: true },
+    select: { email: true, role: true },
   });
 
   if (!targetUser) {
@@ -187,10 +189,18 @@ export async function updateUserRole(
     };
   }
 
+  const oldRole = targetUser.role;
+
   const updatedUser = await database.user.update({
     where: { id: targetUserId },
     data: { role: newRole },
     select: { id: true, email: true, role: true },
+  });
+
+  recordAuditEvent("user_management", "role_changed", adminId, {
+    targetUserId,
+    oldRole,
+    newRole,
   });
 
   return { success: true, user: updatedUser };

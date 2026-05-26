@@ -1,5 +1,941 @@
 # Changes
 
+## [152] Add whitelist location filter to review queue and human review required
+
+**What**: Added a toggle filter button on both the main review queue and the human review required section that shows only receipts linked to locations in the auto-disable whitelist.
+**Decisions**:
+- Filter only appears when the whitelist has entries (empty whitelist = no button)
+- Review-required API now enriches receipts with locationId from ReceiptSyncState
+- Client-side filtering to avoid extra API complexity
+**Files**:
+- app/admin/page.tsx
+- app/api/admin/receipts/review-required/route.ts
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [151] Fix dispute outcome emails firing on automated decisions
+
+**What**: Moved dispute outcome email sending from the automated OCR verify route to the admin moderation PATCH handler so emails only fire on manual moderator accept/reject.
+**Why**: Automated system was sending rejection/acceptance emails before a moderator reviewed the dispute.
+**Files**:
+- app/api/dispute/verify/route.ts
+- app/api/admin/disputes/route.ts
+
+## [150] Make database seed env-driven
+
+**What**: Admin seed now reads email, password, and name from `ADMIN_SEED_*` env vars instead of hardcoded values. Update block now syncs password/name/role on re-run.
+**Why**: Changing admin credentials required editing source code; now it's config-only.
+**Files**:
+- scripts/seed.ts
+- .env.example
+
+## [149] Add retry-on-401 to Kiyoh reviewer email resolution
+
+**What**: When the Kiyoh review list API returns 401 (expired/invalidated token), the code now invalidates the cached token and retries once with a fresh authentication.
+**Why**: Cached tokens could become stale server-side before the 25-minute local TTL, causing dispute outcome emails to be silently skipped.
+**Files**:
+- lib/review-disable/kiyoh-review-client.ts
+
+## [148] Fix review findings from 26.05.22.2-verification-criteria-adjuster
+
+**What**: Resolved all findings from code review — banned patterns (ternaries, short-circuits, double negation, magic string), two stability bugs (cached rejected seeding promise, deleteOverride crash on missing record), and two logic bugs (failure reason filtering inconsistency in streaming/dispute routes).
+**Decisions**:
+- `deleteOverride` uses `deleteMany` instead of `delete` to avoid P2025 on non-existent records
+- `ensureBuiltInReasonsSeeded` clears `seedingPromise` on rejection via `.catch()` handler
+- `parseOcrResult` now receives `allowedReasonCodes` in both OCR and dispute routes
+- Secondary analysis validation uses dynamic reason list instead of static `FAILURE_REASONS`
+**Files**:
+- lib/services/ocr-service.ts
+- lib/services/ocr-constants.ts
+- lib/services/failure-reason-service.ts
+- lib/services/email-template-override-service.ts
+- app/admin/settings/page.tsx
+- app/api/admin/email-templates/preview/route.ts
+- app/api/receipts/[id]/ocr/route.ts
+- app/api/dispute/verify/route.ts
+- components/email-template-editor.tsx
+- components/failure-reason-management.tsx
+- tests/services/email-template-override-service.test.ts
+
+## [147] Fix email template editor layout and preview logo
+
+**What**: Made email templates section more compact (title left, reduced padding/spacing), use local kiyoh-logo.png in preview instead of placeholder URL.
+**Files**:
+- app/admin/settings/page.tsx
+- components/email-template-editor.tsx
+- app/api/admin/email-templates/preview/route.ts
+
+## [146] Add unit tests for email template API routes
+
+**What**: Route tests covering auth guards, validation, CRUD success paths, translate endpoint, and preview endpoint.
+**Files**:
+- tests/routes/email-templates.test.ts
+
+## [145] Add email template editor UI to admin settings
+
+**What**: New EmailTemplateEditor component with email type dropdown, editable fields, save/auto-translate/preview buttons, and preview modal with iframe.
+**Files**:
+- components/email-template-editor.tsx
+- app/admin/settings/page.tsx
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [144] Integrate email template overrides into translation loader
+
+**What**: Each email translation loader now queries DB overrides before falling back to message files.
+**Decisions**:
+- `loadVerifiedEmailTranslations` changed from sync to async (callers already async)
+- Override merge wrapped in try/catch — DB failures never break email sending
+**Files**:
+- lib/email/email-translations.ts
+- lib/email/email-service.ts
+
+## [143] Add email template API routes and translator service
+
+**What**: CRUD, translate, and preview API routes for admin email template editing, plus an AI translation service.
+**Decisions**:
+- Translate endpoint processes entries sequentially to avoid overwhelming the AI API
+- Preview uses sample brand/data constants for WYSIWYG rendering without sending emails
+- Translator service follows same pattern as failure-reason-translator with configurable source locale
+**Files**:
+- app/api/admin/email-templates/route.ts
+- app/api/admin/email-templates/translate/route.ts
+- app/api/admin/email-templates/preview/route.ts
+- lib/services/email-template-translator.ts
+
+## [142] Add email-template-override-service
+
+**What**: Service layer for CRUD operations on email template overrides with DB fallback and default value loading from message files.
+**Decisions**:
+- All DB operations wrapped in try/catch with structured logger.error
+- `getOverridesForEmailType` returns empty map on failure (graceful fallback)
+- `bulkUpsertOverrides` uses Prisma transaction for atomicity
+- Exported constants for email type→namespace and email type→valid keys mapping
+
+## [141] Add EmailTemplateOverride Prisma model and migration
+
+**What**: New `EmailTemplateOverride` table for storing admin email text overrides per email type, key, and locale.
+**Decisions**:
+- Composite unique on (emailType, key, locale) enforces one override per slot
+- Index on (emailType, locale) for efficient lookup at send time
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260522110023_add_email_template_override/migration.sql
+
+## [140] Code review fixes for verification-criteria-adjuster
+
+**What**: Implemented all fixes from code review 26.05.22.1 — standards compliance, security hardening, stability improvements, and functional bug fixes.
+**Decisions**:
+- Replaced all ternaries, short-circuit tricks, nullish coalescing, and chained optional access with if-else blocks
+- Moved PATCH enabled toggle from route to `toggleFailureReasonEnabled()` service function
+- Added Promise-based seeding guard to prevent race conditions
+- Added input validation (code format, prompt length limits) on admin endpoints
+- Fixed dispute and streaming OCR routes to use dynamic failure reasons and admin-configured thresholds
+- Made `DisputeOcrAdapter.decideStatus` async to support fetching thresholds
+**Files**:
+- lib/services/ocr-constants.ts
+- lib/services/failure-reason-translator.ts
+- lib/services/failure-reason-service.ts
+- lib/services/ocr-service.ts
+- lib/services/dispute-service.ts
+- app/api/admin/failure-reasons/route.ts
+- app/api/admin/failure-reasons/generate/route.ts
+- app/api/admin/settings/route.ts
+- app/api/dispute/verify/route.ts
+- app/api/receipts/[id]/ocr/route.ts
+- app/admin/settings/page.tsx
+- components/failure-reason-management.tsx
+
+## [139] Always append dynamic failure reasons to OCR prompt
+
+**What**: Failure reasons from the DB are now always appended to the OCR prompt, regardless of whether a custom prompt is set.
+**Why**: Previously custom reasons only appeared in the prompt when no custom prompt was set, requiring admins to maintain reasons in two places.
+**Decisions**:
+- Removed hardcoded reason list from default prompt criteria (now appended dynamically)
+- Custom prompt text controls instructions/criteria; reason list is always injected after
+**Files**:
+- lib/services/ocr-constants.ts
+- lib/services/ocr-service.ts
+
+## [138] Add unit tests for failure-reason-service, translator, and routes
+
+**What**: Created comprehensive unit tests covering CRUD validation, seeding idempotency, dirty check, translation fallback, AI API mocking, and auth guards for all failure reason endpoints.
+**Files**:
+- tests/services/failure-reason-service.test.ts
+- tests/services/failure-reason-translator.test.ts
+- tests/routes/failure-reasons.test.ts
+
+## [137] Migrate enabledFailureReasons setting to per-reason model
+
+**What**: Migrated the legacy `SETTING_ENABLED_FAILURE_REASONS` AppSetting to per-reason `enabled` flags on `FailureReasonDefinition`, and removed all references to the old setting from the API, service, and UI layers.
+**Decisions**:
+- Migration runs inside `ensureBuiltInReasonsSeeded()` — reads stored array, disables reasons not in it, then deletes the key
+- OCR service now reads enabled reasons from `getEnabledFailureReasonsWithDescriptions()` instead of the old AppSetting
+- Graceful fallback if DB is unreachable during OCR parsing (allows all built-in reasons)
+**Files**:
+- lib/services/failure-reason-service.ts
+- lib/services/app-settings-service.ts
+- lib/services/ocr-service.ts
+- app/api/admin/settings/route.ts
+- app/admin/settings/page.tsx
+- tests/services/ocr-service.test.ts
+- tests/services/app-settings-service.test.ts
+- tests/routes/admin-settings.test.ts
+
+## [136] Add admin UI for failure reason management
+
+**What**: Full management section in admin settings replacing the old toggle-only UI — list with inline editing, create form, generate button, delete with confirmation, and loading states.
+**Decisions**:
+- Extracted as standalone `FailureReasonManagement` component to keep settings page manageable
+- PATCH route extended to accept `enabled` boolean for toggle support
+- Optimistic UI updates for toggle with revert on failure
+**Files**:
+- components/failure-reason-management.tsx
+- app/admin/settings/page.tsx
+- app/api/admin/failure-reasons/route.ts
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [135] Add failure-reasons API routes and integrate with email/OCR systems
+
+**What**: Admin API routes for failure reason CRUD + AI description generation, DB-first email translation lookup, and dynamic OCR prompt building from enabled reasons.
+**Decisions**:
+- Email translation functions made async to support DB lookup before message file fallback
+- OCR prompt uses `buildOcrPromptWithDynamicReasons` — skips dynamic injection when custom prompt is set
+- DB failures in both email and OCR paths fall back silently to existing behavior
+**Files**:
+- app/api/admin/failure-reasons/route.ts
+- app/api/admin/failure-reasons/generate/route.ts
+- lib/email/email-translations.ts
+- lib/email/email-service.ts
+- lib/services/ocr-constants.ts
+- lib/services/ocr-service.ts
+- tests/services/email-service.test.ts
+
+## [134] Add failure-reason-service with CRUD and seeding
+
+**What**: New service for managing failure reason definitions — seeding built-in reasons from message files, CRUD with validation, translation triggering, and query helpers.
+**Decisions**:
+- Lazy seeding on first access with in-memory flag to avoid repeated DB checks
+- Code validation: `^[A-Z][A-Z_]*[A-Z]$`, 2–50 chars
+- Dirty check on update: translation only triggered when description actually changes
+- Built-in reasons seeded from message file translations (no AI call needed)
+**Files**:
+- lib/services/failure-reason-service.ts
+
+## [133] Add failure-reason-translator service
+
+**What**: New service that translates English failure reason descriptions into 7 locales via AI API and generates descriptions from reason codes.
+**Decisions**:
+- 30s timeout with AbortController for AI API calls
+- Translation failures return `{ success: false }` (non-blocking); generation failures throw (caller handles)
+- Single prompt for all 7 translations to minimize API calls
+- Validates all locale fields present before accepting translation response
+
+## [132] Add FailureReasonDefinition Prisma model
+
+**What**: New database model to store failure reasons (built-in and custom) with per-locale translations.
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260522093505_add_failure_reason_definition/migration.sql
+
+## [131] Expose AI verification prompts and receipt max age in admin settings
+
+**What**: Admin settings now include editable AI prompts (primary OCR + secondary analysis), configurable receipt max age, and toggleable rejection reasons.
+**Decisions**:
+- Split prompts into editable criteria (stored in DB) and fixed JSON response format (hardcoded) to prevent parsing breakage
+- Textareas show the active prompt (custom if saved, otherwise built-in default) so admins can see and adjust from the current state
+- Empty prompt value means "use built-in default" — no migration needed
+- Receipt max age extracted from hardcoded 6 months to a configurable integer setting
+- Failure reasons are toggleable via switches; disabled reasons are ignored during parsing even if the AI returns them
+- Empty enabled_failure_reasons array means "all enabled" (default behavior)
+**Files**:
+- lib/services/app-settings-service.ts
+- lib/services/ocr-service.ts
+- app/api/admin/settings/route.ts
+- app/admin/settings/page.tsx
+- app/api/receipts/[id]/ocr/route.ts
+- app/api/dispute/verify/route.ts
+- messages/*.json (all 8 languages)
+- tests/services/ocr-service.test.ts
+- tests/services/app-settings-service.test.ts
+- tests/routes/admin-settings.test.ts
+
+## [130] Fix code review findings from 26.05.22-refinement-sprint
+
+**What**: Resolved all standards, security, stability, and general findings from the code review.
+**Decisions**:
+- Pinned heic-convert, mammoth, @types/heic-convert to exact versions
+- Added 100-char max-length guard on search parameter to prevent DoS via expensive LIKE queries
+- Replaced all ternaries and short-circuit tricks with if-else blocks per banned patterns
+- Merged duplicate SendDisputeVerifiedEmailParams into a type alias of SendVerifiedEmailParams
+- Removed dead `_fileType` and `_originalFilename` params from `buildOcrMessages`
+- Skip locale API call when locationId is empty (use "en" default directly)
+**Files**:
+- package.json
+- app/api/receipts/route.ts
+- app/api/admin/receipt-sync/trigger/route.ts
+- app/api/dispute/verify/route.ts
+- app/admin/page.tsx
+- lib/email/email-translations.ts
+- lib/email/email-service.ts
+- lib/file-conversion.ts
+- lib/queue/receipt-worker.ts
+- lib/services/ocr-service.ts
+- lib/services/upload-service.ts
+- lib/services/receipt-service.ts
+- lib/services/notification-service.ts
+- components/receipt-upload.tsx
+- tests/services/ocr-service.test.ts
+
+## [129] Add receipt search by review/location ID and bookmark feature
+
+**What**: Search bar on the admin dashboard filters receipts by review ID or location ID via ReceiptSyncState. Users can bookmark receipts for quick access with a dedicated filter toggle.
+**Decisions**:
+- Search queries ReceiptSyncState (contains reviewId/locationId) then fetches matching receipts — avoids denormalizing IDs onto Receipt
+- Bookmark model uses unique constraint on (userId, receiptId) with upsert for idempotency
+- Debounced search (400ms) resets cursor pagination on each new query
+- Bookmark filter is client-side on already-fetched receipts
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260601000010_add_bookmarks/migration.sql
+- lib/services/receipt-service.ts
+- app/api/receipts/route.ts
+- app/api/bookmarks/route.ts (new)
+- app/admin/page.tsx
+- messages/*.json (all 8 languages)
+
+## [128] Fetch location locale from Kiyoh API for email translations
+
+**What**: All transactional emails now use the location's configured locale (fetched from `GET v1/location?id={locationId}&tenantId={tenantId}`) instead of hardcoded English.
+**Why**: Customers of non-English locations were receiving emails in English regardless of their location's language setting.
+**Decisions**:
+- New `kiyoh-location-client.ts` follows the same pattern as `kiyoh-review-client.ts` (auth, tenant-based URL, never throws)
+- `resolveLocationLocaleWithFallback` always returns a usable locale string (falls back to "en")
+- Optional `KIYOH_LOCATION_API_URL` env var for URL override, otherwise auto-derived from tenantId
+**Files**:
+- lib/review-disable/kiyoh-location-client.ts (new)
+- lib/queue/receipt-worker.ts
+- lib/queue/review-disable-worker.ts
+- app/api/admin/reviews/disable/route.ts
+- app/api/dispute/verify/route.ts
+- .env.example
+
+## [127] Add receipt verified, dispute verified, and dispute final rejection emails
+
+**What**: Three new transactional emails: receipt verified (fires automatically from receipt worker), dispute verified (when dispute passes), and dispute final rejection (2nd rejection, no dispute button, shows support email).
+**Decisions**:
+- Reuses existing branded template structure (banner, logo, footer) with different body content
+- Final rejection email shows support email (marketing@kiyoh.co.za) instead of dispute button
+- Verified emails include extracted receipt details (shop, date, amount) when available
+- Dispute emails fire-and-forget from the verify route to avoid blocking the response
+- Failure reason text for final rejection reuses the existing `ReviewDisableEmail` namespace strings
+**Files**:
+- lib/email/email-templates.ts
+- lib/email/email-translations.ts
+- lib/email/email-service.ts
+- lib/queue/receipt-worker.ts
+- app/api/dispute/verify/route.ts
+- messages/*.json (all 8 languages)
+
+## [126] Simplify dispute page rejection response and rename escalation action
+
+**What**: Removed AI analysis (`ocrReasoning`) from the rejected state display and renamed "Request human review" to "Escalate ticket" across all 8 languages.
+**Why**: The OCR reasoning exposed AI internals to end users — only the failure reason matters. "Escalate ticket" is clearer and less robotic.
+**Files**:
+- components/dispute-uploader.tsx
+- messages/*.json (all 8 languages)
+
+## [125] Add HEIC, DOC, and DOCX file format support with preview conversion
+
+**What**: Files in HEIC (Apple), DOC, and DOCX formats are now accepted for upload, converted to viewable images for preview, and processed through the OCR pipeline.
+**Why**: Users uploading receipts from iPhones (HEIC) or exported from email/accounting software (DOC/DOCX) were blocked.
+**Decisions**:
+- HEIC→JPEG via `heic-convert` (pure JS, no native deps)
+- DOCX→PNG via `mammoth` text extraction + `@napi-rs/canvas` rendering
+- DOC→PDF via LibreOffice headless, then existing PDF→image pipeline
+- Converted preview stored in S3 (`previewStoragePath` field), served for browser display
+- LibreOffice added to Docker Alpine images for DOC support
+- Client-side validation uses extension fallback for browsers that misreport HEIC MIME type
+**Files**:
+- lib/file-conversion.ts (new)
+- lib/services/ocr-service.ts
+- lib/services/upload-service.ts
+- lib/services/dispute-service.ts
+- lib/services/receipt-service.ts
+- lib/queue/receipt-worker.ts
+- lib/s3.ts
+- components/receipt-upload.tsx
+- prisma/schema.prisma
+- prisma/migrations/20260601000009_add_preview_storage_path/migration.sql
+- Dockerfile
+- Dockerfile.worker
+
+## [124] Format secondary analysis display in receipt modal
+
+**What**: Replaced raw JSON dump with structured display showing verdict badge, reasoning, confidence, and extracted fields.
+**Why**: Raw JSON in the UI is poor UX — users need to quickly see the verdict and reasoning at a glance.
+**Files**:
+- app/admin/page.tsx
+- components/admin-receipt-card.tsx
+- messages/*.json (all 8 languages)
+
+## [123] Add Cache-Control headers to receipt API routes and refetch after sync
+
+**What**: Added `Cache-Control: no-store, no-cache, must-revalidate` to `/api/receipts` and `/api/admin/receipts` responses, and trigger a receipt list refetch after the sync spinner completes.
+**Why**: Browsers could heuristically cache fetch responses, causing stale receipt data until a hard refresh. The sync button also never refreshed the list.
+**Files**:
+- app/api/receipts/route.ts
+- app/api/admin/receipts/route.ts
+- app/admin/page.tsx
+
+## [122] Make sync trigger fire-and-forget with spinner feedback
+
+**What**: The "Sync Now" button no longer blocks until the full tick completes — the API returns immediately and the tick runs in the background.
+**Why**: `executeTick` can take many seconds; awaiting it made the button appear frozen with no meaningful progress indication.
+**Decisions**:
+- API route fires `executeTick()` without awaiting, catches errors via `.catch()` for logging
+- Button shows a `Loader2` spinner and "Syncing..." text for 3 seconds after triggering
+**Files**:
+- app/api/admin/receipt-sync/trigger/route.ts
+- app/admin/page.tsx
+- messages/*.json (all 8 languages)
+
+## [121] Show location ID on receipt queue table, dispute table, and receipt preview modal
+
+**What**: Added locationId display to the admin queue table rows, dispute table rows, and the receipt preview modal.
+**Decisions**:
+- locationId is fetched from ReceiptSyncState via a batch lookup after loading receipts (avoids N+1)
+- Displays as monospace text with "—" fallback when no sync state exists
+**Files**:
+- lib/services/receipt-service.ts
+- app/admin/page.tsx
+- tests/services/receipt-service.test.ts
+- tests/routes/receipts.test.ts
+- messages/*.json (all 8 languages)
+
+## [120] Add cursor-based pagination to admin receipts queue tab
+
+**What**: The queue tab now fetches receipts in pages of 20 with a "Load More" button, matching the pattern used by the review-required section.
+**Why**: `fetchData` was calling `/api/receipts` without pagination params, so only the first 15 receipts (the API default) ever loaded.
+**Files**:
+- app/admin/page.tsx
+
+## [119] Log dispute actions on original receipt activity timeline
+
+**What**: Dispute events (processed, human review requested, accept/reject) now appear in the original receipt's activity timeline by logging audit entries against the original receipt ID looked up via ReceiptSyncState.
+**Why**: Audit events were only logged against the new dispute receipt ID, which never matched when viewing the original receipt's timeline.
+**Decisions**:
+- Added `findOriginalReceiptIdByReviewId` helper that resolves reviewId → original receiptId via ReceiptSyncState
+- Audit events are logged on both the dispute receipt AND the original receipt (dual-write) so both timelines stay in sync
+- Added `dispute_human_review_requested` audit event to request-review route (previously had no audit logging)
+- Added `dispute_accept`/`dispute_reject` audit events to admin dispute PATCH handler
+- `getAuditLogsForReceipt` now matches entries where either `receiptId` or `originalReceiptId` equals the target
+**Files**:
+- lib/services/audit-log-service.ts
+- lib/services/dispute-service.ts
+- app/api/dispute/verify/route.ts
+- app/api/dispute/request-review/route.ts
+- app/api/admin/disputes/route.ts
+- components/comment-thread.tsx
+- messages/*.json (all 8 languages)
+
+## [118] Remove nested scrollbar from comments/activity timeline
+
+**What**: Removed `max-h-72 overflow-y-auto` from the timeline list container so it no longer creates a second scrollbar inside the panel.
+**Why**: The parent panel already handles scrolling — the inner constraint was redundant and caused a confusing double-scroll UX.
+**Files**:
+- components/comment-thread.tsx
+
+## [117] Add dispute_received notification type and clarify access model
+
+**What**: Added `dispute_received` notification type for incoming disputes. Clarified across steering docs and codebase that all features are available to all authenticated users — only system settings require admin role.
+**Decisions**:
+- Access model comment added to `lib/auth-options.ts` as the canonical reference for developers
+- Steering docs updated: product.md rewritten with explicit access model section, tech.md auth section expanded, structure.md annotations corrected
+- `dispute_received` notification fires as a global notification (no userId) so all users see it
+**Files**:
+- lib/services/notification-service.ts
+- app/api/dispute/verify/route.ts
+- lib/auth-options.ts
+- .kiro/steering/product.md
+- .kiro/steering/tech.md
+- .kiro/steering/structure.md
+- messages/*.json (all 8 languages)
+
+## [116] Separate requires_review from pending in volume analytics chart
+
+**What**: Added a distinct `requiresReview` field to volume data points so receipts awaiting human review no longer inflate the "pending" count in the analytics chart.
+**Why**: The catch-all `pending = total - verified - rejected` was including `requires_review` receipts, making it look like unprocessed receipts existed when all had actually been handled by AI.
+**Files**:
+- lib/services/analytics-service.ts
+- app/admin/analytics/page.tsx
+- tests/services/analytics-service.test.ts
+- messages/*.json (all 8 languages)
+
+## [115] Fix "Load More" in human review section resetting list back to page 1
+
+**What**: Moved the cursor for review-required pagination into a ref so the `fetchReviewRequired` callback identity stays stable and doesn't trigger the initial-load effect on every page fetch.
+**Why**: `reviewRequiredCursor` in the `useCallback` dep array caused the callback to be recreated on each load, which cascaded into the auth-status effect calling `fetchReviewRequired(true)` (a reset).
+
+## [114] Fix mention notifications leaking to all users instead of only the mentioned user
+
+**What**: Added `userId` field to the Notification model so mention notifications are targeted to the specific mentioned user rather than broadcast globally.
+**Why**: The notification system was originally designed for global broadcasts only — when comment mentions were added, they reused the same global path, causing all users (including admin) to see every mention notification.
+**Decisions**:
+- `userId` is nullable — null means global (existing behavior for system notifications)
+- `getNotifications` and `getUnreadCount` now filter: show global (userId=null) + user-targeted notifications
+- Email delivery for targeted notifications only checks the target user's preference, not all users
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260601000008_add_user_id_to_notification/migration.sql
+- lib/services/notification-service.ts
+- lib/services/comment-service.ts
+- app/api/notifications/route.ts
+
+## [113] Fix missing messages directory in Docker images breaking email translations and dispute URLs
+
+**What**: Added `COPY --from=builder /app/messages ./messages` to all Docker targets (production, worker, staging) so email translations resolve at runtime instead of falling back to raw keys.
+**Why**: The `email-translations.ts` reads JSON files from `messages/` via `process.cwd()` — without the directory in the image, all translations silently fall back to key names.
+**Decisions**:
+- Also affects the standalone `Dockerfile.worker`
+- The broken dispute URL (`http:///dispute`) is a separate env issue — `APP_URL` must be set on the staging worker service
+**Files**:
+- Dockerfile
+- Dockerfile.worker
+
+## [112] Wire audit logs into receipt activity timeline
+
+**What**: Merged existing audit log entries for a receipt into the comment thread as a unified activity timeline, showing both comments and system events chronologically.
+**Decisions**:
+- Added `getAuditLogsForReceipt` that filters by receiptId inside metadata JSON
+- Reused CommentThread component rather than creating a separate one — audit entries render with distinct system-event styling
+- Header changed from "Comments" to "Activity" to reflect the combined timeline
+**Files**:
+- lib/services/audit-log-service.ts
+- app/api/receipts/[id]/activity/route.ts (new)
+- components/comment-thread.tsx
+- messages/*.json (all 8 languages)
+
+## [111] Fix build failure from env var validation at module load time
+
+**What**: Replaced throwing helper functions for GOOGLE_CLIENT_ID/SECRET with fallback empty strings so `next build` doesn't crash when env vars aren't available at build time (Railway injects them at runtime only).
+**Files**:
+- lib/auth-options.ts
+
+## [110] Fix admin dashboard bugs: disputes badge, comment thread, access control
+
+**What**: Added badge count to Disputes tab, added CommentThread to dispute modal, removed user-scoping from receipt list/view/download so all authenticated users can access all receipts.
+**Decisions**:
+- Disputes badge counts items with status "pending" or "requires_review"
+- Only `/admin/settings` retains admin-role guard; all other routes are open to any authenticated user
+**Files**:
+- app/admin/page.tsx
+- lib/services/receipt-service.ts
+- tests/services/receipt-service.test.ts
+- tests/routes/receipts.test.ts
+
+## [109] Fix review findings from 26.05.20.1-feature-sprint
+
+**What**: Fixed SMTP password exposure in settings API, remediated 30+ banned code patterns (ternaries, magic values, abbreviations, console.error, chained ops), added missing translations, restored admin auth guard, added limit caps and JSON parse guards on API routes.
+**Decisions**:
+- Created `lib/client-logger.ts` for browser-side structured logging (pino is server-only)
+- Used `getFraudRiskColorClass` helper to eliminate repeated fraud score ternaries
+- Relative time functions now accept translation objects to eliminate hardcoded strings
+**Files**:
+- app/api/admin/settings/route.ts
+- app/api/admin/disputes/route.ts
+- app/api/admin/receipts/review-required/route.ts
+- app/admin/page.tsx
+- app/admin/analytics/page.tsx
+- components/comment-thread.tsx
+- components/notification-bell.tsx
+- components/mention-autocomplete.tsx
+- lib/client-logger.ts (new)
+- messages/*.json (all 8 languages)
+
+## [108] Complete Google SSO for login and signup
+
+**What**: Added Google sign-up button to signup page, removed drive.readonly scope (login-only needs profile+email), added startup validation for Google OAuth env vars, removed accessToken from session.
+**Decisions**:
+- Env var validation uses lazy functions (called at module evaluation) to fail fast in production but allow test env override via vitest config
+- Kept `refreshGoogleToken` in auth-service as dead code for now (separate cleanup)
+- Used `allowDangerousEmailAccountLinking: true` so existing email/password users can link Google seamlessly
+**Files**:
+- lib/auth-options.ts
+- app/signup/page.tsx
+- vitest.config.ts
+- .env.example
+- messages/*.json (all 8 languages)
+
+## [107] Add comment thread UI with @-mention autocomplete
+
+**What**: Built CommentThread and MentionAutocomplete components, integrated into admin receipt detail modal, added Comments translation keys to all 8 locale files.
+**Decisions**:
+- Used custom useMentionInput hook for shared mention logic between compose and edit modes
+- Positioned autocomplete dropdown using fixed positioning relative to textarea
+- Comment thread placed below download button in receipt detail panel
+**Files**:
+- components/comment-thread.tsx
+- components/mention-autocomplete.tsx
+- app/admin/page.tsx
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [106] Add unit tests for comment-service
+
+**What**: Added 22 unit tests covering createComment validation, editComment authorization and new-mention notifications, deleteComment authorization, and getComments ordering and deserialization.
+
+## [105] Add comment and user search API routes
+
+**What**: Created API routes for comment CRUD (GET/POST on receipts/[id]/comments, PATCH/DELETE on comments/[commentId]) and user search endpoint for @-mention autocomplete.
+**Decisions**:
+- Thin route handlers delegating to comment-service
+- User search uses Prisma directly (no service layer needed for simple query)
+**Files**:
+- app/api/receipts/[id]/comments/route.ts
+- app/api/receipts/[id]/comments/[commentId]/route.ts
+- app/api/users/search/route.ts
+
+## [104] Add comment service with CRUD and mention notifications
+
+**What**: Created `lib/services/comment-service.ts` with createComment, getComments, editComment, and deleteComment functions including body validation, author-only edit, author-or-admin delete, and fire-and-forget mention notifications for new and newly-added mentions.
+
+## [103] Add Comment model and comment_mention notification type
+
+**What**: Added Prisma Comment model with indexes and cascade relations to User/Receipt, added `comment_mention` to the notification type system.
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260520121706_add_comment_model/migration.sql
+- lib/services/notification-service.ts
+
+## [102] Add manual review disable/enable form to admin page
+
+**What**: Added a "Manual Disable" tab to the admin dashboard with a form for review ID, location ID, and tenant ID that calls the existing `disable-manual`/`enable-manual` API actions.
+**Why**: Restores the previously removed manual testing form for directly disabling/enabling reviews on the platform.
+**Files**:
+- app/admin/page.tsx
+- messages/*.json (all 8 languages)
+
+## [101] Move SMTP configuration from env vars to admin settings page
+
+**What**: SMTP settings (host, port, user, pass, from) are now configurable via the admin settings page with DB persistence, falling back to env vars if not set in the database.
+**Decisions**:
+- Reused existing `AppSetting` key-value table — no migration needed
+- Both email-service and notification-service now read SMTP config via `getSmtpSettings()` (DB-first, env fallback)
+- Removed singleton transport pattern in email-service since settings can change at runtime
+**Files**:
+- lib/services/app-settings-service.ts
+- lib/services/notification-service.ts
+- lib/email/email-service.ts
+- app/api/admin/settings/route.ts
+- app/admin/settings/page.tsx
+- messages/*.json (all 8 languages)
+- tests/services/email-service.test.ts
+- tests/services/app-settings-service.test.ts
+- tests/routes/admin-settings.test.ts
+
+## [100] Add date range picker and scrollable chart to analytics volume tab
+
+**What**: Volume chart now supports custom date ranges via date inputs and quick presets (Today, Last 7 days, Last 30 days). Chart is horizontally scrollable when many data points are shown. Service accepts optional `startDate`/`endDate` and computes bucket count dynamically.
+**Decisions**:
+- "Today" preset auto-switches to hourly granularity for the most useful view
+- Chart container uses `overflow-x-auto` with a min-width based on data point count
+- X-axis labels rotate at 45° when more than 14 bars to prevent overlap
+**Files**:
+- lib/services/analytics-service.ts
+- app/api/admin/analytics/route.ts
+- app/admin/analytics/page.tsx
+- messages/*.json (all 8 languages)
+- tests/services/analytics-service.test.ts
+
+## [099] Replace dashboard metrics with review-required list and add disputes tab
+
+**What**: Removed stat cards from admin dashboard top, replaced with scrollable list of `requires_review` receipts with time range filtering and cursor pagination. Replaced "Statistics" tab with "Disputes" tab showing all `ReceiptDispute` records with receipt preview modal and accept/reject actions.
+**Decisions**:
+- New API endpoint `/api/admin/receipts/review-required` with cursor pagination and date filtering
+- New API endpoint `/api/admin/disputes` (GET + PATCH) for listing and actioning disputes
+- Dispute accept/reject updates both `ReceiptDispute.status` and linked `Receipt.verificationStatus` in a transaction
+- Reused existing receipt download endpoint for dispute receipt previews (disputes store receipts in the same R2 bucket)
+**Files**:
+- app/admin/page.tsx
+- app/api/admin/disputes/route.ts (new)
+- app/api/admin/receipts/review-required/route.ts (new)
+- messages/*.json (all 8 languages)
+
+## [098] Add notification system with bell dropdown, preferences, and email delivery
+
+**What**: Added global notification feed with bell icon in header (unread badge, dropdown list, mark-all-read), per-user notification preferences on the `/settings` page (none/in-app/email per notification type), and email delivery via existing SMTP for users who opt in.
+**Decisions**:
+- Global `Notification` table (no userId) — all users see the same feed
+- Unread tracking via `lastNotificationReadAt` timestamp on User (option B — simpler than per-user read state)
+- `NotificationPreference` table stores per-user channel choice per notification type
+- Email delivery uses existing SMTP config (nodemailer) with a simple HTML template
+- 5 notification types: receipt_requires_review, receipt_processed, review_disabled, dispute_outcome, role_changed
+- Fire-and-forget pattern consistent with audit log service
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260601000007_add_notifications/migration.sql
+- lib/services/notification-service.ts (new)
+- app/api/notifications/route.ts (new)
+- app/api/notifications/preferences/route.ts (new)
+- components/notification-bell.tsx (new)
+- components/header.tsx
+- app/settings/page.tsx
+- messages/*.json (all 8 languages)
+
+## [097] Fix review findings for analytics feature
+
+**What**: Resolved all 14 banned pattern violations and 1 localization issue from code review 26.05.20-analytics.
+**Decisions**:
+- Extracted time constants (`MILLISECONDS_PER_SECOND`, `SECONDS_PER_MINUTE`, etc.) and `PERCENTAGE_MULTIPLIER` in analytics-service
+- Extracted `RECEIPT_ID_PREVIEW_LENGTH` constant for `slice(0, 8)` calls
+- Replaced `buildSummary` hardcoded English strings with `t()` calls using new translation keys (`summaryReceiptVerdict`, `summaryRoleChanged`, `summaryUpdated`, `summaryReceipt`)
+- Added translation keys to all 8 locale files
+**Files**:
+- lib/services/analytics-service.ts
+- app/admin/analytics/page.tsx
+- app/api/admin/analytics/route.ts
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [096] Build AuditLogTab component with category filters, table, and pagination
+
+**What**: Replaced the placeholder audit log tab in the analytics page with a full implementation featuring category filter pills, a data table, cursor-based pagination, loading spinner, and empty state.
+**Decisions**:
+- Used separate `AuditLog` translation namespace to keep keys organized
+- Category badge colors map to distinct Tailwind color classes per category
+- Summary column derives human-readable text from metadata JSON
+- Silent error handling in fetch (matching existing page pattern for client-side code)
+**Files**:
+- app/admin/analytics/page.tsx
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+
+## [095] Add unit tests for audit-log-service
+
+**What**: Unit tests covering writer error isolation (fire-and-forget, error logging), cursor-based pagination, and category filtering.
+
+## [094] Rename admin settings nav link to "Admin" and add user settings placeholder
+
+**What**: Renamed admin settings link label from "Settings" to "Admin" in header navigation, added a new "Settings" link visible to all authenticated users pointing to `/settings`, and created a placeholder settings page.
+**Decisions**:
+- Used `Shield` icon for admin link to visually distinguish from user settings
+- Created `UserSettings` namespace to avoid conflict with existing `Settings` namespace (admin settings page)
+**Files**:
+- components/header.tsx
+- app/settings/page.tsx
+- messages/en.json, nl.json, de.json, fr.json, es.json, af.json, xh.json, zu.json
+- tests/pages/header-navigation.test.tsx
+
+## [093] Add recordAuditEvent calls to all integration points
+
+**What**: Integrated fire-and-forget audit logging into OCR service, receipt service, admin reviews disable route, admin service, settings route, receipt worker, receipt creator, and dispute verify route.
+**Decisions**:
+- Added `adminId` parameter to `updateUserRole` (optional, threaded from calling route)
+- Used `(session.user as any).id` pattern consistent with existing codebase for session user ID access
+- Mocked audit-log-service in affected test files since fire-and-forget calls don't need testing in route tests
+**Files**:
+- lib/services/ocr-service.ts
+- lib/services/receipt-service.ts
+- app/api/admin/reviews/disable/route.ts
+- lib/services/admin-service.ts
+- app/api/admin/users/route.ts
+- app/api/admin/settings/route.ts
+- lib/queue/receipt-worker.ts
+- lib/receipt-sync/receipt-creator.ts
+- app/api/dispute/verify/route.ts
+- tests/routes/admin.test.ts
+- tests/routes/receipts.test.ts
+- tests/routes/admin-settings.test.ts
+
+## [092] Extend analytics route with type=audit handler
+
+**What**: Added `type=audit` query param support to the analytics API route, delegating to `getAuditLogs` with optional `category` and `cursor` params.
+**Decisions**:
+- Validates category against allowed values before querying
+- Replaced `console.error` with shared logger in catch block
+- Extracted `handleAuditQuery` helper to keep the route handler thin
+
+## [091] Add AuditLog model and audit-log-service with fire-and-forget writer and cursor-based query
+
+**What**: Added `AuditLog` Prisma model with composite indexes and created `lib/services/audit-log-service.ts` with `recordAuditEvent` (fire-and-forget, internal error logging) and `getAuditLogs` (cursor-based pagination, category filtering).
+**Decisions**:
+- No foreign key on actorId — entries survive user deletion
+- Writer catches errors internally via shared logger, never propagates
+- Query fetches limit+1 to determine hasMore without a separate count query
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260601000006_add_audit_log/migration.sql
+- lib/services/audit-log-service.ts
+
+## [090] Show queued/processed dates in admin table, move user/date/amount to modal
+
+**What**: Replaced User, Date, and Amount columns in the admin review queue table with Queued and Processed timestamp columns. The removed data is already visible in the receipt detail modal.
+
+## [089] Add queuedAt timestamp to Receipt model
+
+**What**: Track when a receipt is pulled into the processing queue via a new `queuedAt` field, complementing the existing `processedAt` timestamp. Display both timestamps on user and admin receipt cards.
+**Files**:
+- prisma/schema.prisma
+- prisma/migrations/20260520000000_add_queued_at_to_receipt/migration.sql
+- lib/queue/receipt-queue.ts
+- lib/services/receipt-service.ts
+- components/receipt-card.tsx
+- components/admin-receipt-card.tsx
+- app/admin/page.tsx
+- messages/*.json (all 8 languages)
+- tests/routes/receipts.test.ts
+- tests/routes/admin.test.ts
+- tests/services/ocr-service.test.ts
+- tests/services/receipt-service.test.ts
+
+## [088] Add analytics page with metrics, volume chart, and audit log tab
+
+**What**: Added admin-only analytics page at `/admin/analytics` with three tabs: metrics overview (receipt counts, approval/rejection rates), receipt volume stacked bar chart (filterable by hour/day/week using Recharts), and a placeholder audit log tab for future implementation.
+**Decisions**:
+- Used Recharts for the volume chart (already installed, simplest React integration)
+- Analytics service separates data logic from the API route
+- Volume query fetches all receipts in range and buckets client-side (sufficient for current scale)
+- Audit log tab is an empty placeholder per requirements
+**Files**:
+- lib/services/analytics-service.ts (new)
+- app/api/admin/analytics/route.ts (new)
+- app/admin/analytics/page.tsx (new)
+- components/header.tsx
+- messages/*.json (all 8 languages)
+- tests/services/analytics-service.test.ts (new)
+- tests/pages/header-navigation.test.tsx
+
+## [087] Fix review findings from 26.05.19 code review
+
+**What**: Applied all 10 standards fixes (ternaries → if-else, short-circuits → if-else, chained ops → separate lines, magic numbers → named constants) and 3 security fixes (admin-gate settings nav link, Zod schema validation on secondary analysis LLM output, type guard on parsed verdict).
+**Decisions**:
+- Confidence thresholds extracted to `CONFIDENCE_HIGH_THRESHOLD` / `CONFIDENCE_MEDIUM_THRESHOLD` constants with helper functions
+- Zod schema replaces manual verdict-only check in `runSecondaryAnalysis`, validating all fields including confidence range 0-100
+- Settings link in header gated on `role === "admin"` (both desktop and mobile)
+- Updated header navigation tests to reflect admin-only settings visibility
+**Files**:
+- app/admin/page.tsx
+- app/api/receipts/[id]/ocr/route.ts
+- lib/services/ocr-service.ts
+- lib/services/dispute-service.ts
+- app/admin/settings/page.tsx
+- components/header.tsx
+- lib/queue/receipt-worker.ts
+- tests/pages/header-navigation.test.tsx
+
+## [086] Add confidence column to review queue table
+
+**What**: Added OCR confidence value as a column before the risk column in the admin review queue table.
+**Files**: `app/admin/page.tsx`, `messages/*.json` (all 8 languages)
+
+## [085] Simplify confidence logic to single threshold with secondary analysis on all uncertain outcomes
+
+**What**: Replaced the two-threshold system (high/low) with a single confidence threshold. Receipts meeting the threshold with no failure indicators auto-verify; everything else goes through secondary analysis. Removed auto-reject on low confidence.
+**Why**: Low confidence on a pass was incorrectly auto-rejecting receipts. Confidence should indicate whether to trust the model's judgment, not determine the outcome directly.
+**Decisions**:
+- Single threshold gate: ≥ threshold + no failure + readable + fields = verified; everything else = requires_review
+- Secondary analysis runs on ALL non-verified, non-hard-rule outcomes (not just rejections)
+- Hard rules (duplicate, date too old) still reject immediately without secondary analysis
+- Auto-disable triggers on hard-rule rejections (bypass secondary confirmation) and secondary-confirmed rejections
+- Removed `getLowConfidenceThreshold`, `SETTING_LOW_CONFIDENCE_THRESHOLD`, and all low threshold UI/translations
+- Updated secondary prompt to handle uncertain results (not just rejections)
+**Files**:
+- lib/services/ocr-service.ts
+- lib/services/app-settings-service.ts
+- lib/services/dispute-service.ts
+- lib/queue/receipt-worker.ts
+- app/api/receipts/[id]/ocr/route.ts
+- app/api/admin/settings/route.ts
+- app/admin/settings/page.tsx
+- messages/*.json (all 8 languages)
+- tests/services/ocr-service.test.ts
+- tests/services/app-settings-service.test.ts
+- tests/routes/admin-settings.test.ts
+
+## [084] Give secondary analysis authority to overwrite verification status and OCR values
+
+**What**: Secondary analysis now returns a structured verdict (confirmed_rejection, overturned_to_verified, requires_review) with its own OCR extraction values and confidence score, which overwrite the initial analysis and re-apply confidence threshold logic.
+**Decisions**:
+- Secondary analysis prompt updated to extract its own shop name, date, amount, confidence, and readable flag
+- Verdict drives final status: confirmed keeps rejection, overturned/requires_review re-runs `determineVerificationStatus` with secondary values
+- `secondaryAnalysis` DB field now stores JSON (with legacy string fallback in worker)
+- Auto-disable only triggers on `confirmed_rejection` verdict
+- Applied consistently across all three OCR paths (worker, streaming route, dispute verify)
+**Files**: `lib/services/ocr-service.ts`, `lib/queue/receipt-worker.ts`, `app/api/receipts/[id]/ocr/route.ts`, `lib/services/dispute-service.ts`, `app/api/dispute/verify/route.ts`, `components/receipt-card.tsx`
+
+## [083] Fix blank page on reload and add receipt queue auto-refresh
+
+**What**: Removed the `mounted` state guard in `Providers` that hid the entire app tree before hydration, and added 15-second polling to the admin receipts queue.
+**Why**: The mounted guard caused a blank page when session resolution raced with the visibility toggle; the queue had no mechanism to show new receipts without a manual reload.
+**Decisions**:
+- `next-themes` already handles hydration internally — the external mounted guard was redundant
+- 15s polling interval balances freshness with network cost
+**Files**: `components/providers.tsx`, `app/admin/page.tsx`
+
+## [082] Add auto-disable location whitelist
+
+**What**: Added a location whitelist setting that restricts auto-disable to specific location IDs only (requires auto-disable to be enabled as prerequisite)
+**Decisions**:
+- Stored as JSON string array in `AppSetting` table (same pattern as other settings)
+- Empty whitelist means all locations are allowed (backwards-compatible default)
+- Whitelist check applied in both `receipt-worker` and `admin/receipts` auto-disable paths
+- UI section only visible when auto-disable toggle is on
+**Files**: `lib/services/app-settings-service.ts`, `app/api/admin/settings/route.ts`, `lib/queue/receipt-worker.ts`, `app/api/admin/receipts/route.ts`, `app/admin/settings/page.tsx`, `messages/*.json`, `tests/services/app-settings-service.test.ts`, `tests/routes/admin-settings.test.ts`
+
+## [081] Add confidence threshold settings to admin settings page
+
+**What**: Added configurable high/low confidence thresholds to the settings page and wired them into the OCR verification logic. Thresholds are stored in the `AppSetting` table with defaults of 70 (auto-verify) and 30 (auto-reject).
+**Decisions**:
+- `determineVerificationStatus` accepts optional thresholds parameter, defaults to module constants when not provided
+- `processReceiptOcr` reads thresholds from DB at call time; streaming OCR route and dispute route use defaults (can be wired later if needed)
+- Input validated server-side: must be number between 0-100
+**Files**: `lib/services/app-settings-service.ts`, `lib/services/ocr-service.ts`, `app/api/admin/settings/route.ts`, `app/admin/settings/page.tsx`, `tests/services/app-settings-service.test.ts`, `tests/routes/admin-settings.test.ts`, `messages/*.json`
+
+## [080] Add auto-verify and auto-disable toggles to admin settings page
+
+**What**: Added toggle switches to the admin settings page for controlling auto-verify (synced receipts) and auto-disable (rejected reviews) features, backed by a new `AppSetting` database table.
+**Decisions**:
+- DB-backed settings with env var fallback — toggles override env vars when set
+- Consumers (`receipt-worker`, `receipt-creator`, `admin/receipts` route) now read from DB at call time
+**Files**: `prisma/schema.prisma`, `prisma/migrations/20260601000005_add_app_setting/`, `lib/services/app-settings-service.ts`, `app/api/admin/settings/route.ts`, `app/admin/settings/page.tsx`, `lib/queue/receipt-worker.ts`, `lib/receipt-sync/receipt-creator.ts`, `app/api/admin/receipts/route.ts`, `messages/*.json`
+
+## [079] Handle pre-existing database migration failures in entrypoint
+
+**What**: Updated docker-entrypoint.sh to handle P3018 (relation already exists) and P3009 (previously failed migration) in addition to P3005, so deploys to environments with pre-existing tables recover automatically.
+**Why**: Deploying to an old environment whose tables predate Prisma migrations caused an unrecoverable failed-migration state.
+**Files**: `scripts/docker-entrypoint.sh`
+
+## [078] Add unit tests for navigation consolidation
+
+**What**: Added unit tests covering settings page auth redirects and role update fetch calls, dashboard redirect behavior, and header navigation link rendering for authenticated/unauthenticated users.
+**Files**: `tests/pages/settings-page.test.ts`, `tests/pages/dashboard-redirect.test.ts`, `tests/pages/header-navigation.test.tsx`
+
+## [077] Update all 8 message files for navigation consolidation
+
+**What**: Removed `Moderation`, `Reviews`, `ReviewDisable`, `Automation` namespaces; updated `Header` to remove `adminPanel`/`moderation`/`platforms`; changed `Admin.title` to "Dashboard" (translated); removed user-management keys from `Admin`; ensured `Settings` namespace has all required keys.
+**Files**: `messages/en.json`, `messages/nl.json`, `messages/de.json`, `messages/fr.json`, `messages/es.json`, `messages/af.json`, `messages/xh.json`, `messages/zu.json`
+
+## [076] Create admin settings page with user management
+
+**What**: Created `app/admin/settings/page.tsx` with admin-only auth check and user management UI (role dropdown per user, fetching from `/api/admin/users`). Added `Settings` translation namespace to all 8 language files.
+**Files**: `app/admin/settings/page.tsx`, `messages/en.json`, `messages/nl.json`, `messages/de.json`, `messages/fr.json`, `messages/es.json`, `messages/af.json`, `messages/xh.json`, `messages/zu.json`
+
+## [075] Simplify admin page: remove users tab, ManualDisableForm, add Reason column
+
+**What**: Removed the "users" tab and ManualDisableForm from the admin page, keeping only queue and stats tabs. Added a "Reason" column to the receipt queue table showing `failureReason` (dash when empty).
+**Files**: `app/admin/page.tsx`
+
+## [074] Replace user dashboard with redirect to /admin
+
+**What**: Replaced the entire user dashboard page with a server component that redirects to `/admin`, ensuring existing bookmarks continue to work.
+**Files**: `app/dashboard/page.tsx`
+
+## [073] Consolidate header navigation to Dashboard and Settings
+
+**What**: Replaced 4 admin nav links with 2 (Dashboard → `/admin`, Settings → `/admin/settings`) for all authenticated users, removing admin-only gating.
+**Files**: `components/header.tsx`, `messages/en.json`, `messages/nl.json`, `messages/de.json`, `messages/fr.json`, `messages/es.json`, `messages/af.json`, `messages/xh.json`, `messages/zu.json`
+
+## [072] Remove moderation, platforms, and automation features
+
+**What**: Deleted all moderation, platforms, and automation code — pages, API routes, service layer, executor, and tests — and dropped the AutomationWorkflow table via Prisma migration.
+**Files**: `app/admin/moderation/`, `app/admin/platforms/`, `app/admin/settings/automation/`, `app/api/reviews/`, `app/api/admin/automation/`, `lib/automation/`, `lib/services/automation-service.ts`, `tests/routes/automation.test.ts`, `tests/routes/reviews.test.ts`, `tests/services/automation-service.test.ts`, `prisma/schema.prisma`, `prisma/migrations/20260601000004_drop_automation_workflow/`
+
 ## [071] Fix review findings for email-notification-on-disable branch
 
 **What**: Resolved all 22 standards violations (ternaries → if-else, short-circuits → explicit assignments, magic values → named constants), 2 security issues (pinned @types/nodemailer, escaped HTML in email intro), and 4 stability issues (race condition via upsert, wrapped response.text() in try-catch, added env var startup validation, added Zod schemas to 3 dispute API routes).

@@ -16,11 +16,14 @@ model User {
   image         String?   // Profile image from OAuth provider
   emailVerified DateTime? // Email verification timestamp for OAuth
   role          String    @default("user") // "user" or "admin"
+  lastNotificationReadAt DateTime? // Notifications newer than this are unread
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   receipts      Receipt[]
   adminActions  AdminAction[]
   accounts      Account[]
+  comments      Comment[]
+  bookmarks     Bookmark[]
 }
 
 model Account {
@@ -49,9 +52,10 @@ model Receipt {
   
   // File info
   cloudStoragePath    String
+  previewStoragePath  String?   // converted preview image path (for HEIC, DOC, DOCX)
   isPublic            Boolean   @default(false)
   originalFilename    String
-  fileType            String    // "image" or "pdf"
+  fileType            String    // "image", "pdf", "heic", "doc", "docx"
   fileSize            Int
   
   // Archive
@@ -84,10 +88,17 @@ model Receipt {
   // Timestamps
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+  queuedAt            DateTime?
   processedAt         DateTime?
   
   // Admin actions
   adminActions        AdminAction[]
+
+  // Comments
+  comments            Comment[]
+
+  // Bookmarks
+  bookmarks           Bookmark[]
 }
 
 model AdminAction {
@@ -99,17 +110,6 @@ model AdminAction {
   action        String    // "approve", "reject", "flag", "download"
   notes         String?
   createdAt     DateTime  @default(now())
-}
-
-model AutomationWorkflow {
-  id          String   @id @default(cuid())
-  name        String
-  platform    String   // "kiyoh" | "kv"
-  description String?
-  steps       String   @db.Text // JSON array of steps
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }
 
 model ReceiptSyncState {
@@ -187,4 +187,103 @@ model ReceiptDispute {
   @@index([reviewId])
   @@index([receiptId])
   @@index([status])
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  category  String
+  action    String
+  actorId   String?
+  metadata  String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([category, createdAt])
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // receipt_requires_review, receipt_processed, review_disabled, dispute_outcome, role_changed, comment_mention
+  title     String
+  body      String
+  metadata  String?  @db.Text // JSON blob with action-specific context (receiptId, etc.)
+  userId    String?  // Target user — null means global (visible to all)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}
+
+model NotificationPreference {
+  id       String @id @default(cuid())
+  userId   String
+  type     String // notification type (matches Notification.type)
+  channel  String @default("in_app") // none, in_app, email
+
+  @@unique([userId, type])
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  body      String   @db.Text
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  receiptId String
+  receipt   Receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  mentions  String?  @db.Text // JSON array of mentioned user IDs
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([receiptId, createdAt])
+  @@index([authorId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  receiptId String
+  receipt   Receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, receiptId])
+  @@index([userId])
+  @@index([receiptId])
+}
+
+model FailureReasonDefinition {
+  code        String   @id
+  description String
+  isBuiltIn   Boolean  @default(false)
+  enabled     Boolean  @default(true)
+  nl          String?
+  de          String?
+  fr          String?
+  es          String?
+  af          String?
+  xh          String?
+  zu          String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailTemplateOverride {
+  id        String   @id @default(cuid())
+  emailType String
+  key       String
+  locale    String
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([emailType, key, locale])
+  @@index([emailType, locale])
 }
